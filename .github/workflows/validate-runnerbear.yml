@@ -1,0 +1,58 @@
+name: Validate RunnerBear UI
+
+on:
+  push:
+    paths:
+      - '*.js'
+      - '*.css'
+      - 'index.html'
+      - 'site.webmanifest'
+      - '.github/workflows/validate-runnerbear.yml'
+  pull_request:
+    paths:
+      - '*.js'
+      - '*.css'
+      - 'index.html'
+      - 'site.webmanifest'
+      - '.github/workflows/validate-runnerbear.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          for f in plan.js runnerbear-v5-1.js runnerbear-v5-2.js runnerbear-v5-3.js runnerbear-v5-4.js runnerbear-v5-5.js runnerbear-v5-6.js runnerbear-v5-7.js; do
+            node --check "$f"
+          done
+      - name: Check HTML ids and local assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re, sys
+
+          html = Path('index.html').read_text(encoding='utf-8')
+          ids = re.findall(r'\bid=["\']([^"\']+)["\']', html)
+          dupes = sorted({x for x in ids if ids.count(x) > 1})
+          if dupes:
+              raise SystemExit('Duplicate HTML ids: ' + ', '.join(dupes))
+
+          refs = re.findall(r'(?:src|href)=["\']([^"\']+)["\']', html)
+          local = []
+          for ref in refs:
+              ref = ref.split('?',1)[0].split('#',1)[0]
+              if not ref or ref.startswith(('http://','https://','mailto:','#')):
+                  continue
+              local.append(ref.lstrip('/'))
+          missing = sorted({p for p in local if not Path(p).exists()})
+          if missing:
+              raise SystemExit('Missing local assets referenced by index.html: ' + ', '.join(missing))
+          print(f'Validated {len(ids)} unique ids and {len(local)} local asset references.')
+          PY
