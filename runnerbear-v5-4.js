@@ -1,3 +1,37 @@
+/* Equipment availability override: Zwift is available from 1 September 2026.
+   Before then, planned Zwift slots use Concept2 or very easy running instead. */
+const ZWIFT_START_DATE=new Date(2026,8,1,0);
+function zwiftAvailableFor(f){return f.date>=ZWIFT_START_DATE}
+(function applyPreSeptemberEquipmentPlan(){
+ const overrides={
+  'Man 10. aug':{title:'Concept2 / rolig løp + styrke',desc:'35–45 min lett Concept2 eller 5–6 km svært rolig løp + 20 min løpestyrke.',detail:'Concept2 er standardvalget. Velg rolig løp bare hvis bein og akilles er fine. Løpsalternativet er bonusvolum – ikke jag ukesmengde.',shoe:'Nike Vomero Premium hvis løp'},
+  'Man 17. aug':{title:'Concept2 / rolig løp + styrke',desc:'40–50 min lett Concept2 eller 5–6 km svært rolig løp + 20 min styrke.',detail:'Hold dette tydelig aerobt. Velg løping bare hvis du er frisk og akilles er stabil; tirsdagens terskel er viktigere.',shoe:'Nike Vomero Premium hvis løp'},
+  'Man 24. aug':{title:'Concept2 / rolig løp + styrke',desc:'40–50 min lett Concept2 eller 5–6 km svært rolig løp + mobilitet/styrke.',detail:'Ingen moderat roing og ingen rask løping. Dette skal støtte tirsdagens 4 × 10 min, ikke konkurrere med den.',shoe:'Nike Vomero Premium hvis løp'},
+  'Man 31. aug':{title:'Hvile / Concept2 / svært rolig løp',desc:'Hvile, 30–35 min lett Concept2 eller 4–5 km svært rolig løp hvis du føler deg frisk.',detail:'Absorpsjonsuke: velg hvile ved tunge bein eller akillesuro. Zwift tas først i bruk fra september.',shoe:'Nike Vomero Premium hvis løp'}
+ };
+ flat.forEach(f=>{const o=overrides[f.label];if(!o)return;f.title=o.title;f.desc=o.desc;f.detail=o.detail;f.shoe=o.shoe;f.raw[2]=o.title;f.raw[3]=o.desc;f.raw[4]=o.detail;f.raw[5]=o.shoe});
+})();
+const _baseWorkoutPurpose=workoutPurpose;
+workoutPurpose=function(f){
+ if(!zwiftAvailableFor(f)&&f.type==='cross')return'Legge til lett aerob trening via Concept2 eller svært rolig løp uten å forstyrre neste kvalitetsøkt.';
+ if(!zwiftAvailableFor(f)&&f.label==='Man 31. aug')return'Absorbere treningen. Aktivitet er valgfritt og skal gjøre deg friskere, ikke mer sliten.';
+ return _baseWorkoutPurpose(f);
+};
+const _baseCoachBefore=coachBefore;
+coachBefore=function(f){
+ const a=localStorage.getItem(adaptKey(f.label));if(a)return adaptationAdvice(f,a).short;
+ if(!zwiftAvailableFor(f)&&f.type==='cross')return'Concept2 eller svært rolig løp skal støtte løpingen. Ingen moderat «mellomøkt» – tirsdagens kvalitet får prioritet.';
+ if(!zwiftAvailableFor(f)&&f.label==='Man 31. aug')return'Absorpsjon først. Hvile er et like godt valg som lett roing/løp hvis beina trenger det.';
+ return _baseCoachBefore(f);
+};
+const _baseAdaptationAdvice=adaptationAdvice;
+adaptationAdvice=function(f,reason){
+ if(!zwiftAvailableFor(f)&&reason==='achilles')return{short:'Akilles trumfer kalenderen i dag.',html:'<strong>Velg Concept2 eller hvile – ikke løpsalternativet.</strong> 35–60 min svært lett roing er nok hvis det er smertefritt. Ikke flytt en tapt kvalitetsøkt automatisk til i morgen. Ved tydelig hevelse, halting eller skarp smerte: avbryt og få det vurdert.'};
+ if(!zwiftAvailableFor(f)&&f.type==='cross'&&reason==='tired')return{short:'Gjør mandagen lettere, ikke mer effektiv.',html:'<strong>Velg 25–35 min svært lett Concept2 eller full hvile.</strong> Hvis du heller løper, hold det til 4–5 km svært rolig og bare hvis beina kjennes normale.'};
+ if(!zwiftAvailableFor(f)&&f.type==='cross'&&reason==='time')return{short:'Kort aerob dose er nok.',html:'<strong>20–30 min lett Concept2 eller 4 km svært rolig løp.</strong> Ikke øk intensiteten for å kompensere for kortere tid.'};
+ return _baseAdaptationAdvice(f,reason);
+};
+
 function renderPlan(){
  const sel=$('weekFilter');if(!sel.options.length||sel.options.length===1){weeks.forEach(w=>{const o=document.createElement('option');o.value=w.n;o.textContent=`Uke ${w.n} · ${w.range}`;sel.appendChild(o)})}
  const val=sel.value;$('weeks').innerHTML='';
