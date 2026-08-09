@@ -1,0 +1,24 @@
+/* RunnerBear v5.7 · visual polish */
+.load-card{overflow:hidden}
+.load-chart{height:158px;min-height:158px;display:flex;align-items:flex-end;gap:10px;overflow-x:auto;overflow-y:hidden;padding:8px 4px 4px;margin-top:10px;-webkit-overflow-scrolling:touch}
+.loadbar{flex:1 0 48px;min-width:48px;height:140px;display:grid;grid-template-rows:18px 1fr 18px;align-items:end;justify-items:center;text-align:center;color:var(--muted)}
+.loadbar b{align-self:end;margin:0 0 4px;font-size:10px;line-height:1;white-space:nowrap;color:var(--text)}
+.loadbar i{align-self:end;display:block;width:32px;max-width:72%;margin:0 auto;background:linear-gradient(var(--green),#387c58);border-radius:7px 7px 3px 3px}
+.loadbar span{display:block;align-self:end;margin-top:5px;font-size:9px;line-height:1;white-space:nowrap}
+
+.metric-divider{height:1px;background:var(--line);margin:18px 0 15px}
+.metric-kicker{margin-bottom:8px}.vo2-headline{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}.vo2-headline strong{font-size:31px;line-height:1;font-weight:900}.vo2-headline span{font-size:11px;color:var(--muted)}
+.form-trend-insight{margin:11px 0;padding:10px 11px;border-left:3px solid var(--blue);border-radius:0 10px 10px 0;background:#84aef50a;color:#cddaf2;font-size:11px;line-height:1.45}
+.vo2-list{margin:9px 0}.vo2-row{display:grid;grid-template-columns:1fr auto auto;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line);font-size:11px}.vo2-row b{font-size:13px}.vo2-row button{border:0;background:transparent;color:#7f8b98;padding:3px 0;font-size:9px}.vo2-row button:hover{color:var(--red)}
+.add-vo2 summary{cursor:pointer;color:var(--green);font-size:12px}.vo2-form{display:grid;grid-template-columns:1fr .7fr auto;gap:6px;margin-top:8px}.vo2-form input{min-width:0;width:100%;background:#0c131a;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px}.vo2-form button{border:1px solid var(--line);background:#0d141c;color:var(--text);border-radius:10px;padding:9px 11px}.vo2-note{margin:9px 0 0;color:var(--muted);font-size:10px;line-height:1.45}
+
+@media(max-width:640px){
+ .load-chart{height:164px;min-height:164px;gap:8px;padding:8px 2px 5px}
+ .loadbar{flex-basis:52px;min-width:52px;height:146px}
+ .loadbar i{width:30px}
+ .threshold-form{grid-template-columns:1fr 1fr}
+ .threshold-form button{grid-column:1/-1}
+ .vo2-form{grid-template-columns:1fr 1fr}
+ .vo2-form button{grid-column:1/-1}
+ .vo2-headline strong{font-size:29px}
+}
