@@ -94,11 +94,17 @@
   }
   function applyTodayMode(f){
     const mode=selectedMode(f),p=prescription(f,mode);
-    if(mode==='run')return;
-    $('todayPace').textContent=mode==='row'?'RPE 2–3':'Z1/Z2';
-    $('todayHr').textContent=mode==='row'?'snakketempo':'RPE 2–3';
     $('todayKm').textContent=p.big;
     $('todayShoe').textContent=p.gear;
+    if(mode==='run'){
+      if(f.type==='cross'||f.type==='rest'){
+        $('todayPace').textContent='svært rolig';
+        $('todayHr').textContent='125–142 bpm';
+      }
+      return;
+    }
+    $('todayPace').textContent=mode==='row'?'RPE 2–3':'Z1/Z2';
+    $('todayHr').textContent=mode==='row'?'snakketempo':'RPE 2–3';
   }
   function clearTodaySelector(){
     $('todayCard')?.querySelectorAll('.easy-choice[data-easy-slot="today"], .easy-choice:not([data-easy-slot])').forEach(el=>el.remove());
