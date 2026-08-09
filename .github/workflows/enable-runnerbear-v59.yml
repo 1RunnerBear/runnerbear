@@ -1,4 +1,4 @@
-name: Enable RunnerBear v5.9
+name: Refine RunnerBear v5.9
 
 on:
   push:
@@ -10,30 +10,45 @@ permissions:
   contents: write
 
 jobs:
-  enable:
+  refine:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Wire v5.9 assets into index
+      - name: Add Plan-tab smart move and restore race goal
         run: |
           python - <<'PY'
           from pathlib import Path
-          p=Path('index.html')
+          p=Path('runnerbear-v5-8.js')
           s=p.read_text(encoding='utf-8')
-          css='<link rel="stylesheet" href="runnerbear-v5-8.css?v=9">'
-          js='<script src="runnerbear-v5-8.js?v=9"></script>'
-          if css not in s:
-              s=s.replace('<link rel="stylesheet" href="runnerbear-v5-7.css?v=8">', '<link rel="stylesheet" href="runnerbear-v5-7.css?v=8">\n'+css)
-          if js not in s:
-              s=s.replace('<script src="runnerbear-v5-7.js?v=8"></script>', '<script src="runnerbear-v5-7.js?v=8"></script>\n'+js)
+          insert='''  function injectPlanMoveControl(node,f){\n    node.querySelectorAll('.plan-smart-move').forEach(x=>x.remove());\n    if(!f||f.type==='race'||isDone(f.label)||!isKey(f))return;\n    if(effectiveDate(f)<startOfDay(today)&&!sameDay(effectiveDate(f),today))return;\n    const body=node.querySelector('.day-body'),actions=node.querySelector('.day-actions');if(!body||!actions)return;\n    const partner=partnerLabel(f.label),other=partner&&workoutByLabel(partner),choices=partner?[]:candidateSwaps(f);\n    const wrap=document.createElement('details');wrap.className='plan-smart-move';\n    if(partner&&other){\n      wrap.innerHTML=`<summary>Flyttet til ${partner}</summary><div class="plan-move-body"><span>Byttet med ${other.title}. RunnerBear har kontrollert avstanden til øvrige nøkkeløkter.</span><button type="button" data-plan-move-reset>Tilbakestill</button></div>`;\n      wrap.querySelector('[data-plan-move-reset]').onclick=()=>clearSwap(f.label);\n    }else{\n      wrap.innerHTML=`<summary>Flytt smart</summary><div class="plan-move-body">${choices.length?choices.map((x,i)=>`<button type="button" data-plan-move-target="${x.target.label}" class="${i===0?'recommended':''}"><span>${x.target.label}${i===0?' · anbefalt':''}</span><b>Bytt med ${x.target.title}</b></button>`).join(''):'<span>Ingen trygg ±1 dag akkurat nå. Ikke komprimer kvalitet bare for å få økten gjennomført.</span>'}</div>`;\n      wrap.querySelectorAll('[data-plan-move-target]').forEach(b=>b.onclick=()=>applySwap(f,workoutByLabel(b.dataset.planMoveTarget)));\n    }\n    actions.insertAdjacentElement('afterend',wrap);\n  }\n\n'''
+          marker='  function postprocessPlanMoves(){\n'
+          if 'function injectPlanMoveControl' not in s:
+              s=s.replace(marker,insert+marker)
+          call='        injectEasyRunShoeLog(node,f);\n'
+          if '        injectPlanMoveControl(node,f);\n' not in s:
+              s=s.replace(call,call+'        injectPlanMoveControl(node,f);\n')
+          old='''  function bindRaceGoalPersistence(){\n    document.querySelectorAll('.goal').forEach(b=>{\n      if(b.dataset.rbGoalBound)return;b.dataset.rbGoalBound='1';\n      b.addEventListener('click',()=>{localStorage.setItem(RACE_GOAL_KEY,b.dataset.goal);renderRaceWeek()});\n    });\n  }\n'''
+          new='''  function restoreRaceGoal(){\n    const saved=Number(localStorage.getItem(RACE_GOAL_KEY)||0);if(![4980,5040,5100].includes(saved))return;\n    document.querySelectorAll('.goal').forEach(b=>b.classList.toggle('active',Number(b.dataset.goal)===saved));\n    updateRace(saved);\n  }\n  function bindRaceGoalPersistence(){\n    restoreRaceGoal();\n    document.querySelectorAll('.goal').forEach(b=>{\n      if(b.dataset.rbGoalBound)return;b.dataset.rbGoalBound='1';\n      b.addEventListener('click',()=>{localStorage.setItem(RACE_GOAL_KEY,b.dataset.goal);renderRaceWeek()});\n    });\n  }\n'''
+          if 'function restoreRaceGoal' not in s:
+              if old not in s:
+                  raise SystemExit('Expected race goal binding block not found')
+              s=s.replace(old,new)
           p.write_text(s,encoding='utf-8')
+
+          c=Path('runnerbear-v5-8.css')
+          css=c.read_text(encoding='utf-8')
+          extra='''.plan-smart-move{margin-top:8px;border-top:1px solid #ffffff0e;padding-top:7px}.plan-smart-move summary{cursor:pointer;color:#9fb6d9;font-size:9.5px}.plan-move-body{display:grid;gap:6px;margin-top:7px}.plan-move-body>span{color:var(--muted);font-size:9.5px;line-height:1.4}.plan-move-body button{display:grid;gap:2px;text-align:left;border:1px solid var(--line);background:#0d151e;color:var(--text);border-radius:8px;padding:7px 8px;font-size:9px}.plan-move-body button.recommended{border-color:#315341;background:#102019}.plan-move-body button span{color:var(--green);font-size:8px;text-transform:uppercase;letter-spacing:.05em}.plan-move-body button b{font-size:9.5px}\n'''
+          if '.plan-smart-move{' not in css:
+              c.write_text(css+'\n'+extra,encoding='utf-8')
           PY
-      - name: Commit index wiring
+      - name: Verify JavaScript
+        run: node --check runnerbear-v5-8.js
+      - name: Commit refinement
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add index.html
+          git add runnerbear-v5-8.js runnerbear-v5-8.css
           if ! git diff --cached --quiet; then
-            git commit -m "Enable RunnerBear v5.9 UI"
+            git commit -m "Refine RunnerBear v5.9 smart move UX"
             git push
           fi
