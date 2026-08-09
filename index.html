@@ -3,81 +3,209 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#090d12">
+<meta name="theme-color" content="#080c11">
 <title>RunnerBear · Runfest 21K</title>
-<link rel="stylesheet" href="runnerbear-v4-base.css">
-<link rel="stylesheet" href="runnerbear-v4-mobile.css">
+<link rel="stylesheet" href="runnerbear-v5.css">
 </head>
 <body>
-<div class="shell">
-  <header class="appTop">
-    <div class="brand"><div class="rbmark">RB</div><div class="brandText"><b>RUNNERBEAR</b><span>Runfest 21K · Sandnes</span></div></div>
-    <div class="raceCounter"><b><span id="countdown">–</span> dager</b><span>til Runfest</span></div>
-  </header>
+<div class="app">
+<header class="topbar">
+  <div class="brand"><div class="rb">RB</div><div><b>RUNNERBEAR</b><span>Runfest 21K · Sandnes</span></div></div>
+  <div class="race-count"><b><span id="countdown">–</span> dager</b><span>til start</span></div>
+</header>
 
-  <section class="mission">
-    <div class="missionMain"><div class="micro">Nå</div><div class="phaseNow" id="phaseNow">Uke 1 · Bygge kontroll</div><div class="muted" id="phaseFocus">Kontrollert terskel og kontinuitet.</div></div>
-    <div class="missionItem"><b>175</b><span>terskel bpm</span></div>
-    <div class="missionItem"><b>4:02</b><span>terskel / km</span></div>
-    <div class="missionItem"><b>1:23</b><span>A-mål · kvalifiseres</span></div>
-  </section>
+<nav class="desktop-nav" aria-label="Hovedmeny">
+  <button class="navbtn active" data-tab="today">I dag</button>
+  <button class="navbtn" data-tab="plan">Plan</button>
+  <button class="navbtn" data-tab="race">Race</button>
+  <button class="navbtn" data-tab="more">Mer</button>
+</nav>
 
-  <div class="toolbar">
-    <div class="tabs"><button class="navBtn tab active" data-tab="dash">I dag</button><button class="navBtn tab" data-tab="plan">Plan</button><button class="navBtn tab" data-tab="race">Race</button><button class="navBtn tab" data-tab="shoes">Sko</button><button class="navBtn tab" data-tab="zones">Soner</button><button class="navBtn tab" data-tab="principles">Prinsipper</button></div>
-    <div class="tools"><select id="weekFilter"><option value="all">Alle uker</option></select><button class="toolBtn" onclick="window.print()">PDF</button><button class="toolBtn" id="resetChecks">Nullstill</button></div>
-  </div>
+<main>
+<section id="today" class="view active">
+  <div class="today-grid">
+    <article class="card primary" id="todayCard">
+      <div class="kicker"><span id="todayDate">I dag</span><span class="tag" id="todayType">–</span></div>
+      <h1 id="todayTitle">–</h1>
+      <p class="lead" id="todayDesc">–</p>
+      <div class="keymetrics">
+        <div><b id="todayPace">–</b><span>styring / fart</span></div>
+        <div><b id="todayHr">–</b><span>puls</span></div>
+        <div><b id="todayKm">–</b><span>total</span></div>
+      </div>
+      <div class="purpose"><span>HENSIKT</span><b id="todayPurpose">–</b></div>
+      <div class="meta" id="todayShoe"></div>
+      <div class="meta fuel" id="todayFuel"></div>
+      <div class="coach-note" id="todayCoach">–</div>
+      <div id="paceAdjustmentToday" class="adjustment hidden"></div>
+      <div class="action-row">
+        <label class="complete"><input type="checkbox" id="todayDone"> <span>Gjennomført</span></label>
+        <button class="secondary" id="adaptBtn">Tilpass dagen</button>
+      </div>
+      <div id="adaptPanel" class="adapt-panel hidden">
+        <div class="micro">Hva har endret seg?</div>
+        <div class="choice-row">
+          <button data-reason="tired">😴 Sliten</button>
+          <button data-reason="achilles">🦶 Akilles</button>
+          <button data-reason="time">⏱️ Dårlig tid</button>
+          <button data-reason="skip">📅 Kan ikke i dag</button>
+        </div>
+        <div id="adaptAdvice" class="adapt-advice"></div>
+      </div>
+      <div id="todayFeedbackWrap"></div>
+    </article>
 
-  <main>
-    <section id="dash" class="section active">
-      <article class="card todayCard">
-        <div class="todayHeader"><div class="micro todayLabel" id="nextDate">I dag</div><span class="typePill" id="nextType">Økt</span></div>
-        <h1 id="nextTitle">–</h1>
-        <div class="todayDesc" id="nextDesc">–</div>
-        <div class="todayStats"><div class="todayStat"><b id="todayPace">–</b><span>fart</span></div><div class="todayStat"><b id="todayHr">–</b><span>puls</span></div><div class="todayStat"><b id="todayWork">–</b><span>arbeid</span></div></div>
-        <div class="todayMeta"><span id="nextShoe"></span><span id="nextFuel"></span></div>
-        <div class="coachWhisper"><b>RB Coach:</b> <span id="todayCoach">Gjennomfør kontrollert.</span></div>
+    <aside class="stack">
+      <article class="card coach-card">
+        <div class="kicker"><span>RB COACH</span><span id="coachLight" class="status-pill neutral">UAVKLART</span></div>
+        <h2 id="coachHeadline">Planen starter her</h2>
+        <p id="coachMessage">–</p>
+        <div class="coach-focus"><span>FOKUS</span><b id="coachFocus">–</b></div>
       </article>
 
-      <div id="coachPlus" class="coachPlus"></div>
+      <article class="card readiness">
+        <div class="kicker"><span>1:23 READINESS</span><span id="readinessStage">BYGGES</span></div>
+        <div class="road">
+          <div class="roadline"><i id="roadFill"></i></div>
+          <div class="roadpoints"><span>nå</span><span>Gate 1</span><span>Gate 2</span><span>Runfest</span></div>
+        </div>
+        <p id="readinessText" class="muted">–</p>
+        <button class="textbtn" id="showEvidence">Se bevisene →</button>
+      </article>
+    </aside>
+  </div>
 
-      <div class="quickStatus">
-        <div class="statusTile"><span class="statusSignal" id="coachStatusSignal"><i></i><span id="coachStatusWord">STATUS</span></span><b id="coachTitle">Uavklart</b><span id="coachText">Registrer respons.</span></div>
-        <div class="statusTile"><span>Denne uken</span><b id="weekKmCompact">0 / 0 km</b><span id="weekRunsCompact">0 / 0 løpeøkter</span></div>
-        <div class="statusTile"><span>Gate-status</span><b id="gateCompact">Ikke startet</b><span>Gate 2 kvalifiserer 1:23</span></div>
+  <div class="below-grid">
+    <article class="card">
+      <div class="kicker"><span>DENNE UKEN</span><span id="weekKmTop">–</span></div>
+      <div id="weekStrip" class="week-strip"></div>
+    </article>
+
+    <article class="card checkin">
+      <div class="kicker"><span>UKENTLIG KROPPSJEKK</span><span>subjektiv</span></div>
+      <h3>Hvordan kjennes kroppen totalt?</h3>
+      <div class="checkchoices">
+        <button data-check="fresh">🟢 Frisk</button>
+        <button data-check="tired">🟡 Litt sliten</button>
+        <button data-check="heavy">🔴 Tung</button>
       </div>
-      <div class="progressbar" style="height:6px;background:#1c2530;border-radius:8px;overflow:hidden;margin:8px 1px 0"><i id="weekProgress" style="display:block;height:100%;background:var(--accent);width:0"></i></div><div class="muted" id="weekProgressText" style="font-size:10px;margin-top:5px">–</div>
+      <p id="checkinHint" class="muted small">Ett svar i uka er nok. Dette erstatter ikke Garmin-data – det fanger hvordan du faktisk føler deg.</p>
+    </article>
+  </div>
 
-      <section class="card weekSnapshot"><div class="weekSnapshotHead"><div><div class="micro">Denne uken</div><h3 id="weekSnapshotTitle">Uke</h3></div><button class="toolBtn navTarget" data-target="plan">Åpne plan</button></div><div id="weekSnapshotList" class="weekList"></div></section>
-      <div style="margin-top:12px"><button class="toolBtn" id="copyStatus">Kopier status til ChatGPT</button><span class="toast" id="copyToast">Kopiert ✓</span></div>
-    </section>
+  <article class="card week-review">
+    <div class="kicker"><span>COACH REVIEW</span><span id="reviewWeek">–</span></div>
+    <h2 id="reviewHeadline">–</h2>
+    <p id="reviewText">–</p>
+    <div class="review-grid">
+      <div><span>DET SOM GÅR BRA</span><b id="reviewGood">–</b></div>
+      <div><span>FØLG MED PÅ</span><b id="reviewWatch">–</b></div>
+      <div><span>NESTE NØKKEL</span><b id="reviewNext">–</b></div>
+    </div>
+    <button class="secondary" id="copyStatus">Kopier status til ChatGPT</button>
+    <span id="copyToast" class="toast">Kopiert ✓</span>
+  </article>
+</section>
 
-    <section id="plan" class="section">
-      <div class="grid2">
-        <div class="card"><div class="planIntro"><div><div class="micro">8 uker</div><h2 style="margin:3px 0">Plan mot Runfest</h2><p class="muted">Presisjon &gt; innsats. Ingen økt skal vinnes.</p></div><select id="weekFilterMirror"><option value="all">Alle uker</option></select></div></div>
-        <div class="card"><div class="micro">Løpskilometer / uke</div><div class="chart" id="weekChart"></div></div>
+<section id="plan" class="view">
+  <div class="section-head"><div><span class="eyebrow">8 UKER</span><h1>Treningsplan</h1><p>Presisjon over innsats. Rolig betyr rolig. Kvalitet skal kunne gjentas.</p></div>
+    <select id="weekFilter"><option value="all">Alle uker</option></select>
+  </div>
+  <article class="card load-card"><div class="kicker"><span>BELASTNINGSKURVE</span><span>løpskm</span></div><div id="loadChart" class="load-chart"></div></article>
+  <div id="weeks"></div>
+</section>
+
+<section id="race" class="view">
+  <div class="section-head"><div><span class="eyebrow">RUNFEST · 3. OKTOBER</span><h1>Race</h1><p>Målet velges av bevisene, ikke ønsket alene.</p></div></div>
+  <div class="race-grid">
+    <article class="card">
+      <div class="kicker"><span>MÅLKORRIDOR</span><span>splitter</span></div>
+      <div class="goalbuttons">
+        <button class="goal active" data-goal="4980">1:23</button>
+        <button class="goal" data-goal="5040">1:24</button>
+        <button class="goal" data-goal="5100">1:25</button>
       </div>
-      <div id="weeks"></div>
-    </section>
+      <div class="racepace" id="goalPace">–</div>
+      <div class="splits">
+        <div><span>0–3 km</span><b id="rOpen">–</b></div>
+        <div><span>3–15 km</span><b id="rMid">–</b></div>
+        <div><span>15–20 km</span><b id="rLate">–</b></div>
+        <div><span>5 km</span><b id="r5">–</b></div>
+        <div><span>10 km</span><b id="r10">–</b></div>
+        <div><span>15 km</span><b id="r15">–</b></div>
+        <div><span>20 km</span><b id="r20">–</b></div>
+      </div>
+    </article>
+    <article class="card">
+      <div class="kicker"><span>BESLUTNINGSPORTER</span><span>kontroll</span></div>
+      <div class="gatebox"><b>Gate 1 · 11. sep</b><span>3 × 3 km @ 4:00–4:03/km</span><select id="gate1"><option value="">Ikke vurdert</option><option value="green">Grønn · tydelig kontrollert</option><option value="yellow">Gul · måtte jobbe</option><option value="red">Rød · måtte presse</option></select></div>
+      <div class="gatebox"><b>Gate 2 · 18. sep</b><span>3 × 3 km @ 3:55–3:58/km</span><select id="gate2"><option value="">Ikke vurdert</option><option value="green">Grønn · tydelig kontrollert</option><option value="yellow">Gul · måtte jobbe</option><option value="red">Rød · måtte presse</option></select></div>
+      <div id="gateAdvice" class="advice">–</div>
+    </article>
+  </div>
+  <article class="card evidence-card" id="evidenceCard">
+    <div class="kicker"><span>1:23 · BEVISENE</span><span id="evidenceSummary">–</span></div>
+    <div id="evidenceList" class="evidence-list"></div>
+  </article>
+</section>
 
-    <section id="race" class="section">
-      <div class="grid2"><div class="card"><div class="micro">Målkorridor</div><h2 style="margin:4px 0">Løpsfart</h2><p class="muted">Disse knappene endrer bare splitter, ikke treningsfarter.</p><div class="goalBtns"><button class="goalBtn active" data-goal="4980">1:23</button><button class="goalBtn" data-goal="5040">1:24</button><button class="goalBtn" data-goal="5100">1:25</button></div><div class="big" id="goalPace">–</div><div class="split"><span>0–3 km</span><b id="rOpen">–</b></div><div class="split"><span>3–15 km</span><b id="rMid">–</b></div><div class="split"><span>15–20 km</span><b id="rLate">–</b></div><div class="split"><span>5 km</span><b id="r5">–</b></div><div class="split"><span>10 km</span><b id="r10">–</b></div><div class="split"><span>15 km</span><b id="r15">–</b></div><div class="split"><span>20 km</span><b id="r20">–</b></div></div>
-      <div class="card"><div class="micro">Beslutningsporter</div><h2 style="margin:4px 0 12px">Kvalifiser målet</h2><div class="callout"><b>Gate 1 · 11. sep</b><br>3 × 3 km @ 4:00–4:03/km. Kontrollert.</div><select id="gate1" style="width:100%;margin:8px 0 14px"><option value="">Ikke vurdert</option><option value="green">Grønn · lett kontroll</option><option value="yellow">Gul · måtte jobbe</option><option value="red">Rød · måtte presse</option></select><div class="callout"><b>Gate 2 · 18. sep</b><br>3 × 3 km @ 3:55–3:58/km. Nøkkeltesten.</div><select id="gate2" style="width:100%;margin:8px 0"><option value="">Ikke vurdert</option><option value="green">Grønn · lett kontroll</option><option value="yellow">Gul · måtte jobbe</option><option value="red">Rød · måtte presse</option></select><div id="gateAdvice" class="callout warn" style="margin-top:12px">Vi holder 1:23 åpent.</div></div></div>
-    </section>
+<section id="more" class="view">
+  <div class="section-head"><div><span class="eyebrow">VERKTØY</span><h1>Mer</h1><p>Det som hjelper beslutningene. Ikke Garmin Connect 2.0.</p></div></div>
+  <div class="more-grid">
+    <article class="card threshold-card">
+      <div class="kicker"><span>TERSKELHISTORIKK</span><span>Garmin-anker</span></div>
+      <div id="thresholdCurrent" class="threshold-current">–</div>
+      <div id="thresholdTrend" class="advice">–</div>
+      <div id="thresholdList" class="threshold-list"></div>
+      <details class="add-threshold"><summary>+ Registrer ny Garmin-terskel</summary>
+        <div class="threshold-form"><input id="thDate" type="date"><input id="thPace" placeholder="Fart, f.eks. 3:59"><input id="thHr" type="number" min="130" max="200" placeholder="Puls"><button id="addThreshold">Lagre</button></div>
+      </details>
+      <div id="thresholdProposal" class="proposal"></div>
+    </article>
 
-    <section id="shoes" class="section"><div class="card"><div class="micro">Skorotasjon</div><h2 style="margin:4px 0">Faktisk belastning</h2><p class="muted">Kilometer teller når økter krysses av. Faktisk sko i feedback overstyrer planlagt sko.</p></div><div id="shoeWall" class="shoeWall" style="margin-top:12px"></div></section>
+    <article class="card"><div class="kicker"><span>SKOROTASJON</span><span>faktisk km</span></div><div id="shoeWall" class="shoe-wall"></div></article>
+  </div>
 
-    <section id="zones" class="section"><div class="zones"><div class="zone"><div class="micro">Restitusjon</div><div class="big">125–140</div><div class="muted">bpm · ca. 5:30–6:00/km</div></div><div class="zone"><div class="micro">Rolig / langtur</div><div class="big">130–148</div><div class="muted">bpm · puls og steg styrer</div></div><div class="zone"><div class="micro">Lang subterskel</div><div class="big">160–170</div><div class="muted">bpm · ofte ca. 4:05–4:12/km</div></div><div class="zone"><div class="micro">Kort subterskel</div><div class="big">165–172</div><div class="muted">bpm · korte drag kan gå raskere</div></div></div><div class="card" style="margin-top:12px"><div class="callout"><b>Garmin-anker:</b> 175 bpm og 4:02/km er terskelreferanser, ikke mål du skal jage på hvert drag.</div></div></section>
+  <article class="card">
+    <div class="kicker"><span>SONER & STYRING</span><span>175 · 4:02</span></div>
+    <div class="zones">
+      <div><b>Restitusjon</b><strong>125–140</strong><span>bpm</span></div>
+      <div><b>Rolig / langtur</b><strong>130–148</strong><span>bpm</span></div>
+      <div><b>Lang subterskel</b><strong>160–170</strong><span>bpm</span></div>
+      <div><b>Kort subterskel</b><strong>165–172</strong><span>bpm</span></div>
+    </div>
+    <p class="muted small">Garmin-terskel er et anker. Når puls, pust og opplevd belastning spriker, velger RunnerBear den konservative tolkningen.</p>
+  </article>
 
-    <section id="principles" class="section"><div class="rules"><div class="rule"><b>Kontroll</b><p class="muted">Mesteparten av terskelarbeidet litt under reell terskel.</p></div><div class="rule"><b>Repeterbarhet</b><p class="muted">En god økt lar deg trene bra igjen.</p></div><div class="rule"><b>Easy means easy</b><p class="muted">Rolige dager støtter kvaliteten.</p></div><div class="rule"><b>Akillesstyring</b><p class="muted">Respons neste morgen trumfer kalenderen.</p></div></div><div class="card" style="margin-top:12px"><details><summary style="cursor:pointer;font-weight:800">20 min løpestyrke</summary><ul class="muted"><li>Soleus/legg fra flat posisjon.</li><li>Split squat eller utfall.</li><li>Hip hinge / ettbeins RDL.</li><li>Hofte/sidekjede.</li><li>Kort kjernearbeid.</li></ul></details></div></section>
+  <article class="card principles">
+    <div class="kicker"><span>BAKKEN-KJERNEN</span><span>låst prinsipp</span></div>
+    <div class="principle-grid">
+      <div><b>Kontrollert terskel</b><span>Stimulus høy nok til adaptasjon, lav nok til å kunne gjentas.</span></div>
+      <div><b>Easy means easy</b><span>Rolige dager støtter kvalitetsdagene. Ingen skjult moderat trening.</span></div>
+      <div><b>Intervaller > kontinuerlig terskel</b><span>Pausene er funksjonelle og bidrar til intensitetskontroll.</span></div>
+      <div><b>X-element med måte</b><span>Raskere arbeid finnes, men er et supplement – ikke hovedmotoren.</span></div>
+      <div><b>Respons trumfer ego</b><span>Høy RPE, avvikende puls eller akillesreaksjon gjør coachen mer konservativ.</span></div>
+      <div><b>Spesifisitet sent</b><span>Halvmaratonfart kommer gradvis nærmere konkurransen.</span></div>
+    </div>
+  </article>
 
-    <section id="more" class="section"><div class="card"><div class="micro">Mer</div><h2 style="margin:4px 0">Verktøy og detaljer</h2><p class="muted">Det viktigste ligger under I dag, Plan og Race. Resten er her når du trenger det.</p></div><div class="moreGrid" style="margin-top:12px"><button class="moreCard navTarget" data-target="shoes"><b>Sko</b><span>Rotasjon og faktiske kilometer</span></button><button class="moreCard navTarget" data-target="zones"><b>Soner</b><span>Puls og terskelstyring</span></button><button class="moreCard navTarget" data-target="principles"><b>Prinsipper</b><span>Bakken-logikk og styrke</span></button><button class="moreCard" onclick="window.print()"><b>PDF</b><span>Skriv ut eller lagre planen</span></button><button class="moreCard" id="resetChecksMore"><b>Nullstill data</b><span>Avhuking, feedback og Gate-status</span></button></div></section>
-  </main>
+  <div class="danger-zone">
+    <button id="resetData">Nullstill RunnerBear-data</button>
+  </div>
+</section>
+</main>
 
-  <div class="foot">RunnerBear · Bakken-inspirert treningsverktøy. Coach-modulen er regelbasert, ikke Marius Bakken selv. Data lagres lokalt i nettleseren.</div>
+<nav class="bottom-nav" aria-label="Mobilmeny">
+  <button class="navbtn active" data-tab="today"><span>●</span>I dag</button>
+  <button class="navbtn" data-tab="plan"><span>▤</span>Plan</button>
+  <button class="navbtn" data-tab="race"><span>⚑</span>Race</button>
+  <button class="navbtn" data-tab="more"><span>•••</span>Mer</button>
+</nav>
 </div>
-
-<nav class="bottomNav" aria-label="Hovednavigasjon"><button class="tab active" data-tab="dash"><b>●</b>I dag</button><button class="tab" data-tab="plan"><b>▦</b>Plan</button><button class="tab" data-tab="race"><b>⌁</b>Race</button><button class="tab" data-tab="more"><b>•••</b>Mer</button></nav>
 <script src="plan.js"></script>
-<script src="runnerbear-v4.js"></script>
+<script src="runnerbear-v5-1.js"></script>
+<script src="runnerbear-v5-2.js"></script>
+<script src="runnerbear-v5-3.js"></script>
+<script src="runnerbear-v5-4.js"></script>
 </body>
 </html>
