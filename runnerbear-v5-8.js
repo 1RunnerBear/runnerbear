@@ -128,6 +128,23 @@
     panel.innerHTML=`<div class="move-head"><b>Smart flytting</b><span>ingen treningsgjeld</span></div><p>RunnerBear tilbyr bare bytter som beholder key-øktene adskilt og ikke flytter løpet.</p>${choices.length?`<div class="move-options">${choices.map((x,i)=>`<button type="button" data-move-target="${x.target.label}" class="${i===0?'recommended':''}"><span>${x.delta<0?'←':'→'} ${x.target.label}${i===0?' · anbefalt':''}</span><b>Bytt med ${x.target.title}</b></button>`).join('')}</div>`:'<div class="move-none">Ingen trygg flytting ±1 dag uten å svekke rytmen. Da er det bedre å hoppe over/tilpasse enn å komprimere uka.</div>'}`;
     panel.querySelectorAll('[data-move-target]').forEach(b=>b.onclick=()=>applySwap(f,workoutByLabel(b.dataset.moveTarget)));
   }
+  function injectPlanMoveControl(node,f){
+    node.querySelectorAll('.plan-smart-move').forEach(x=>x.remove());
+    if(!f||f.type==='race'||isDone(f.label)||!isKey(f))return;
+    if(effectiveDate(f)<startOfDay(today)&&!sameDay(effectiveDate(f),today))return;
+    const body=node.querySelector('.day-body'),actions=node.querySelector('.day-actions');if(!body||!actions)return;
+    const partner=partnerLabel(f.label),other=partner&&workoutByLabel(partner),choices=partner?[]:candidateSwaps(f);
+    const wrap=document.createElement('details');wrap.className='plan-smart-move';
+    if(partner&&other){
+      wrap.innerHTML=`<summary>Flyttet til ${partner}</summary><div class="plan-move-body"><span>Byttet med ${other.title}. RunnerBear har kontrollert avstanden til øvrige nøkkeløkter.</span><button type="button" data-plan-move-reset>Tilbakestill</button></div>`;
+      wrap.querySelector('[data-plan-move-reset]').onclick=()=>clearSwap(f.label);
+    }else{
+      wrap.innerHTML=`<summary>Flytt smart</summary><div class="plan-move-body">${choices.length?choices.map((x,i)=>`<button type="button" data-plan-move-target="${x.target.label}" class="${i===0?'recommended':''}"><span>${x.target.label}${i===0?' · anbefalt':''}</span><b>Bytt med ${x.target.title}</b></button>`).join(''):'<span>Ingen trygg ±1 dag akkurat nå. Ikke komprimer kvalitet bare for å få økten gjennomført.</span>'}</div>`;
+      wrap.querySelectorAll('[data-plan-move-target]').forEach(b=>b.onclick=()=>applySwap(f,workoutByLabel(b.dataset.planMoveTarget)));
+    }
+    actions.insertAdjacentElement('afterend',wrap);
+  }
+
   function postprocessPlanMoves(){
     const swaps=readSwaps();
     document.querySelectorAll('#weeks .week').forEach(sec=>{
@@ -148,6 +165,7 @@
           node.querySelector('.day-summary')?.appendChild(badge);
         }
         injectEasyRunShoeLog(node,f);
+        injectPlanMoveControl(node,f);
       });
       nodes.sort((a,b)=>effectiveDate(workoutByLabel(a.dataset.originalLabel),swaps)-effectiveDate(workoutByLabel(b.dataset.originalLabel),swaps)).forEach(n=>days.appendChild(n));
     });
@@ -254,7 +272,13 @@
     $('raceWeekChecks').innerHTML=items.map(([k,l])=>`<label><input type="checkbox" data-race-check="${k}" ${checks[k]?'checked':''}><span>${l}</span></label>`).join('');
     $('raceWeekChecks').querySelectorAll('[data-race-check]').forEach(i=>i.onchange=()=>{const v=raceChecklist();v[i.dataset.raceCheck]=i.checked;writeRaceChecklist(v);renderRaceWeek()});
   }
+  function restoreRaceGoal(){
+    const saved=Number(localStorage.getItem(RACE_GOAL_KEY)||0);if(![4980,5040,5100].includes(saved))return;
+    document.querySelectorAll('.goal').forEach(b=>b.classList.toggle('active',Number(b.dataset.goal)===saved));
+    updateRace(saved);
+  }
   function bindRaceGoalPersistence(){
+    restoreRaceGoal();
     document.querySelectorAll('.goal').forEach(b=>{
       if(b.dataset.rbGoalBound)return;b.dataset.rbGoalBound='1';
       b.addEventListener('click',()=>{localStorage.setItem(RACE_GOAL_KEY,b.dataset.goal);renderRaceWeek()});
