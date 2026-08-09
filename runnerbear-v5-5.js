@@ -1,6 +1,6 @@
 /* RunnerBear v5.5 · flexible easy-day selector
    Keeps Bakken guardrails: easy stays easy, long runs remain run-first, and cross-training
-   is recorded separately from actual running kilometres. */
+   is recorded separately from actual running kilometres. Zwift is available from 9 Aug 2026. */
 (function(){
   const MODE_KEY=label=>`runfest26_easychoice_${slug(label)}`;
   const modeMeta={
@@ -10,7 +10,7 @@
   };
   function isLongRun(f){return /langtur/i.test(f.title)}
   function isFlexible(f){return f.type==='easy'||f.type==='cross'||(f.type==='rest'&&/Zwift|roing|Concept2/i.test(f.title))}
-  function bikeAvailable(f){return typeof zwiftAvailableFor==='function'?zwiftAvailableFor(f):f.date>=new Date(2026,8,1)}
+  function bikeAvailable(f){return true}
   function defaultMode(f){
     if(isLongRun(f)||f.type==='easy')return'run';
     if(f.type==='cross')return bikeAvailable(f)?'bike':'row';
@@ -63,7 +63,7 @@
     return`<div class="easy-choice ${compact?'compact':''}" data-easy-date="${f.label}">
       <div class="easy-choice-head"><span>${long?'ROLIG VALG · LANGTUR':'VELG ROLIG ØKT'}</span><b>${long?'LØP ANBEFALT':'VELG SELV'}</b></div>
       <div class="easy-choice-buttons">
-        ${['run','row','bike'].map(m=>`<button type="button" data-mode="${m}" class="${mode===m?'active':''}" ${m==='bike'&&!bikeOK?'disabled':''}><span>${modeMeta[m].icon}</span>${m==='bike'&&!bikeOK?'Zwift fra 1. sep':modeMeta[m].name}</button>`).join('')}
+        ${['run','row','bike'].map(m=>`<button type="button" data-mode="${m}" class="${mode===m?'active':''}" ${m==='bike'&&!bikeOK?'disabled':''}><span>${modeMeta[m].icon}</span>${modeMeta[m].name}</button>`).join('')}
       </div>
       <div class="easy-prescription"><strong>${p.title}</strong><span>${p.line}</span><small>${p.gear}</small>${long&&mode!=='run'?'<em>Cross er reserve her. Langturen er en viktig del av halvmaratonspesifisiteten når kroppen tillater løping.</em>':''}</div>
     </div>`;
