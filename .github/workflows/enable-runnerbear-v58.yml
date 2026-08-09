@@ -1,0 +1,41 @@
+name: Enable RunnerBear v5.8
+
+on:
+  push:
+    paths:
+      - '.github/workflows/enable-runnerbear-v58.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire v5.8 assets into index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('runnerbear-v5-6.css?v=7','runnerbear-v5-6.css?v=8')
+          s=s.replace('runnerbear-v5-6.js?v=7','runnerbear-v5-6.js?v=8')
+          css='<link rel="stylesheet" href="runnerbear-v5-7.css?v=8">'
+          js='<script src="runnerbear-v5-7.js?v=8"></script>'
+          if css not in s:
+              s=s.replace('<link rel="stylesheet" href="runnerbear-v5-6.css?v=8">', '<link rel="stylesheet" href="runnerbear-v5-6.css?v=8">\n'+css)
+          if js not in s:
+              s=s.replace('<script src="runnerbear-v5-6.js?v=8"></script>', '<script src="runnerbear-v5-6.js?v=8"></script>\n'+js)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit index wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "Enable RunnerBear v5.8 UI"
+            git push
+          fi
