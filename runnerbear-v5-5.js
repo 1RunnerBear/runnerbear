@@ -1,6 +1,6 @@
-/* RunnerBear v5.5 · flexible easy-day selector
-   Keeps Bakken guardrails: easy stays easy, long runs remain run-first, and cross-training
-   is recorded separately from actual running kilometres. Zwift is available from 9 Aug 2026. */
+/* RunnerBear v5.6 · flexible easy-day selector
+   Idempotent rendering: one selector per workout, no duplicate UI after re-renders.
+   Easy stays easy, long runs remain run-first, and cross-training is recorded separately. */
 (function(){
   const MODE_KEY=label=>`runfest26_easychoice_${slug(label)}`;
   const modeMeta={
@@ -10,10 +10,12 @@
   };
   function isLongRun(f){return /langtur/i.test(f.title)}
   function isFlexible(f){return f.type==='easy'||f.type==='cross'||(f.type==='rest'&&/Zwift|roing|Concept2/i.test(f.title))}
-  function bikeAvailable(f){return true}
+  function bikeAvailable(){return true}
   function defaultMode(f){
     if(isLongRun(f)||f.type==='easy')return'run';
-    if(f.type==='cross')return bikeAvailable(f)?'bike':'row';
+    if(/Zwift/i.test(f.title))return'bike';
+    if(/Concept2|roing/i.test(f.title))return'row';
+    if(f.type==='cross')return'bike';
     return'row';
   }
   function selectedMode(f){
@@ -22,12 +24,13 @@
     return saved&&modeMeta[saved]?saved:defaultMode(f);
   }
   function setMode(f,mode){
-    if(mode==='bike'&&!bikeAvailable(f))return;
+    if(!modeMeta[mode]||(mode==='bike'&&!bikeAvailable(f)))return;
     localStorage.setItem(MODE_KEY(f.label),mode);
   }
   function runKm(f){
     if(f.km>0)return f.km;
-    if(f.type==='cross')return /31\. aug/i.test(f.label)?4.5:5.5;
+    if(f.type==='cross')return 5.5;
+    if(f.type==='rest'&&/31\. aug|21\. sep/i.test(f.label))return 5;
     return 0;
   }
   function rowMinutes(f){
@@ -46,32 +49,38 @@
     if(km>=5)return'40–50';
     return'35–45';
   }
+  function strengthNote(f){return /styrke/i.test(`${f.title} ${f.desc}`)?' + planlagt styrke':''}
   function runPrescription(f){
-    const km=runKm(f);
+    const km=runKm(f),extra=strengthNote(f);
     if(isLongRun(f))return{title:`${km} km rolig løp`,big:`${km} km`,line:'Hold planlagt rolig puls og jevn flyt. Ingen ekstra progresjon utover det som står i planen.',gear:f.shoe?`👟 ${f.shoe}`:'👟 Komfortabel roligsko'};
-    if(f.type==='cross')return{title:`${km} km svært rolig løp`,big:`${km} km`,line:'HR hovedsakelig 125–142. Dette er et lett alternativ – ikke en ekstra moderat økt.',gear:'👟 Nike Vomero Premium / komfortabel easy-sko'};
+    if(f.type==='cross')return{title:`${km} km svært rolig løp${extra}`,big:`${km} km`,line:'HR hovedsakelig 125–142. Dette er et lett alternativ – ikke en ekstra moderat økt.',gear:'👟 Nike Vomero Premium / komfortabel easy-sko'};
+    if(f.type==='rest')return{title:`${km||5} km svært rolig løp`,big:`${km||5} km`,line:'Bare hvis du føler deg frisk. Dette er aktiv rest, ikke bonusvolum.',gear:'👟 Komfortabel easy-sko'};
     const t=targetSummary(f);
     return{title:`${km} km rolig løp`,big:`${km} km`,line:`${t.hr!=='–'?t.hr+'. ':''}Snakketempo og avslappet steg.`,gear:f.shoe?`👟 ${f.shoe}`:'👟 Komfortabel roligsko'};
   }
   function prescription(f,mode){
+    const extra=strengthNote(f);
     if(mode==='run')return runPrescription(f);
-    if(mode==='row')return{title:`Concept2 · ${rowMinutes(f)} min`,big:`${rowMinutes(f)} min`,line:'RPE 2–3/10 · 18–22 spm · jevn, lett aerob roing. Du skal kunne snakke i hele setninger.',gear:'🚣 Concept2 RowErg'};
-    return{title:`Zwift · ${bikeMinutes(f)} min`,big:`${bikeMinutes(f)} min`,line:'Z1/Z2 · RPE 2–3/10 · ca. 85–95 rpm. Ingen tempo-/sweetspot-blokker.',gear:'🚴 Zwift · lett sykling'};
+    if(mode==='row')return{title:`Concept2 · ${rowMinutes(f)} min${extra}`,big:`${rowMinutes(f)} min`,line:'RPE 2–3/10 · 18–22 spm · jevn, lett aerob roing. Du skal kunne snakke i hele setninger.',gear:'🚣 Concept2 RowErg'};
+    return{title:`Zwift · ${bikeMinutes(f)} min${extra}`,big:`${bikeMinutes(f)} min`,line:'Z1/Z2 · RPE 2–3/10 · ca. 85–95 rpm. Ingen tempo-/sweetspot-blokker.',gear:'🚴 Zwift · lett sykling'};
   }
-  function selectorHTML(f,compact=false){
+  function selectorHTML(f,compact=false,slot='plan'){
     const mode=selectedMode(f),p=prescription(f,mode),long=isLongRun(f),bikeOK=bikeAvailable(f);
-    return`<div class="easy-choice ${compact?'compact':''}" data-easy-date="${f.label}">
-      <div class="easy-choice-head"><span>${long?'ROLIG VALG · LANGTUR':'VELG ROLIG ØKT'}</span><b>${long?'LØP ANBEFALT':'VELG SELV'}</b></div>
-      <div class="easy-choice-buttons">
-        ${['run','row','bike'].map(m=>`<button type="button" data-mode="${m}" class="${mode===m?'active':''}" ${m==='bike'&&!bikeOK?'disabled':''}><span>${modeMeta[m].icon}</span>${modeMeta[m].name}</button>`).join('')}
+    return`<div class="easy-choice ${compact?'compact':''}" data-easy-date="${f.label}" data-easy-slot="${slot}">
+      <div class="easy-choice-head"><span>${long?'ROLIG VALG · LANGTUR':'DAGENS ROLIGE VALG'}</span><b>${long?'LØP ANBEFALT':'VELG SELV'}</b></div>
+      <div class="easy-choice-buttons" role="group" aria-label="Velg rolig aktivitet">
+        ${['run','row','bike'].map(m=>`<button type="button" data-mode="${m}" class="${mode===m?'active':''}" aria-pressed="${mode===m?'true':'false'}" ${m==='bike'&&!bikeOK?'disabled':''}><span>${modeMeta[m].icon}</span>${modeMeta[m].name}</button>`).join('')}
       </div>
-      <div class="easy-prescription"><strong>${p.title}</strong><span>${p.line}</span><small>${p.gear}</small>${long&&mode!=='run'?'<em>Cross er reserve her. Langturen er en viktig del av halvmaratonspesifisiteten når kroppen tillater løping.</em>':''}</div>
+      <div class="easy-prescription"><strong>${p.title}</strong><span>${p.line}</span><small>${p.gear}</small>${long&&mode!=='run'?'<em>Cross er reserve her. Langturen er viktig for halvmaratonspesifisiteten når kroppen tillater løping.</em>':''}</div>
     </div>`;
   }
   function bindSelectors(root=document){
     root.querySelectorAll('[data-easy-date]').forEach(box=>{
       const f=flat.find(x=>x.label===box.dataset.easyDate);if(!f)return;
-      box.querySelectorAll('[data-mode]').forEach(btn=>btn.onclick=()=>{setMode(f,btn.dataset.mode);renderAll()});
+      box.querySelectorAll('[data-mode]').forEach(btn=>btn.onclick=()=>{
+        setMode(f,btn.dataset.mode);
+        renderAll();
+      });
     });
   }
   function actualWeekStats(w){
@@ -91,21 +100,27 @@
     $('todayKm').textContent=p.big;
     $('todayShoe').textContent=p.gear;
   }
+  function clearTodaySelector(){
+    $('todayCard')?.querySelectorAll('.easy-choice[data-easy-slot="today"], .easy-choice:not([data-easy-slot])').forEach(el=>el.remove());
+  }
   const baseRenderToday=renderToday;
   renderToday=function(){
+    clearTodaySelector();
     baseRenderToday();
-    const f=nextSession();if(!isFlexible(f))return;
+    clearTodaySelector();
+    const f=nextSession();if(!f||!isFlexible(f))return;
     const purpose=$('todayCard').querySelector('.purpose');
-    if(purpose)purpose.insertAdjacentHTML('afterend',selectorHTML(f));
+    if(purpose)purpose.insertAdjacentHTML('afterend',selectorHTML(f,false,'today'));
     bindSelectors($('todayCard'));applyTodayMode(f);
   };
   const baseRenderPlan=renderPlan;
   renderPlan=function(){
     baseRenderPlan();
-    document.querySelectorAll('.day').forEach(day=>{
+    document.querySelectorAll('#weeks .day').forEach(day=>{
       const label=day.querySelector('.daydate')?.textContent;const f=flat.find(x=>x.label===label);if(!f||!isFlexible(f))return;
+      day.querySelectorAll('.easy-choice').forEach(el=>el.remove());
       const body=day.querySelector('.day-body'),actions=day.querySelector('.day-actions');
-      if(body&&actions)actions.insertAdjacentHTML('beforebegin',selectorHTML(f,true));
+      if(body&&actions)actions.insertAdjacentHTML('beforebegin',selectorHTML(f,true,'plan'));
     });
     bindSelectors($('weeks'));
   };
@@ -137,8 +152,10 @@
     if(idx>=0&&recent.length)ev[idx]={name:'Løpsspesifisitet',state:runDone/recent.length>=.75?'green':runDone/recent.length>=.5?'yellow':'neutral',text:`${runDone}/${recent.length} siste planlagte løpeøkter ble faktisk løpt. Cross støtter formen, men teller separat.`};
     return ev;
   };
-  const style=document.createElement('style');style.textContent=`
-    .easy-choice{margin:14px 0;padding:13px;border:1px solid #263143;border-radius:15px;background:#0c121a}.easy-choice-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:9px;font-size:10px;letter-spacing:.1em;font-weight:800;color:#8f9caf}.easy-choice-head b{color:#72e3a6}.easy-choice-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.easy-choice-buttons button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;border:1px solid #2a3548;background:#111925;color:#dbe3ed;border-radius:10px;padding:8px;font-weight:700}.easy-choice-buttons button.active{border-color:#72e3a6;background:#13251d;color:#f5fff9}.easy-choice-buttons button:disabled{opacity:.38;cursor:not-allowed}.easy-prescription{display:grid;gap:4px;margin-top:10px;padding:10px 11px;border-radius:11px;background:#ffffff07}.easy-prescription strong{font-size:14px}.easy-prescription span,.easy-prescription small{color:#aab5c5;font-size:11px}.easy-prescription em{font-style:normal;color:#f0cd7d;font-size:10px;margin-top:3px}.easy-choice.compact{margin:11px 0;padding:10px}.easy-choice.compact .easy-prescription{padding:8px}.mode-mini{font-size:10px;color:#8f9caf;font-weight:600}@media(max-width:640px){.easy-choice-buttons button{font-size:11px;padding:8px 4px}.easy-choice-head{font-size:9px}}
+  const oldStyle=document.getElementById('runnerbear-easy-choice-style');if(oldStyle)oldStyle.remove();
+  const style=document.createElement('style');style.id='runnerbear-easy-choice-style';style.textContent=`
+    .easy-choice{margin:14px 0;padding:13px;border:1px solid #263143;border-radius:15px;background:#0c121a}.easy-choice-head{display:flex;justify-content:space-between;gap:10px;margin-bottom:9px;font-size:10px;letter-spacing:.1em;font-weight:800;color:#8f9caf}.easy-choice-head b{color:#72e3a6}.easy-choice-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.easy-choice-buttons button{display:flex;align-items:center;justify-content:center;gap:6px;min-height:42px;border:1px solid #2a3548;background:#111925;color:#dbe3ed;border-radius:10px;padding:8px;font-weight:700;transition:border-color .15s,background .15s,transform .15s}.easy-choice-buttons button:active{transform:scale(.98)}.easy-choice-buttons button.active{border-color:#72e3a6;background:#13251d;color:#f5fff9}.easy-choice-buttons button:disabled{opacity:.38;cursor:not-allowed}.easy-prescription{display:grid;gap:4px;margin-top:10px;padding:10px 11px;border-radius:11px;background:#ffffff07}.easy-prescription strong{font-size:14px}.easy-prescription span,.easy-prescription small{color:#aab5c5;font-size:11px}.easy-prescription em{font-style:normal;color:#f0cd7d;font-size:10px;margin-top:3px}.easy-choice.compact{margin:11px 0;padding:10px}.easy-choice.compact .easy-prescription{padding:8px}.mode-mini{font-size:10px;color:#8f9caf;font-weight:600}@media(max-width:640px){.easy-choice-buttons button{font-size:11px;padding:8px 4px}.easy-choice-head{font-size:9px}}
   `;document.head.appendChild(style);
+  clearTodaySelector();
   renderAll();
 })();
