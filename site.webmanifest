@@ -1,0 +1,22 @@
+{
+  "name": "RunnerBear",
+  "short_name": "RunnerBear",
+  "description": "RunnerBear · Runfest 21K treningsapp",
+  "start_url": "/runnerbear/",
+  "scope": "/runnerbear/",
+  "display": "standalone",
+  "background_color": "#080c11",
+  "theme_color": "#080c11",
+  "icons": [
+    {
+      "src": "rb-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "rb-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
