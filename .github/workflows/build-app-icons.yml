@@ -23,9 +23,24 @@ jobs:
       - name: Render icon sizes
         run: |
           python - <<'PY'
+          from pathlib import Path
+          import base64, io, re
+          from PIL import Image
           import cairosvg
-          for size in (32, 180, 192, 512):
-              cairosvg.svg2png(url='runnerbear-icon.svg', write_to=f'rb-icon-{size}.png', output_width=size, output_height=size)
+
+          svg_path = Path('runnerbear-icon.svg')
+          svg = svg_path.read_text(encoding='utf-8')
+          match = re.search(r'data:image/(?:jpeg|jpg|png);base64,([^\"]+)', svg)
+
+          if match:
+              raw = base64.b64decode(match.group(1))
+              source = Image.open(io.BytesIO(raw)).convert('RGB')
+              for size in (32, 180, 192, 512):
+                  icon = source.resize((size, size), Image.Resampling.LANCZOS)
+                  icon.save(f'rb-icon-{size}.png', format='PNG', optimize=True)
+          else:
+              for size in (32, 180, 192, 512):
+                  cairosvg.svg2png(url='runnerbear-icon.svg', write_to=f'rb-icon-{size}.png', output_width=size, output_height=size)
           PY
       - name: Commit generated icons
         run: |
