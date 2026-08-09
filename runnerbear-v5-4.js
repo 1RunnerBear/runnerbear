@@ -1,45 +1,16 @@
-/* Equipment availability override: Zwift is available from 1 September 2026.
-   Before then, planned Zwift slots use Concept2 or very easy running instead. */
-const ZWIFT_START_DATE=new Date(2026,8,1,0);
-function zwiftAvailableFor(f){return f.date>=ZWIFT_START_DATE}
-(function applyPreSeptemberEquipmentPlan(){
- const overrides={
-  'Man 10. aug':{title:'Concept2 / rolig løp + styrke',desc:'35–45 min lett Concept2 eller 5–6 km svært rolig løp + 20 min løpestyrke.',detail:'Concept2 er standardvalget. Velg rolig løp bare hvis bein og akilles er fine. Løpsalternativet er bonusvolum – ikke jag ukesmengde.',shoe:'Nike Vomero Premium hvis løp'},
-  'Man 17. aug':{title:'Concept2 / rolig løp + styrke',desc:'40–50 min lett Concept2 eller 5–6 km svært rolig løp + 20 min styrke.',detail:'Hold dette tydelig aerobt. Velg løping bare hvis du er frisk og akilles er stabil; tirsdagens terskel er viktigere.',shoe:'Nike Vomero Premium hvis løp'},
-  'Man 24. aug':{title:'Concept2 / rolig løp + styrke',desc:'40–50 min lett Concept2 eller 5–6 km svært rolig løp + mobilitet/styrke.',detail:'Ingen moderat roing og ingen rask løping. Dette skal støtte tirsdagens 4 × 10 min, ikke konkurrere med den.',shoe:'Nike Vomero Premium hvis løp'},
-  'Man 31. aug':{title:'Hvile / Concept2 / svært rolig løp',desc:'Hvile, 30–35 min lett Concept2 eller 4–5 km svært rolig løp hvis du føler deg frisk.',detail:'Absorpsjonsuke: velg hvile ved tunge bein eller akillesuro. Zwift tas først i bruk fra september.',shoe:'Nike Vomero Premium hvis løp'}
- };
- flat.forEach(f=>{const o=overrides[f.label];if(!o)return;f.title=o.title;f.desc=o.desc;f.detail=o.detail;f.shoe=o.shoe;f.raw[2]=o.title;f.raw[3]=o.desc;f.raw[4]=o.detail;f.raw[5]=o.shoe});
-})();
-const _baseWorkoutPurpose=workoutPurpose;
-workoutPurpose=function(f){
- if(!zwiftAvailableFor(f)&&f.type==='cross')return'Legge til lett aerob trening via Concept2 eller svært rolig løp uten å forstyrre neste kvalitetsøkt.';
- if(!zwiftAvailableFor(f)&&f.label==='Man 31. aug')return'Absorbere treningen. Aktivitet er valgfritt og skal gjøre deg friskere, ikke mer sliten.';
- return _baseWorkoutPurpose(f);
-};
-const _baseCoachBefore=coachBefore;
-coachBefore=function(f){
- const a=localStorage.getItem(adaptKey(f.label));if(a)return adaptationAdvice(f,a).short;
- if(!zwiftAvailableFor(f)&&f.type==='cross')return'Concept2 eller svært rolig løp skal støtte løpingen. Ingen moderat «mellomøkt» – tirsdagens kvalitet får prioritet.';
- if(!zwiftAvailableFor(f)&&f.label==='Man 31. aug')return'Absorpsjon først. Hvile er et like godt valg som lett roing/løp hvis beina trenger det.';
- return _baseCoachBefore(f);
-};
-const _baseAdaptationAdvice=adaptationAdvice;
-adaptationAdvice=function(f,reason){
- if(!zwiftAvailableFor(f)&&reason==='achilles')return{short:'Akilles trumfer kalenderen i dag.',html:'<strong>Velg Concept2 eller hvile – ikke løpsalternativet.</strong> 35–60 min svært lett roing er nok hvis det er smertefritt. Ikke flytt en tapt kvalitetsøkt automatisk til i morgen. Ved tydelig hevelse, halting eller skarp smerte: avbryt og få det vurdert.'};
- if(!zwiftAvailableFor(f)&&f.type==='cross'&&reason==='tired')return{short:'Gjør mandagen lettere, ikke mer effektiv.',html:'<strong>Velg 25–35 min svært lett Concept2 eller full hvile.</strong> Hvis du heller løper, hold det til 4–5 km svært rolig og bare hvis beina kjennes normale.'};
- if(!zwiftAvailableFor(f)&&f.type==='cross'&&reason==='time')return{short:'Kort aerob dose er nok.',html:'<strong>20–30 min lett Concept2 eller 4 km svært rolig løp.</strong> Ikke øk intensiteten for å kompensere for kortere tid.'};
- return _baseAdaptationAdvice(f,reason);
-};
+/* RunnerBear v5.6 · core renderers
+   Zwift is available throughout the plan. Rendering preserves open plan cards across updates. */
+function zwiftAvailableFor(){return true}
 
 function renderPlan(){
  const sel=$('weekFilter');if(!sel.options.length||sel.options.length===1){weeks.forEach(w=>{const o=document.createElement('option');o.value=w.n;o.textContent=`Uke ${w.n} · ${w.range}`;sel.appendChild(o)})}
+ const openLabels=new Set([...document.querySelectorAll('#weeks .day.open .daydate')].map(el=>el.textContent));
  const val=sel.value;$('weeks').innerHTML='';
  weeks.filter(w=>val==='all'||String(w.n)===val).forEach(w=>{
    const sec=document.createElement('section');sec.className='week';const wd=flat.filter(f=>f.week===w.n),dn=wd.filter(f=>isDone(f.label)).length;
    sec.innerHTML=`<div class="weekhead"><div><span class="phase">${w.phase}</span><h2>Uke ${w.n} · ${w.range}</h2><div class="muted small">${w.focus}</div></div><div><b>${w.km} km</b><div class="muted small">${dn}/7 registrert</div></div></div><div class="days"></div>`;
    const days=sec.querySelector('.days');
-   wd.forEach(f=>{const d=document.createElement('article'),stim=evaluateStimulus(f,getFeedback(f.label)),adj=adjustedPace(f);d.className=`day ${isDone(f.label)?'done':''} ${sameDay(f.date,today)?'today open':''}`;
+   wd.forEach(f=>{const d=document.createElement('article'),stim=evaluateStimulus(f,getFeedback(f.label)),adj=adjustedPace(f);const shouldOpen=sameDay(f.date,today)||openLabels.has(f.label);d.className=`day ${isDone(f.label)?'done':''} ${sameDay(f.date,today)?'today':''} ${shouldOpen?'open':''}`.trim();
     d.innerHTML=`<div class="day-summary"><span class="daydate">${f.label}</span><h3>${f.title}</h3><span class="daystatus">${isDone(f.label)?'✓':sameDay(f.date,today)?'I DAG':'›'}</span></div>
     <div class="day-body"><span class="tag ${f.type}">${classLabel[f.type]}</span><div class="daydetail">${f.desc}</div><div class="daydetail">${f.detail}</div><div class="intent"><b>Hensikt:</b> ${workoutPurpose(f)}</div>${adj?`<div class="adjustment">Coach-justert: ${adj}</div>`:''}${f.shoe?`<div class="daymeta">👟 ${f.shoe}</div>`:''}${f.fuel?`<div class="daymeta fuel">⚡ ${f.fuel}</div>`:''}<div class="day-actions"><label class="complete"><input type="checkbox" data-done="${f.label}" ${isDone(f.label)?'checked':''}> <span>Gjennomført</span></label></div>${(f.type==='quality'||f.type==='race'||/langtur/i.test(f.title))?feedbackHTML(f):''}${stim?`<div class="stimulus ${stim.level}">${stim.label}</div>`:''}</div>`;
     d.querySelector('.day-summary').onclick=()=>d.classList.toggle('open');days.appendChild(d)
