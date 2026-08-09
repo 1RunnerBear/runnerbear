@@ -29,7 +29,7 @@ jobs:
           node-version: '22'
       - name: Check JavaScript syntax
         run: |
-          for f in plan.js runnerbear-v5-1.js runnerbear-v5-2.js runnerbear-v5-3.js runnerbear-v5-4.js runnerbear-v5-5.js runnerbear-v5-6.js runnerbear-v5-7.js runnerbear-v5-8.js runnerbear-v5-9.js; do
+          for f in plan.js runnerbear-v5-*.js; do
             node --check "$f"
           done
       - name: Check HTML ids and local assets
