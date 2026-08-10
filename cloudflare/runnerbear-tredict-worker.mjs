@@ -42,7 +42,7 @@ async function td(env,path,params={}){
   if(!r.ok){let msg='';try{msg=(await r.text()).slice(0,300)}catch{};const e=new Error(`Tredict ${path}: HTTP ${r.status}${msg?` · ${msg}`:''}`);e.status=r.status;throw e}
   return r.json();
 }
-async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}
+async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}}
 
 export default {
   async fetch(request,env){
