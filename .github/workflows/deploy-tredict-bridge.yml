@@ -2,9 +2,16 @@ name: Deploy RunnerBear Tredict Bridge
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudflare/runnerbear-tredict-worker.js"
+      - "wrangler.bridge.jsonc"
+      - ".github/workflows/deploy-tredict-bridge.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -28,9 +35,50 @@ jobs:
           TREDICT_TOKEN: ${{ secrets.TREDICT_TOKEN }}
           RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
 
-      - name: Show deployment URL
+      - name: Publish bridge endpoint to RunnerBear
         env:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: |
-          echo "RunnerBear Bridge deployed"
-          echo "Deployment URL: ${DEPLOYMENT_URL}"
+          python - <<'PY'
+          import json, os, re
+          from pathlib import Path
+
+          url = os.environ.get("DEPLOYMENT_URL", "").strip()
+          if not url.startswith("https://"):
+              raise SystemExit(f"Missing or invalid deployment URL: {url!r}")
+
+          Path("runnerbear-bridge-config.js").write_text(
+              "window.RUNNERBEAR_BRIDGE_URL = " + json.dumps(url) + ";\n",
+              encoding="utf-8",
+          )
+
+          index = Path("index.html")
+          text = index.read_text(encoding="utf-8")
+          version = os.environ.get("GITHUB_RUN_NUMBER", "34")
+          tag = f'<script src="runnerbear-bridge-config.js?v={version}"></script>'
+
+          if "runnerbear-bridge-config.js" in text:
+              text = re.sub(
+                  r'<script src="runnerbear-bridge-config\.js\?v=[^"]+"></script>',
+                  tag,
+                  text,
+              )
+          else:
+              needle = '<script src="runnerbear-premium-v33.js?v=33"></script>'
+              if needle not in text:
+                  raise SystemExit("Could not find v33 script anchor in index.html")
+              text = text.replace(needle, tag + needle)
+
+          index.write_text(text, encoding="utf-8")
+          print(f"RunnerBear bridge endpoint: {url}")
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runnerbear-bridge-config.js index.html
+          if git diff --cached --quiet; then
+            echo "Bridge endpoint already current"
+          else
+            git commit -m "Configure RunnerBear bridge endpoint [skip ci]"
+            git push origin HEAD:main
+          fi
