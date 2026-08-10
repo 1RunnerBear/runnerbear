@@ -1,0 +1,61 @@
+name: RunnerBear v9.5.1 Web Hotfix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/v951-web-hotfix.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Apply v9.5.1 cache and time-format hotfix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          js = Path('runnerbear-premium-v34.js')
+          text = js.read_text(encoding='utf-8')
+          bad = "return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}:${String(x).padStart(2,'0')}`.replace(/^0:/,'')"
+          good = "return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}`"
+          if bad in text:
+              text = text.replace(bad, good)
+          js.write_text(text, encoding='utf-8')
+
+          index = Path('index.html')
+          html = index.read_text(encoding='utf-8')
+          replacements = {
+              'site.webmanifest?v=34': 'site.webmanifest?v=951',
+              'runnerbear-premium-v34.css?v=34': 'runnerbear-premium-v34.css?v=951',
+              'runnerbear-bridge-config.js?v=34': 'runnerbear-bridge-config.js?v=951',
+              'runnerbear-premium-v33.js?v=33': 'runnerbear-premium-v33.js?v=951',
+              'runnerbear-premium-v34.js?v=34': 'runnerbear-premium-v34.js?v=951',
+          }
+          for old, new in replacements.items():
+              html = html.replace(old, new)
+          marker = '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">'
+          cache_meta = '<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">\n<meta http-equiv="Pragma" content="no-cache">\n<meta http-equiv="Expires" content="0">'
+          if 'http-equiv="Cache-Control"' not in html and marker in html:
+              html = html.replace(marker, marker + '\n' + cache_meta)
+          index.write_text(html, encoding='utf-8')
+          PY
+
+      - name: Publish hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add runnerbear-premium-v34.js index.html
+          if git diff --cached --quiet; then
+            echo "No web hotfix changes needed"
+          else
+            git commit -m "Apply RunnerBear v9.5.1 live cache hotfix [skip ci]"
+            git push origin HEAD:main
+          fi
