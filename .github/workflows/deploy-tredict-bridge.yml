@@ -9,6 +9,13 @@ on:
       - "cloudflare/runnerbear-tredict-worker.js"
       - "wrangler.bridge.jsonc"
       - ".github/workflows/deploy-tredict-bridge.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "cloudflare/runnerbear-tredict-worker.js"
+      - "wrangler.bridge.jsonc"
+      - ".github/workflows/deploy-tredict-bridge.yml"
 
 permissions:
   contents: write
@@ -34,6 +41,12 @@ jobs:
         env:
           TREDICT_TOKEN: ${{ secrets.TREDICT_TOKEN }}
           RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
+
+      - name: Switch to main before publishing endpoint
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin main
+          git checkout -B runnerbear-endpoint-publish origin/main
 
       - name: Publish bridge endpoint to RunnerBear
         env:
