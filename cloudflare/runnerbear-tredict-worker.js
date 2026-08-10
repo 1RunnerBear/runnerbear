@@ -2,6 +2,7 @@
    Secrets (Cloudflare): TREDICT_TOKEN, RUNNERBEAR_BRIDGE_KEY
    Optional var: RUNNERBEAR_ORIGIN (defaults to GitHub Pages origin)
    Read-only bridge for activities + recovery/capacity data.
+   Deploy probe: same-repo PR verifies Cloudflare CI and secret wiring.
 */
 const TREDICT='https://www.tredict.com/api/oauth/v2/';
 const DEFAULT_ORIGIN='https://1runnerbear.github.io';
