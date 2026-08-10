@@ -57,4 +57,12 @@
   const previousRenderAll=window.renderAll;if(typeof previousRenderAll==='function'){window.renderAll=function(){const result=previousRenderAll.apply(this,arguments);postprocess();return result}}
   document.addEventListener('click',e=>{if(e.target.closest('.easy-choice [data-mode]'))requestAnimationFrame(postprocess)},true);
   postprocess();
+
+  /* v8.2 loader: keeps the intelligence dashboard additive until Tredict OAuth is live. */
+  if(!document.querySelector('link[data-rb-v26]')){
+    const link=document.createElement('link');link.rel='stylesheet';link.href='runnerbear-premium-v26.css?v=26';link.dataset.rbV26='1';document.head.appendChild(link);
+  }
+  if(!document.querySelector('script[data-rb-v26]')){
+    const script=document.createElement('script');script.src='runnerbear-premium-v26.js?v=26';script.dataset.rbV26='1';document.body.appendChild(script);
+  }
 })();
