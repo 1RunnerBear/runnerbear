@@ -11,7 +11,7 @@
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const iso=d=>{const x=d instanceof Date?d:new Date(d),z=n=>String(n).padStart(2,'0');return`${x.getFullYear()}-${z(x.getMonth()+1)}-${z(x.getDate())}`};
   const today=()=>iso(new Date());
-  const fmtTime=s=>{s=Math.max(0,Math.round(Number(s)||0));if(!s)return'–';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}:${String(x).padStart(2,'0')}`.replace(/^0:/,'')};
+  const fmtTime=s=>{s=Math.max(0,Math.round(Number(s)||0));if(!s)return'–';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}`};
   const fmtPace=s=>{s=Number(s);if(!s)return'–';return`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`};
   const km=m=>Number(m)>0?Number(m)/1000:0;
   const cache=()=>read(CACHE,{activities:[],hrv:{},sleep:{},body:[],capacity:{},zones:{}});
