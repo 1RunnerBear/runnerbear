@@ -1,0 +1,96 @@
+/* RunnerBear v8.1.2 · choice UI consistency */
+
+/* The legacy easy-day module injects dark runtime CSS after page styles.
+   Keep the component light even before the premium postprocessor has run. */
+.easy-choice{
+  margin:14px 0!important;
+  padding:14px!important;
+  border:1px solid #DDE6E0!important;
+  border-radius:18px!important;
+  background:#FFFFFF!important;
+  box-shadow:0 8px 24px rgba(15,20,18,.045)!important;
+  color:var(--text)!important;
+}
+.easy-choice .easy-choice-head{
+  margin-bottom:10px!important;
+  color:#7C8780!important;
+  font-size:9px!important;
+  letter-spacing:.105em!important;
+}
+.easy-choice .easy-choice-head b{color:var(--green)!important;font-weight:800!important}
+.easy-choice .easy-choice-buttons{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:7px!important;
+}
+.easy-choice .easy-choice-buttons button{
+  min-width:0!important;
+  min-height:48px!important;
+  padding:8px 5px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:7px!important;
+  border:1px solid #DCE3DE!important;
+  border-radius:13px!important;
+  background:#FFFFFF!important;
+  color:#68746D!important;
+  box-shadow:none!important;
+  font-size:11px!important;
+  font-weight:720!important;
+}
+.easy-choice .easy-choice-buttons button.active{
+  border-color:#9FBDA8!important;
+  background:var(--green-soft)!important;
+  color:#315E42!important;
+}
+.easy-choice .easy-prescription{
+  display:grid!important;
+  gap:5px!important;
+  margin-top:9px!important;
+  padding:11px 12px!important;
+  border:1px solid #E6EBE7!important;
+  border-radius:14px!important;
+  background:#F5F8F5!important;
+  color:var(--text)!important;
+}
+.easy-choice .easy-prescription strong{color:#233129!important}
+.easy-choice .easy-prescription span{color:#69756E!important}
+.easy-choice .easy-prescription small{color:#4C725A!important}
+.easy-choice.compact{margin:10px 0 2px!important;padding:11px!important;border-radius:15px!important}
+
+.rb-actual-mode{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:5px!important;
+}
+.rb-tag-icon,.rb-mini-icon{
+  width:14px;
+  height:14px;
+  display:inline-grid;
+  place-items:center;
+  flex:0 0 14px;
+  vertical-align:-2px;
+}
+.rb-tag-icon svg,.rb-mini-icon svg{
+  width:14px;
+  height:14px;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.mode-mini{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:3px!important;
+}
+.day.rb-selected-run .daymeta{color:#4C725A!important}
+.day.rb-selected-row .daymeta,.day.rb-selected-bike .daymeta{color:#68746D!important}
+
+@media(max-width:430px){
+  .easy-choice{padding:11px!important}
+  .easy-choice .easy-choice-buttons{gap:5px!important}
+  .easy-choice .easy-choice-buttons button{min-height:44px!important;font-size:10px!important;padding:7px 3px!important;gap:5px!important}
+}
