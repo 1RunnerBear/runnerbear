@@ -1,0 +1,40 @@
+name: Enable RunnerBear v8.1 Tredict Sync
+on:
+  push:
+    paths:
+      - '.github/workflows/enable-runnerbear-v81.yml'
+permissions:
+  contents: write
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire v8.1 assets
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          css='<link rel="stylesheet" href="runnerbear-premium-v23.css?v=23">'
+          js='<script src="runnerbear-v81-tredict.js?v=23"></script>'
+          if css not in s:
+              s=s.replace('</head>',css+'\n</head>')
+          if js not in s:
+              s=s.replace('</body>',js+'\n</body>')
+          s=s.replace('site.webmanifest?v=22','site.webmanifest?v=23')
+          p.write_text(s,encoding='utf-8')
+          PY
+          test "$(grep -c 'runnerbear-premium-v23.css' index.html)" -eq 1
+          test "$(grep -c 'runnerbear-v81-tredict.js' index.html)" -eq 1
+          node --check runnerbear-v81-tredict.js
+      - name: Commit activation
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add index.html
+          git commit -m 'Enable RunnerBear v8.1 Tredict sync'
+          git push
+          git rm .github/workflows/enable-runnerbear-v81.yml
+          git commit -m 'Remove one-time v8.1 activation workflow'
+          git push
