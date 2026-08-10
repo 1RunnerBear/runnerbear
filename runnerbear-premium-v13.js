@@ -1,6 +1,6 @@
 /* RunnerBear v6 · Proposal 2 branding shell */
 (function(){
-  const MARK='runnerbear-brand-mark-flat.png?v=13';
+  const MARK='runnerbear-brand-mark-flat.svg?v=13';
   function ensureBrand(){
     document.body.classList.add('runnerbear-premium');
     const rb=document.querySelector('.brand .rb');
