@@ -1,0 +1,51 @@
+name: Enable RunnerBear v6.1 premium cleanup
+
+on:
+  push:
+    paths:
+      - '.github/workflows/enable-runnerbear-v61.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify premium cleanup modules
+        run: |
+          node --check runnerbear-premium-v13.js
+          node --check runnerbear-premium-v14.js
+      - name: Wire v6.1 cleanup after v6 design
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          css='<link rel="stylesheet" href="runnerbear-premium-v14.css?v=14">'
+          css_anchor='<link rel="stylesheet" href="runnerbear-premium-v13.css?v=13">'
+          js='<script src="runnerbear-premium-v14.js?v=14"></script>'
+          js_anchor='<script src="runnerbear-premium-v13.js?v=13"></script>'
+          if css not in s:
+              if css_anchor not in s: raise SystemExit('Premium v13 CSS anchor missing')
+              s=s.replace(css_anchor, css_anchor+'\n'+css)
+          if js not in s:
+              if js_anchor not in s: raise SystemExit('Premium v13 JS anchor missing')
+              s=s.replace(js_anchor, js_anchor+'\n'+js)
+          if s.count('runnerbear-premium-v14.css') != 1: raise SystemExit('v14 CSS reference count invalid')
+          if s.count('runnerbear-premium-v14.js') != 1: raise SystemExit('v14 JS reference count invalid')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit wiring and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/enable-runnerbear-v61.yml
+          git add index.html
+          git commit -m "Enable RunnerBear v6.1 premium cleanup"
+          git push
