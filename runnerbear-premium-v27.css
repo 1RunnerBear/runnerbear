@@ -1,0 +1,9 @@
+/* RunnerBear v8.2.1 · unified activity icon set */
+.rb-activity-icon,.rb-tag-icon,.rb-mini-icon{display:inline-grid;place-items:center;flex:0 0 auto;color:currentColor}
+.rb-activity-icon{width:20px;height:20px}.rb-tag-icon,.rb-mini-icon{width:15px;height:15px}
+.rb-activity-icon svg,.rb-tag-icon svg,.rb-mini-icon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.easy-choice .easy-choice-buttons button{display:flex!important;align-items:center!important;justify-content:center!important;gap:8px!important}
+.easy-choice .easy-choice-buttons button .rb-mode-label{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.easy-choice .easy-choice-buttons button.active{border-color:#9CB9A5!important;background:#EEF5F0!important;color:#315E42!important;box-shadow:inset 0 0 0 1px rgba(76,122,94,.08)!important}
+.rb-actual-mode,.mode-mini{display:inline-flex!important;align-items:center!important;gap:5px!important}
+@media(max-width:430px){.rb-activity-icon{width:18px;height:18px}.easy-choice .easy-choice-buttons button{gap:6px!important}}
