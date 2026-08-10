@@ -1,16 +1,17 @@
-/* RunnerBear v9.5 · Live Data Integration
+/* RunnerBear v9.5.1 · Live Data Integration
    Secure bridge cache is authoritative for recovery + actual activity UI.
    Never requires the Tredict Personal API token in browser storage.
 */
 (function(){
   'use strict';
+  const BUILD='9.5.1';
   const $=id=>document.getElementById(id),qs=(s,r=document)=>r.querySelector(s),qsa=(s,r=document)=>[...r.querySelectorAll(s)];
   const CACHE='runnerbear_tredict_cache_v1',LAST='runnerbear_tredict_last_sync',MATCH='runnerbear_tredict_match_';
   const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k)||'')??f}catch{return f}};
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const iso=d=>{const x=d instanceof Date?d:new Date(d),z=n=>String(n).padStart(2,'0');return`${x.getFullYear()}-${z(x.getMonth()+1)}-${z(x.getDate())}`};
   const today=()=>iso(new Date());
-  const fmtTime=s=>{s=Math.max(0,Math.round(Number(s)||0));if(!s)return'–';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}`};
+  const fmtTime=s=>{s=Math.max(0,Math.round(Number(s)||0));if(!s)return'–';const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}:${String(x).padStart(2,'0')}`.replace(/^0:/,'')};
   const fmtPace=s=>{s=Number(s);if(!s)return'–';return`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,'0')}`};
   const km=m=>Number(m)>0?Number(m)/1000:0;
   const cache=()=>read(CACHE,{activities:[],hrv:{},sleep:{},body:[],capacity:{},zones:{}});
@@ -52,6 +53,27 @@
     $('rb9TrendText').textContent=`Garmin/Tredict: ${s28.runs} løpeøkter · ${s28.km.toFixed(1)} km siste 28 dager${s28.all>s28.runs?` · ${s28.all-s28.runs} andre økter`:''}. Faktisk trening brukes som evidens, ikke som ordre om å øke.`;
   }
 
+  function nextPlanned(){
+    try{
+      if(typeof flat==='undefined')return null;const now=new Date();now.setHours(23,59,59,999);
+      return flat.filter(f=>new Date(f.date)>now&&f.type!=='rest').sort((a,b)=>new Date(a.date)-new Date(b.date))[0]||null;
+    }catch{return null}
+  }
+  function activityName(a){
+    a=activityFlat(a||{});if(a.subSportType==='indoor_rowing'||a.subSportType==='rowing')return'Roingen';if(a.sportType==='cycling')return'Sykkeløkten';if(a.sportType==='running')return'Løpeøkten';return'Økten';
+  }
+  function patchCoach(){
+    const pill=$('rb9CoachPill'),title=$('rb9CoachTitle'),text=$('rb9CoachText');if(!pill||!title||!text)return;
+    const card=pill.closest('.rb9-coach-status');const kick=qs('.kicker span:first-child',card);if(kick)kick.textContent='RB COACH · BAKKEN';
+    const r=recovery(),m=matchFor(today()),next=nextPlanned(),sync=latestSyncLabel();let tone='green',label='PLANEN STÅR',head='Kontroll før ambisjon',msg='Hold dagens økt i riktig intensitet. Grønt lys betyr planlagt arbeid – ikke ekstra arbeid.';
+    if(r?.level==='red'){tone='red';label='BREMS';head='Ta ned belastningen';msg='Flere recovery-signaler avviker. Bakken-prinsippet her er å beskytte kontinuiteten: reduser eller erstatt, ikke press gjennom.'}
+    else if(r?.level==='yellow'){tone='yellow';label='OBS';head='Planen står – med margin';msg='Ett recovery-signal avviker. Behold kontrollen og kutt heller volum enn å jage fart.'}
+    else if(m?.activity){head=`${activityName(m.activity)} er registrert`;msg=`Dagens stimulus er gjort. Ikke legg på bonusarbeid.${next?.title?` Neste nøkkel er ${next.title}.`:''}`}
+    else if(sync){label='LIVE';head='Planen står';msg=`Tredict er synket ${sync}. Dagens aktivitet matches automatisk så snart den finnes i Tredict. Ingen manuell kompensasjon i mellomtiden.`}
+    pill.className=`status-pill ${tone}`;pill.textContent=label;title.textContent=head;text.textContent=msg;
+    let meta=qs('.rb95-coach-meta',card);if(!meta){meta=document.createElement('small');meta.className='rb95-coach-meta';card.appendChild(meta)}meta.textContent=`Live data · ${sync?`sist synk ${sync}`:'venter på første sync'} · RunnerBear ${BUILD}`;
+  }
+
   function actualMetrics(a){
     a=activityFlat(a);const items=[];
     if(km(a.distance)>0)items.push(['Distanse',`${km(a.distance).toFixed(2)} km`]);
@@ -59,25 +81,22 @@
     if(a.sportType==='running'&&a.pace)items.push(['Fart',`${fmtPace(a.pace)}/km`]);
     if(a.heartrate)items.push(['Puls',`${Math.round(a.heartrate)} bpm`,a.heartrateMax?`maks ${Math.round(a.heartrateMax)}`:'']);
     if(a.power)items.push(['Effekt',`${Math.round(a.power)} W`]);
-    if(a.cadence)items.push([a.sportType==='cycling'?'Kadens':'Stegfrekvens',`${Math.round(a.cadence)} ${a.sportType==='cycling'?'rpm':'spm'}`]);
+    if(a.cadence)items.push([a.sportType==='cycling'?'Kadens':(a.subSportType==='indoor_rowing'||a.subSportType==='rowing')?'Takfrekvens':'Stegfrekvens',`${Math.round(a.cadence)} ${a.sportType==='cycling'?'rpm':'spm'}`]);
     return items.slice(0,5);
   }
   function actualHtml(m,compact=false){
     const a=activityFlat(m?.activity||{});if(!a.id)return'';const metrics=actualMetrics(a);
-    return `<div class="rb95-actual ${compact?'compact':''}"><div class="rb95-actual-head"><div><span>GARMIN · MATCHET AUTOMATISK</span><b>${esc(a.title||m?.planned?.title||'Utført økt')}</b></div><strong>✓</strong></div><div class="rb95-actual-grid">${metrics.map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b>${x[2]?`<small>${x[2]}</small>`:''}</div>`).join('')}</div>${compact?'':`<p>Faktisk økt fra Tredict er koblet til planen. Avvik i distanse eller intensitet skal ikke «tas igjen» senere.</p>`}</div>`;
+    return `<div class="rb95-actual ${compact?'compact':''}"><div class="rb95-actual-head"><div><span>GARMIN/TREDICT · MATCHET AUTOMATISK</span><b>${esc(a.title||m?.planned?.title||'Utført økt')}</b></div><strong>✓</strong></div><div class="rb95-actual-grid">${metrics.map(x=>`<div><span>${x[0]}</span><b>${x[1]}</b>${x[2]?`<small>${x[2]}</small>`:''}</div>`).join('')}</div>${compact?'':`<p>Faktisk økt er koblet til planen. Avvik i distanse eller intensitet skal ikke «tas igjen» senere.</p>`}</div>`;
   }
 
-  function todayPlanned(){
-    try{return window.RunnerBearTredict?.plannedToday?.()||null}catch{return null}
-  }
   function renderTodayActual(){
     const card=$('todayCard');if(!card)return;let host=$('rbActualWorkout');
     if(!host){host=document.createElement('div');host.id='rbActualWorkout';host.className='rb-actual-wrap';card.appendChild(host)}
     const m=matchFor(today());
     if(m?.activity){host.innerHTML=actualHtml(m,false);return}
     const candidates=allActivities().filter(a=>iso(new Date(a.date))===today());
-    if(candidates.length){const a=candidates[0];host.innerHTML=`<div class="rb95-actual-pending"><span>GARMIN · AKTIVITET FUNNET</span><b>${esc(a.title||a.sportType)}</b><small>RunnerBear har ikke gjort en sikker planmatch ennå. Økten blir ikke markert gjennomført før matchen er tydelig.</small></div>`;return}
-    host.innerHTML='';
+    if(candidates.length){const a=candidates[0];host.innerHTML=`<div class="rb95-actual-pending"><span>TREDICT · AKTIVITET FUNNET</span><b>${esc(a.title||a.sportType)}</b><small>RunnerBear har ikke gjort en sikker planmatch ennå. Økten markeres ikke gjennomført før matchen er tydelig.</small></div>`;return}
+    const sync=latestSyncLabel();host.innerHTML=sync?`<div class="rb95-actual-pending quiet"><span>TREDICT · VENTER PÅ DAGENS AKTIVITET</span><b>Ingen aktivitet mottatt ennå</b><small>Sist synk ${sync}. RunnerBear sjekker igjen automatisk når appen åpnes og dataene er eldre enn fem minutter.</small></div>`:'';
   }
 
   function selectedPlanDate(){
@@ -95,24 +114,33 @@
     const body=qs('.day-body',card)||card;const el=document.createElement('div');el.className='rb95-plan-actual';el.innerHTML=actualHtml(m,true);body.prepend(el);
   }
 
+  function forceFresh(){const u=new URL(location.href);u.searchParams.set('rb',BUILD.replace(/\./g,''));u.searchParams.set('fresh',String(Date.now()));location.replace(u.toString())}
   function patchBridgeCard(){
     const c=$('rbTredictCard');if(!c||!window.RunnerBearBridge?.configured?.())return;
     const h=qs('.rb94-bridge-main h3',c),p=qs('.rb94-bridge-main p',c),pill=$('rb94BridgePill');
     if(h)h.textContent='Garmin-data er live i RunnerBear';
     if(p)p.textContent='Aktiviteter, HRV, søvn, hvilepuls, kapasitet og soner hentes sikkert via Tredict Bridge. Personal API-tokenet ligger kun hos Cloudflare.';
     if(pill&&!/SYNK|FEIL|TEST/i.test(pill.textContent||'')){pill.textContent='LIVE';pill.className='status-pill green'}
+    let row=qs('.rb95-build-row',c);if(!row){row=document.createElement('div');row.className='rb95-build-row';const actions=qs('.rb94-actions',c);actions?.insertAdjacentElement('afterend',row)}
+    if(row){row.innerHTML=`<span>RunnerBear ${BUILD}</span><button type="button" id="rb95Fresh">Hent siste appversjon</button>`;$('rb95Fresh')?.addEventListener('click',forceFresh)}
   }
 
   function hideLegacyRecovery(){const x=$('rbRecoveryCard');if(x)x.classList.add('rb95-legacy-hidden')}
+  function showUpdate(build){
+    if($('rb95UpdateBanner'))return;const b=document.createElement('div');b.id='rb95UpdateBanner';b.className='rb95-update-banner';b.innerHTML=`<span>Ny RunnerBear ${esc(build)} er tilgjengelig</span><button type="button">Oppdater nå</button>`;document.body.appendChild(b);qs('button',b)?.addEventListener('click',forceFresh);
+  }
+  async function checkBuild(){
+    try{const r=await fetch(`runnerbear-version.json?t=${Date.now()}`,{cache:'no-store',credentials:'omit'});if(!r.ok)return;const v=await r.json();if(v?.build&&v.build!==BUILD)showUpdate(v.build)}catch{}
+  }
   function renderLive(){
-    document.documentElement.classList.add('rb95');hideLegacyRecovery();patchHealth();patchTrend();renderTodayActual();renderPlanActual();patchBridgeCard();
+    document.documentElement.classList.add('rb95');document.documentElement.dataset.runnerbearBuild=BUILD;hideLegacyRecovery();patchHealth();patchTrend();patchCoach();renderTodayActual();renderPlanActual();patchBridgeCard();
   }
 
   const oldRender=window.renderAll;if(typeof oldRender==='function')window.renderAll=function(){const r=oldRender.apply(this,arguments);requestAnimationFrame(renderLive);setTimeout(renderLive,80);return r};
   const oldSwitch=window.switchTab;if(typeof oldSwitch==='function')window.switchTab=function(id,scroll){const r=oldSwitch.apply(this,arguments);requestAnimationFrame(renderLive);setTimeout(renderLive,80);return r};
   document.addEventListener('click',e=>{if(e.target.closest('[data-rb31-day],[data-rb31-week],[data-rb31-current],#rb94Sync,#rb94Test,.navbtn')){requestAnimationFrame(renderLive);setTimeout(renderLive,120)}},true);
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden)setTimeout(renderLive,120)});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden){setTimeout(renderLive,120);checkBuild()}});
   window.addEventListener('storage',e=>{if(e.key===CACHE||e.key===LAST||String(e.key||'').startsWith(MATCH))renderLive()});
-  window.RunnerBearLive=Object.assign(window.RunnerBearLive||{},{render:renderLive,activities:allActivities,recovery,matchFor});
-  renderLive();requestAnimationFrame(renderLive);setTimeout(renderLive,250);
+  window.RunnerBearLive=Object.assign(window.RunnerBearLive||{},{render:renderLive,activities:allActivities,recovery,matchFor,build:BUILD,forceFresh});
+  renderLive();requestAnimationFrame(renderLive);setTimeout(renderLive,250);setTimeout(checkBuild,1200);
 })();
