@@ -1,0 +1,186 @@
+/* RunnerBear v9.3 · Plan Cleanup
+   Plan is a calendar: week overview -> week summary -> selected workout.
+   Also restores strict single-view visibility after v9.1 responsive rules. */
+
+html.rb9.rb32 .view:not(.active){display:none!important}
+html.rb9.rb32 #plan.view.active{display:block!important}
+html.rb9.rb32 #today.view.active{display:block!important}
+@media(min-width:921px){
+  html.rb9.rb32 #today.view.active{display:grid!important}
+}
+html.rb9.rb32 #race.view.active,
+html.rb9.rb32 #goals.view.active,
+html.rb9.rb32 #more.view.active{display:block!important}
+
+/* Plan owns only its calendar surface. */
+html.rb9.rb32 #plan>.load-card,
+html.rb9.rb32 #plan>#rbPlanNav,
+html.rb9.rb32 #plan>#rbV72WeekNav,
+html.rb9.rb32 #plan>#rbAdaptiveDecision{display:none!important}
+html.rb9.rb32 #plan .section-head{margin:0 0 10px!important;align-items:end!important}
+html.rb9.rb32 #plan .section-head>div{min-width:0}
+html.rb9.rb32 #plan .section-head .eyebrow{color:#718078!important}
+html.rb9.rb32 #plan .section-head h1{margin:3px 0 0!important}
+html.rb9.rb32 #plan .section-head p{margin-top:5px!important;max-width:560px!important;color:#7b867f!important}
+html.rb9.rb32 #plan #weekFilter{display:none!important}
+
+/* Keep the new week overview directly below the Plan title. */
+html.rb9.rb32 #rb31PlanOverview{margin:0 0 12px!important}
+html.rb9.rb32 #rb31PlanOverview .rb31-plan-overview{
+  padding:16px!important;
+  background:#fff!important;
+  border:1px solid var(--rb9-line)!important;
+  box-shadow:none!important;
+}
+html.rb9.rb32 .rb31-week-nav{margin-bottom:10px}
+html.rb9.rb32 .rb31-week-center small{font-weight:700;color:#87918b}
+html.rb9.rb32 .rb31-week-stats{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  gap:0!important;
+  margin:9px 0 8px!important;
+  border-top:1px solid #edf0ed;
+  border-bottom:1px solid #edf0ed;
+  padding:8px 0!important;
+}
+html.rb9.rb32 .rb31-week-stats>div{
+  flex:1 1 25%;
+  min-width:72px;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  padding:4px 8px!important;
+  position:relative;
+}
+html.rb9.rb32 .rb31-week-stats>div+div:before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:7px;
+  bottom:7px;
+  width:1px;
+  background:#edf0ed;
+}
+html.rb9.rb32 .rb31-week-stats b{font-size:18px!important}
+html.rb9.rb32 .rb31-week-stats span{font-size:7.8px!important}
+
+html.rb9.rb32 .rb31-week-focus{
+  margin:8px 0 12px!important;
+  padding:10px 12px!important;
+  background:#f3f7f4!important;
+}
+html.rb9.rb32 .rb31-week-focus b{font-weight:650!important}
+
+/* Seven days stay visible on mobile, now with a tiny semantic label. */
+html.rb9.rb32 .rb31-day-map{gap:4px!important}
+html.rb9.rb32 .rb31-day-chip{
+  min-height:83px!important;
+  padding:7px 2px 6px!important;
+  grid-template-rows:auto auto auto auto 4px;
+}
+html.rb9.rb32 .rb31-day-chip .rb32-day-name{
+  display:block;
+  width:100%;
+  padding:0 2px;
+  font-style:normal;
+  font-size:7px;
+  font-weight:780;
+  line-height:1.05;
+  color:#7b867f;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+html.rb9.rb32 .rb31-day-chip.selected .rb32-day-name{color:#366b4b}
+html.rb9.rb32 .rb31-sync-note{display:none!important}
+
+/* The selected workout is the only detailed workout below the week map. */
+html.rb9.rb32 #weeks{margin-top:0!important}
+html.rb9.rb32 #weeks .week{margin:0!important}
+html.rb9.rb32 #weeks .weekhead,
+html.rb9.rb32 #weeks .rb-week-brief{display:none!important}
+html.rb9.rb32 #weeks .days{display:block!important}
+html.rb9.rb32 #weeks .day{display:none!important;margin:0!important}
+html.rb9.rb32 #weeks .day.rb31-selected{
+  display:block!important;
+  border-radius:20px!important;
+  border:1px solid #d9e3dc!important;
+  box-shadow:none!important;
+}
+html.rb9.rb32 #weeks .day.rb31-selected .day-body{display:block!important}
+html.rb9.rb32 #weeks .day-summary{
+  cursor:default!important;
+  grid-template-columns:58px 34px minmax(0,1fr) auto!important;
+  min-height:72px!important;
+  padding:13px 14px!important;
+}
+html.rb9.rb32 #weeks .day-summary h3{font-size:18px!important}
+html.rb9.rb32 #weeks .daystatus{font-size:9px!important}
+html.rb9.rb32 #weeks .day-body{padding:14px!important}
+html.rb9.rb32 #weeks .intent{margin-top:10px!important}
+
+/* Automatic completion is the normal state. Manual completion lives behind a quiet fallback menu. */
+.rb32-manual-menu{margin-top:5px}
+.rb32-manual-menu>summary{
+  list-style:none;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  cursor:pointer;
+  color:#7b867f;
+  font-size:10.5px;
+  font-weight:750;
+  padding:7px 0;
+}
+.rb32-manual-menu>summary::-webkit-details-marker{display:none}
+.rb32-manual-menu>summary span{
+  width:26px;height:26px;border-radius:9px;
+  display:inline-grid;place-items:center;
+  border:1px solid #e0e6e1;
+  background:#fafbfa;
+  letter-spacing:1px;
+}
+.rb32-manual-menu>summary small{font-size:10px;color:#98a09b}
+.rb32-manual-menu[open]>summary{color:#52645a}
+.rb32-manual-menu .rb31-manual-wrap{margin-top:5px}
+
+/* Prevent any old plan-adjacent dashboard cards from surfacing after runtime re-renders. */
+html.rb9.rb32 #plan .premium-greeting,
+html.rb9.rb32 #plan .checkin,
+html.rb9.rb32 #plan .week-review,
+html.rb9.rb32 #plan .rb-traffic-light,
+html.rb9.rb32 #plan .rb-recovery-card,
+html.rb9.rb32 #plan .coach-card,
+html.rb9.rb32 #plan .readiness{display:none!important}
+
+@media(max-width:640px){
+  html.rb9.rb32 #plan .section-head{margin-bottom:8px!important}
+  html.rb9.rb32 #plan .section-head .eyebrow{font-size:9px!important}
+  html.rb9.rb32 #plan .section-head h1{font-size:31px!important}
+  html.rb9.rb32 #plan .section-head p{display:block!important;font-size:12px!important;line-height:1.35!important}
+  html.rb9.rb32 #rb31PlanOverview .rb31-plan-overview{padding:12px!important;border-radius:18px!important}
+  html.rb9.rb32 .rb31-week-nav{grid-template-columns:36px minmax(0,1fr) 36px!important;gap:5px!important;margin-bottom:7px}
+  html.rb9.rb32 .rb31-nav-btn{min-height:48px!important}
+  html.rb9.rb32 .rb31-week-center strong{font-size:17px!important}
+  html.rb9.rb32 .rb31-week-stats{padding:6px 0!important;margin:7px 0!important}
+  html.rb9.rb32 .rb31-week-stats>div{padding:3px 4px!important;min-width:0}
+  html.rb9.rb32 .rb31-week-stats b{font-size:16px!important}
+  html.rb9.rb32 .rb31-week-stats span{font-size:6.8px!important;letter-spacing:.04em!important}
+  html.rb9.rb32 .rb31-week-focus{padding:9px 10px!important;margin:7px 0 9px!important}
+  html.rb9.rb32 .rb31-week-focus span{font-size:7.6px!important}
+  html.rb9.rb32 .rb31-week-focus b{font-size:11px!important}
+  html.rb9.rb32 .rb31-day-map{gap:3px!important}
+  html.rb9.rb32 .rb31-day-chip{min-height:78px!important;border-radius:10px!important}
+  html.rb9.rb32 .rb31-day-chip span{font-size:6.5px!important}
+  html.rb9.rb32 .rb31-day-chip b{font-size:13px!important}
+  html.rb9.rb32 .rb31-chip-icon{width:16px!important;height:16px!important}
+  html.rb9.rb32 .rb31-day-chip .rb32-day-name{font-size:6.4px}
+  html.rb9.rb32 #weeks .day-summary{grid-template-columns:48px 28px minmax(0,1fr) auto!important;gap:7px!important;padding:12px 10px!important}
+  html.rb9.rb32 #weeks .day-summary h3{font-size:16px!important}
+  html.rb9.rb32 #weeks .day-body{padding:12px!important}
+}
+@media(max-width:380px){
+  html.rb9.rb32 .rb31-day-chip{min-height:73px!important}
+  html.rb9.rb32 .rb31-day-chip .rb32-day-name{font-size:5.9px}
+  html.rb9.rb32 .rb31-week-stats span{font-size:6.2px!important}
+}
