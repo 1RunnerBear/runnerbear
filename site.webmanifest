@@ -1,15 +1,19 @@
 {
   "name": "RunnerBear",
   "short_name": "RunnerBear",
-  "description": "RunnerBear · Permanent Coach · Activity Choice UI · v8.1.2",
-  "id": "/runnerbear/",
-  "start_url": "/runnerbear/",
+  "description": "RunnerBear · Permanent Coach",
+  "id": "/runnerbear/?app=v2",
+  "start_url": "/runnerbear/?app=v2",
   "scope": "/runnerbear/",
   "display": "standalone",
   "background_color": "#F7F8F6",
   "theme_color": "#F7F8F6",
   "icons": [
-    {"src":"rb-icon-192.png?v=13","sizes":"192x192","type":"image/png"},
-    {"src":"rb-icon-512.png?v=13","sizes":"512x512","type":"image/png"}
+    {
+      "src": "runnerbear-app-icon-v2.svg?v=27",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
