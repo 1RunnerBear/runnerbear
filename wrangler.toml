@@ -1,0 +1,7 @@
+name = "runnerbear-tredict-bridge"
+main = "cloudflare/runnerbear-tredict-worker.js"
+compatibility_date = "2026-08-10"
+workers_dev = true
+
+[vars]
+RUNNERBEAR_ORIGIN = "https://1runnerbear.github.io"
