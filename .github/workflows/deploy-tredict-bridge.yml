@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - "cloudflare/runnerbear-tredict-worker.js"
+      - "cloudflare/runnerbear-tredict-worker.mjs"
       - "wrangler.toml"
       - "wrangler.bridge.jsonc"
       - ".github/workflows/deploy-tredict-bridge.yml"
@@ -15,6 +16,7 @@ on:
       - main
     paths:
       - "cloudflare/runnerbear-tredict-worker.js"
+      - "cloudflare/runnerbear-tredict-worker.mjs"
       - "wrangler.toml"
       - "wrangler.bridge.jsonc"
       - ".github/workflows/deploy-tredict-bridge.yml"
