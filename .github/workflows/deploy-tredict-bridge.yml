@@ -1,0 +1,36 @@
+name: Deploy RunnerBear Tredict Bridge
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Deploy Cloudflare Worker
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.bridge.jsonc
+          secrets: |
+            TREDICT_TOKEN
+            RUNNERBEAR_BRIDGE_KEY
+        env:
+          TREDICT_TOKEN: ${{ secrets.TREDICT_TOKEN }}
+          RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
+
+      - name: Show deployment URL
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          echo "RunnerBear Bridge deployed"
+          echo "Deployment URL: ${DEPLOYMENT_URL}"
