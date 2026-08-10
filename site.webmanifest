@@ -1,7 +1,8 @@
 {
   "name": "RunnerBear",
   "short_name": "RunnerBear",
-  "description": "RunnerBear · Smart. Lighter. Faster. · v6.1",
+  "description": "RunnerBear · Smart. Lighter. Faster. · v6.2",
+  "id": "/runnerbear/",
   "start_url": "/runnerbear/",
   "scope": "/runnerbear/",
   "display": "standalone",
