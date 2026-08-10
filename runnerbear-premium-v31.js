@@ -215,7 +215,9 @@
   }
   function repairFutureCompletions(s){
     if(!s)return;const endToday=new Date();endToday.setHours(23,59,59,999);
-    s.days.forEach(d=>{const ds=iso(d.date);if(date(ds)<=endToday)return;if(matchFor(ds))return;if(localStorage.getItem(d.doneKey)==='1'){localStorage.removeItem(d.doneKey);localStorage.removeItem(manualKey(d.doneKey))}});
+    let rows=s.days;
+    if(s.mode==='legacy'){try{rows=flat.map(f=>({date:f.date,doneKey:legacyDoneKey(f)}))}catch{}}
+    rows.forEach(d=>{const ds=iso(d.date);if(date(ds)<=endToday)return;if(matchFor(ds))return;if(localStorage.getItem(d.doneKey)==='1'){localStorage.removeItem(d.doneKey);localStorage.removeItem(manualKey(d.doneKey))}});
   }
   function compactPlan(s){
     const plan=$('plan');if(!plan||!s)return;plan.classList.add('rb31-plan');
