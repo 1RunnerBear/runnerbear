@@ -47,6 +47,38 @@ jobs:
           TREDICT_TOKEN: ${{ secrets.TREDICT_TOKEN }}
           RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
 
+      - name: Verify live bridge and Tredict read
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+          RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            -H "Origin: https://1runnerbear.github.io" \
+            -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+            "${DEPLOYMENT_URL}/health" > /tmp/health.json
+
+          curl --fail --silent --show-error \
+            -H "Origin: https://1runnerbear.github.io" \
+            -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+            "${DEPLOYMENT_URL}/api/snapshot?days=7" > /tmp/snapshot.json
+
+          python - <<'PY'
+          import json
+          health = json.load(open('/tmp/health.json', encoding='utf-8'))
+          snap = json.load(open('/tmp/snapshot.json', encoding='utf-8'))
+          if health.get('ok') is not True:
+              raise SystemExit('Bridge health check did not return ok=true')
+          if snap.get('ok') is not True:
+              raise SystemExit('Tredict snapshot did not return ok=true')
+          activities = snap.get('activities') or []
+          parts = {p.get('name'): bool(p.get('ok')) for p in (snap.get('parts') or [])}
+          if not activities:
+              raise SystemExit('Tredict snapshot returned zero activities in the last 7 days')
+          print(f"Bridge runtime OK · {len(activities)} activities in 7-day snapshot")
+          print('Parts: ' + ', '.join(f"{k}={'OK' if v else 'partial'}" for k,v in parts.items()))
+          PY
+
       - name: Switch to main before publishing endpoint
         if: github.event_name == 'pull_request'
         run: |
