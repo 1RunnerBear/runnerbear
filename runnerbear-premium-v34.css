@@ -8,4 +8,19 @@ html.rb95 #rbRecoveryCard.rb95-legacy-hidden{display:none!important}
 html.rb95 #rb9HealthSource,html.rb95 #rb9TrendState{color:#4c7a5e!important;font-weight:800}.rb95-coach-meta{display:block;margin-top:12px;color:#87928b;font-size:10px;line-height:1.4}
 .rb95-build-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid var(--rb9-line);font-size:10px;color:#87928b}.rb95-build-row button{border:0;background:transparent;padding:6px 0;color:var(--rb9-green-deep);font:inherit;font-weight:800;cursor:pointer}
 .rb95-update-banner{position:fixed;left:50%;bottom:max(82px,calc(env(safe-area-inset-bottom) + 70px));transform:translateX(-50%);z-index:9999;display:flex;align-items:center;gap:12px;max-width:calc(100vw - 28px);padding:10px 12px 10px 14px;border:1px solid #c9d9ce;border-radius:16px;background:#fff;box-shadow:0 10px 35px rgba(27,52,36,.14);font-size:12px;color:var(--rb9-ink)}.rb95-update-banner button{border:0;border-radius:11px;background:#eaf3ed;color:#356348;padding:8px 10px;font:inherit;font-weight:800;white-space:nowrap}
-@media(max-width:760px){.rb95-actual-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rb95-actual.compact .rb95-actual-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rb95-build-row{align-items:flex-start;flex-direction:column;gap:3px}}
+
+/* Mobile navigation hotfix: v9.1 forced #today to display:block even when inactive.
+   These ID-specific guards are loaded last and guarantee exactly one visible view. */
+html.rb9.rb30 #today.view:not(.active),
+html.rb9.rb30 #plan.view:not(.active),
+html.rb9.rb30 #race.view:not(.active),
+html.rb9.rb30 #goals.view:not(.active),
+html.rb9.rb30 #more.view:not(.active){display:none!important}
+@media(max-width:820px){
+  html.rb9.rb30 #today.view.active,
+  html.rb9.rb30 #plan.view.active,
+  html.rb9.rb30 #race.view.active,
+  html.rb9.rb30 #goals.view.active,
+  html.rb9.rb30 #more.view.active{display:block!important}
+  .rb95-actual-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rb95-actual.compact .rb95-actual-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rb95-build-row{align-items:flex-start;flex-direction:column;gap:3px}
+}
