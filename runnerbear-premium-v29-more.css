@@ -5,6 +5,10 @@ html.rb9 input,html.rb9 textarea,html.rb9 select{background:#fff!important;borde
 html.rb9 .below-grid>.card,html.rb9 .week-review{padding:22px!important}.rb9 .week-review{background:linear-gradient(145deg,#fff,#fafcfb)!important}.rb9 .review-grid>div{background:#f7f9f7!important;border:1px solid var(--rb9-line)!important;border-radius:15px!important;padding:14px!important}.rb9 .review-grid span{color:#87928b!important}.rb9 .review-grid b{color:#294f39!important}
 html.rb9 .checkchoices button{background:#fff!important;border:1px solid var(--rb9-line)!important;border-radius:14px!important;color:#69756d!important}.rb9 .checkchoices button.active{background:var(--rb9-green-soft)!important;border-color:#88aa95!important;color:var(--rb9-green-deep)!important}
 html.rb9 .load-card{box-shadow:none!important}.rb9 .rb-menu-btn{background:#f7f9f7!important;color:#67746b!important;border:1px solid var(--rb9-line)!important;border-radius:12px!important}.rb9 .danger-zone{opacity:.72}.rb9 .danger-zone button{border-radius:14px!important}
+/* v9 information hierarchy: Today is the decision dashboard; readiness belongs under Goals. */
+html.rb9 #today .today-grid{grid-template-columns:1fr!important}
+html.rb9 #today .today-grid>.stack{display:none!important}
+html.rb9 #plan .load-card{display:none!important}
 @media(max-width:820px){
   html.rb9 .app{padding-left:0;padding-right:0}.rb9 .topbar{padding:18px 20px 14px!important}.rb9 main{padding-left:16px!important;padding-right:16px!important}.rb9 .desktop-nav{display:none!important}
   .rb9-intelligence{grid-template-columns:1fr}.rb9-coach-status,.rb9-health-card,.rb9-trend-card{grid-column:1}.rb9-health-grid{grid-template-columns:repeat(4,1fr)}
