@@ -58,4 +58,12 @@
   function render(){renderDashboard();relabelCapacity();upgradeReview();document.documentElement.classList.add('rb-intelligence-v82')}
   const old=window.renderAll;if(typeof old==='function')window.renderAll=function(){const r=old.apply(this,arguments);requestAnimationFrame(render);return r};
   render();
+
+  /* v8.2.1 loader · one shared activity symbol system for Today + Plan. */
+  if(!document.querySelector('link[data-rb-v27]')){
+    const link=document.createElement('link');link.rel='stylesheet';link.href='runnerbear-premium-v27.css?v=27';link.dataset.rbV27='1';document.head.appendChild(link);
+  }
+  if(!document.querySelector('script[data-rb-v27]')){
+    const script=document.createElement('script');script.src='runnerbear-premium-v27.js?v=27';script.dataset.rbV27='1';document.body.appendChild(script);
+  }
 })();
