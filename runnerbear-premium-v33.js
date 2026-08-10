@@ -1,4 +1,4 @@
-/* RunnerBear v9.4 · Tredict Bridge client
+/* RunnerBear v9.4.1 · Tredict Bridge client
    Uses a private Cloudflare Worker. The Tredict Personal API token never belongs in browser storage.
 */
 (function(){
@@ -6,7 +6,7 @@
   const $=id=>document.getElementById(id),qs=(s,r=document)=>r.querySelector(s),qsa=(s,r=document)=>[...r.querySelectorAll(s)];
   const CACHE='runnerbear_tredict_cache_v1',LAST='runnerbear_tredict_last_sync',URLKEY='runnerbear_bridge_url',KEYKEY='runnerbear_bridge_key',MATCH='runnerbear_tredict_match_';
   const DIRECT='runnerbear_tredict_token',DIRECT_REMOVED='runnerbear_bridge_direct_token_removed_at';
-  const LEG='runfest-2026';
+  const LEG='runfest-2026',SYNC_MAX_AGE=5*60*1000;
   const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k)||'')??f}catch{return f}};
   const write=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -59,8 +59,15 @@
     if(want==='bike')return a.sportType==='cycling'?6:-8;
     return(a.sportType==='cycling'||a.subSportType==='indoor_rowing'||a.subSportType==='rowing'||a.sportType==='misc')?5:-8;
   }
+  function crossBonus(p,a){
+    if(p.type!=='cross'&&!/zwift|sykkel|concept2|roing|rowerg/i.test(p.title))return 0;
+    const row=a.subSportType==='indoor_rowing'||a.subSportType==='rowing',bike=a.sportType==='cycling';
+    if(row){if(p.choice==='bike')return-10;return 4}
+    if(bike){if(p.choice==='row')return-10;return 4}
+    return 0;
+  }
   function matchScore(p,a){
-    if(a.date!==p.date)return-99;let s=10+sportScore(p,a);if(s<5)return s;
+    if(a.date!==p.date)return-99;let s=10+sportScore(p,a)+crossBonus(p,a);if(s<5)return s;
     const akm=Number(a.distance||0)/1000;if(p.km>0&&akm>0){const d=Math.abs(akm-p.km);s+=d<=1?5:d<=2.5?3:d<=4?1:-2}
     const pt=p.title.toLowerCase(),at=(a.title||'').toLowerCase();
     if(/langtur/.test(pt)&&/lang|long/.test(at))s+=2;if(/terskel|intervall|45\/15/.test(pt)&&/terskel|threshold|interval/.test(at))s+=2;
@@ -68,7 +75,7 @@
   }
   function saveMatch(p,a){
     const key=MATCH+p.date;if(localStorage.getItem(key))return false;
-    write(key,{activityId:a.id,activity:a,planned:{goalId:p.goalId,date:p.date,type:p.type,title:p.title,km:p.km,label:p.label,source:p.source},automatic:true,matchedAt:new Date().toISOString(),matcher:'runnerbear-v9.4'});
+    write(key,{activityId:a.id,activity:a,planned:{goalId:p.goalId,date:p.date,type:p.type,title:p.title,km:p.km,label:p.label,source:p.source},automatic:true,matchedAt:new Date().toISOString(),matcher:'runnerbear-v9.4.1'});
     localStorage.setItem(p.doneKey,'1');return true;
   }
   function reconcile(){
@@ -115,7 +122,7 @@
     setPill('SYNKER…','neutral');
     try{
       const s=await request('/api/snapshot?days=28');
-      const cache={activities:s.activities||[],hrv:s.hrv||{},sleep:s.sleep||{},body:s.body||[],capacity:s.capacity||{},zones:s.zones||{},syncedAt:s.syncedAt||new Date().toISOString(),bridgeParts:s.parts||[],source:'runnerbear-bridge-v9.4'};
+      const cache={activities:s.activities||[],hrv:s.hrv||{},sleep:s.sleep||{},body:s.body||[],capacity:s.capacity||{},zones:s.zones||{},syncedAt:s.syncedAt||new Date().toISOString(),bridgeParts:s.parts||[],source:'runnerbear-bridge-v9.4.1'};
       write(CACHE,cache);localStorage.setItem(LAST,cache.syncedAt);const rec=reconcile();
       try{window.RunnerBearTredict?.matchToday?.(true)}catch{}
       if(typeof window.renderAll==='function')window.renderAll();else window.RunnerBearTredict?.render?.();
@@ -129,7 +136,7 @@
   const B=window.RunnerBearBridge=window.RunnerBearBridge||{};B.sync=sync;B.test=test;B.reconcile=reconcile;B.configured=configured;B.render=render;
   const prev=window.renderAll;if(typeof prev==='function')window.renderAll=function(){const r=prev.apply(this,arguments);requestAnimationFrame(render);return r};
   const prevSwitch=window.switchTab;if(typeof prevSwitch==='function')window.switchTab=function(id,scroll){const r=prevSwitch.apply(this,arguments);if(id==='more'||id==='today'||id==='plan')requestAnimationFrame(render);return r};
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&configured()){const t=Date.parse(localStorage.getItem(LAST)||0);if(!t||Date.now()-t>30*60*1000)sync(false)}});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&configured()){const t=Date.parse(localStorage.getItem(LAST)||0);if(!t||Date.now()-t>SYNC_MAX_AGE)sync(false)}});
   render();
-  if(configured()){const t=Date.parse(localStorage.getItem(LAST)||0);if(!t||Date.now()-t>30*60*1000)setTimeout(()=>sync(false),500)}
+  if(configured()){const t=Date.parse(localStorage.getItem(LAST)||0);if(!t||Date.now()-t>SYNC_MAX_AGE)setTimeout(()=>sync(false),500)}
 })();
