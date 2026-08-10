@@ -1,0 +1,15 @@
+/* RunnerBear v8.2.2 · authoritative flexible activity UI */
+.easy-choice.rb-authoritative-choice{background:#fbfcfa!important;border-color:#d8e0da!important;color:#101512!important}
+.easy-choice.rb-authoritative-choice .easy-choice-head{color:#698072!important}
+.easy-choice.rb-authoritative-choice .easy-choice-head b{color:#4c7a5e!important}
+.easy-choice.rb-authoritative-choice .easy-choice-buttons{gap:10px}
+.easy-choice.rb-authoritative-choice .easy-choice-buttons button{background:#fff!important;border:1px solid #d6ddd8!important;color:#5e6c63!important;box-shadow:none!important;min-height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:750}
+.easy-choice.rb-authoritative-choice .easy-choice-buttons button.active{background:#edf5f0!important;border-color:#86aa94!important;color:#2f6a49!important;box-shadow:inset 0 0 0 1px rgba(76,122,94,.08)!important}
+.easy-choice.rb-authoritative-choice .easy-prescription{background:#f7f9f7!important;border:1px solid #e1e7e2!important;color:#111713!important}
+.easy-choice.rb-authoritative-choice .easy-prescription span,.easy-choice.rb-authoritative-choice .easy-prescription small{color:#66776c!important}
+.rb-aicon,.rb-tag-aicon,.rb-mini-aicon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;color:currentColor}
+.rb-aicon{width:20px;height:20px}.rb-tag-aicon{width:15px;height:15px}.rb-mini-aicon{width:13px;height:13px;vertical-align:-2px}
+.rb-aicon svg,.rb-tag-aicon svg,.rb-mini-aicon svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.tag.rb-actual-mode{display:inline-flex!important;align-items:center;gap:5px}
+.mode-mini{display:inline-flex!important;align-items:center;gap:3px}
+@media(max-width:640px){.easy-choice.rb-authoritative-choice .easy-choice-buttons button{font-size:12px;min-height:50px;padding:8px 5px}.rb-aicon{width:19px;height:19px}}
