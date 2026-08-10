@@ -1,0 +1,11 @@
+name = "runnerbear-tredict-bridge"
+main = "runnerbear-tredict-worker.js"
+compatibility_date = "2026-08-10"
+
+[vars]
+RUNNERBEAR_ORIGIN = "https://1runnerbear.github.io"
+
+# Never commit secrets here.
+# Configure in Cloudflare as encrypted Worker secrets:
+#   TREDICT_TOKEN
+#   RUNNERBEAR_BRIDGE_KEY
