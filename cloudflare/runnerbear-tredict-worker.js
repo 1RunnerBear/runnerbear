@@ -2,7 +2,7 @@
    Secrets (Cloudflare): TREDICT_TOKEN, RUNNERBEAR_BRIDGE_KEY
    Optional var: RUNNERBEAR_ORIGIN (defaults to GitHub Pages origin)
    Read-only bridge for activities + recovery/capacity data.
-   Deploy probe: same-repo PR verifies Cloudflare CI and secret wiring · retry 4.
+   Deploy probe: same-repo PR verifies Cloudflare CI and secret wiring · retry 5.
 */
 const TREDICT='https://www.tredict.com/api/oauth/v2/';
 const DEFAULT_ORIGIN='https://1runnerbear.github.io';
@@ -43,7 +43,7 @@ async function td(env,path,params={}){
   if(!r.ok){let msg='';try{msg=(await r.text()).slice(0,300)}catch{};const e=new Error(`Tredict ${path}: HTTP ${r.status}${msg?` · ${msg}`:''}`);e.status=r.status;throw e}
   return r.json();
 }
-async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}
+async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}}
 
 export default {
   async fetch(request,env){
