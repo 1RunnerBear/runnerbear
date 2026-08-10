@@ -1,0 +1,40 @@
+name: Enable RunnerBear v6.2 consistency layer
+
+on:
+  push:
+    paths:
+      - '.github/workflows/enable-runnerbear-v62.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wire v15 premium CSS
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          line='<link rel="stylesheet" href="runnerbear-premium-v15.css?v=15">'
+          anchor='<link rel="stylesheet" href="runnerbear-premium-v14.css?v=14">'
+          if line not in s:
+              if anchor not in s:
+                  raise SystemExit('v14 CSS anchor not found')
+              s=s.replace(anchor, anchor+'\n'+line)
+          if s.count('runnerbear-premium-v15.css') != 1:
+              raise SystemExit('v15 CSS reference count invalid')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit wiring and remove one-time workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/enable-runnerbear-v62.yml
+          git add index.html
+          git commit -m "Enable RunnerBear v6.2 visual consistency polish"
+          git push
