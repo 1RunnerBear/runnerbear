@@ -1,5 +1,5 @@
 window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.torbjorn-forre.workers.dev";
-window.RUNNERBEAR_UI_BUILD = "9.7";
+window.RUNNERBEAR_UI_BUILD = "9.8.2";
 
 /* RunnerBear Today v9.6 loader. Kept here so the decision surface can evolve
    independently without touching the training/data layers. */
@@ -33,6 +33,23 @@ window.RUNNERBEAR_UI_BUILD = "9.7";
     s.src='runnerbear-v97.js?v=970';
     s.async=false;
     s.dataset.rbV97='1';
+    document.head.appendChild(s);
+  }
+
+  /* v9.8.2: RunnerBear Cloud becomes the cross-device authority. This client
+     handles bootstrap, state mirroring and the one-time legacy-origin transfer. */
+  if(!document.querySelector('link[data-rb-cloud-v982]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href='runnerbear-cloud-v982.css?v=982';
+    l.dataset.rbCloudV982='1';
+    document.head.appendChild(l);
+  }
+  if(!document.querySelector('script[data-rb-cloud-v982]')){
+    const s=document.createElement('script');
+    s.src='runnerbear-cloud-v982.js?v=982';
+    s.async=false;
+    s.dataset.rbCloudV982='1';
     document.head.appendChild(s);
   }
 })();
