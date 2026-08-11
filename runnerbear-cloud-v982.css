@@ -1,0 +1,75 @@
+/* RunnerBear v9.8.2 · Cloud migration + sync */
+html.rb982 .rb982-migration-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:22px;
+  margin-bottom:18px;
+  padding:22px 24px;
+}
+html.rb982 .rb982-migration-card>div{min-width:0}
+html.rb982 .rb982-migration-card>div>span{
+  display:block;
+  margin-bottom:7px;
+  font-size:9px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.13em;
+  color:#718078;
+}
+html.rb982 .rb982-migration-card h3{
+  margin:0 0 6px;
+  font-size:20px;
+  letter-spacing:-.025em;
+}
+html.rb982 .rb982-migration-card p{
+  max-width:650px;
+  margin:0;
+  color:#68756d;
+  line-height:1.45;
+}
+html.rb982 .rb982-migration-card button{
+  flex:0 0 auto;
+  border:0;
+  border-radius:13px;
+  padding:12px 15px;
+  background:#17231b;
+  color:#fff;
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.rb982-toast{
+  position:fixed;
+  z-index:10000;
+  left:50%;
+  bottom:max(86px,calc(env(safe-area-inset-bottom) + 72px));
+  transform:translate(-50%,18px);
+  width:min(calc(100vw - 28px),430px);
+  box-sizing:border-box;
+  padding:12px 15px;
+  border:1px solid rgba(27,52,36,.10);
+  border-radius:14px;
+  background:rgba(250,252,250,.96);
+  color:#26352c;
+  box-shadow:0 14px 42px rgba(29,48,36,.16);
+  font-size:12px;
+  font-weight:750;
+  text-align:center;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease,transform .18s ease;
+  backdrop-filter:blur(14px);
+}
+.rb982-toast.show{opacity:1;transform:translate(-50%,0)}
+.rb982-toast[data-tone="error"]{color:#792e2e;background:rgba(255,248,247,.97)}
+@media(max-width:640px){
+  html.rb982 .rb982-migration-card{
+    align-items:stretch;
+    flex-direction:column;
+    gap:14px;
+    padding:18px;
+  }
+  html.rb982 .rb982-migration-card button{width:100%}
+}
