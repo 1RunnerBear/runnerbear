@@ -177,10 +177,10 @@ function publicOutbound(state={}){return{status:String(state.status||'not-publis
 async function outboundStatus(env){return publicOutbound(await readState(env,OUTBOUND_STATE,{}))}
 async function verifyOutbound(env){
   if(!env.TREDICT)throw new Error('Tredict service binding missing');const state=await readState(env,OUTBOUND_STATE,{});
-  if(!state.planId||!state.startDate||!state.endDate)throw new Error('No published Tredict plan to verify');
+  if(!state.startDate||!state.endDate)throw new Error('No published Tredict plan to verify');
   const raw=await env.TREDICT.plannedWorkouts(`${state.startDate}T00:00:00.000Z`,`${state.endDate}T23:59:59.999Z`),rows=raw?._embedded?.plannedWorkoutList||raw?.plannedWorkoutList||[];
   const expected=Array.isArray(state.expected)?state.expected:[],matched=expected.filter(x=>rows.some(r=>isoDate(r?.date)===x.date&&(String(r?.notes||'').includes(`[RB:${x.externalId}]`)||String(r?.title||'')===x.title)));
-  const active=expected.length>0&&matched.length===expected.length,next={...state,status:active?'calendar-active':'published',calendarCount:matched.length,updatedAt:now(),message:active?'Tredict-kalenderen inneholder alle RunnerBear-øktene. Garmin-synk styres videre av Tredict.':`${matched.length} av ${expected.length} RunnerBear-økter finnes i Tredict-kalenderen.`};
+  const active=expected.length>0&&matched.length===expected.length,next={...state,status:active?'calendar-active':state.planId?'published':'review-required',calendarCount:matched.length,updatedAt:now(),message:active?'Tredict-kalenderen inneholder alle RunnerBear-øktene. Garmin-synk styres videre av Tredict.':`${matched.length} av ${expected.length} RunnerBear-økter finnes i Tredict-kalenderen.`};
   await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,active,...publicOutbound(next)};
 }
 async function outboundPlan(request,env,publish=false){
