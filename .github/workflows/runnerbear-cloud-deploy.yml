@@ -9,7 +9,7 @@ on:
       - cloud/runnerbear-cloud/deploy-trigger.txt
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -31,16 +31,73 @@ jobs:
           node-version: '22'
 
       - name: Install dependencies
+        id: install
+        continue-on-error: true
         run: npm install
 
       - name: Validate Worker syntax
+        id: validate
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
         run: node --check src/index.js
 
       - name: Deploy and provision D1
+        id: deploy_cloud
+        if: steps.validate.outcome == 'success'
+        continue-on-error: true
         run: npx wrangler deploy -y
 
       - name: Apply D1 migrations
+        id: migrate
+        if: steps.deploy_cloud.outcome == 'success'
+        continue-on-error: true
         run: npx wrangler d1 migrations apply DB --remote
 
       - name: Smoke test D1 schema
+        id: smoke
+        if: steps.migrate.outcome == 'success'
+        continue-on-error: true
         run: npx wrangler d1 execute DB --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='rb_users'" --json
+
+      - name: Write deploy report
+        if: always()
+        working-directory: .
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          DEPLOY_OUTCOME: ${{ steps.deploy_cloud.outcome }}
+          MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+        run: |
+          python - <<'PY'
+          import json, os, datetime
+          outcomes = {
+            "install": os.environ.get("INSTALL_OUTCOME", ""),
+            "validate": os.environ.get("VALIDATE_OUTCOME", ""),
+            "deploy": os.environ.get("DEPLOY_OUTCOME", ""),
+            "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
+            "smoke": os.environ.get("SMOKE_OUTCOME", ""),
+          }
+          report = {
+            "build": "9.8.0",
+            "status": "success" if outcomes["smoke"] == "success" else "failed",
+            "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "run_id": os.environ.get("RUN_ID"),
+            "source_sha": os.environ.get("SHA"),
+            "steps": outcomes,
+          }
+          with open("cloud/runnerbear-cloud/deploy-status.json", "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+            f.write("\n")
+          PY
+          git config user.name "runnerbear-cloud-bot"
+          git config user.email "runnerbear-cloud-bot@users.noreply.github.com"
+          git add cloud/runnerbear-cloud/deploy-status.json
+          git commit -m "Record RunnerBear Cloud deploy status" || true
+          git push
+
+      - name: Fail workflow when cloud deploy failed
+        if: always() && steps.smoke.outcome != 'success'
+        run: exit 1
