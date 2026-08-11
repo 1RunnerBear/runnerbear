@@ -1,4 +1,4 @@
-window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.torbjorn-forre.workers.dev";
+window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.runnerbear.workers.dev";
 window.RUNNERBEAR_UI_BUILD = "9.8.5";
 
 /* RunnerBear Today v9.6 loader. Kept here so the decision surface can evolve

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const ACCOUNT_ID = String(process.env.CLOUDFLARE_ACCOUNT_ID || '').trim();
 const API_TOKEN = String(process.env.CLOUDFLARE_API_TOKEN || '').trim();
 const OWNER_EMAIL = String(process.env.RUNNERBEAR_OWNER_EMAIL || 'torbjorn.forre@gmail.com').trim().toLowerCase();
-const APP_DOMAIN = String(process.env.RUNNERBEAR_APP_DOMAIN || 'runnerbear-cloud.torbjorn-forre.workers.dev').trim().toLowerCase();
+const APP_DOMAIN = String(process.env.RUNNERBEAR_APP_DOMAIN || 'app.runnerbear.workers.dev').trim().toLowerCase();
 const SESSION = '720h';
 const API = 'https://api.cloudflare.com/client/v4';
 

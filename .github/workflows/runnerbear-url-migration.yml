@@ -1,0 +1,123 @@
+name: Migrate RunnerBear URL
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - '*.html'
+      - '*.js'
+      - 'cloud/runnerbear-cloud/**'
+      - 'cloudflare/**'
+      - 'wrangler.toml'
+      - '.github/workflows/runnerbear-url-migration.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runnerbear-url-migration
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: github.head_ref == 'agent/runnerbear-url-migration' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RUNNERBEAR_OWNER_EMAIL: torbjorn.forre@gmail.com
+      RUNNERBEAR_APP_DOMAIN: app.runnerbear.workers.dev
+    steps:
+      - name: Checkout migration branch
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install cloud dependencies
+        working-directory: cloud/runnerbear-cloud
+        run: npm install
+
+      - name: Validate migration and Worker syntax
+        run: |
+          node --check cloud/runnerbear-cloud/scripts/migrate-workers-url.mjs
+          node --check cloud/runnerbear-cloud/scripts/configure-access.mjs
+          node --check cloud/runnerbear-cloud/src/index-v983.js
+          node --check cloudflare/runnerbear-tredict-worker-v983.mjs
+
+      - name: Build RunnerBear assets
+        working-directory: cloud/runnerbear-cloud
+        run: |
+          rm -rf public
+          mkdir -p public
+          find ../.. -maxdepth 1 -type f \( \
+            -name '*.html' -o -name '*.js' -o -name '*.css' -o \
+            -name '*.svg' -o -name '*.png' -o -name '*.jpg' -o \
+            -name '*.jpeg' -o -name '*.webp' -o -name '*.ico' -o \
+            -name '*.webmanifest' \
+          \) -exec cp '{}' public/ \;
+          test -s public/index.html
+
+      - name: Inspect current Cloudflare names
+        id: names
+        working-directory: cloud/runnerbear-cloud
+        run: node scripts/migrate-workers-url.mjs status
+
+      - name: Deploy transition-safe assets to the existing Worker
+        if: steps.names.outputs.legacy_worker == 'true'
+        working-directory: cloud/runnerbear-cloud
+        run: |
+          node -e "const fs=require('fs');const x=JSON.parse(fs.readFileSync('wrangler.jsonc','utf8'));x.name='runnerbear-cloud';fs.writeFileSync('wrangler.transition.json',JSON.stringify(x,null,2))"
+          npx wrangler deploy --config wrangler.transition.json --keep-vars
+          rm wrangler.transition.json
+
+      - name: Rename workers.dev subdomain and RunnerBear Worker
+        working-directory: cloud/runnerbear-cloud
+        run: node scripts/migrate-workers-url.mjs apply
+
+      - name: Deploy RunnerBear at the new address
+        working-directory: cloud/runnerbear-cloud
+        run: npx wrangler deploy --keep-vars
+
+      - name: Configure Access for the new address
+        id: access
+        working-directory: cloud/runnerbear-cloud
+        run: node scripts/configure-access.mjs
+
+      - name: Install Access JWT settings
+        working-directory: cloud/runnerbear-cloud
+        run: |
+          printf '%s' '${{ steps.access.outputs.aud }}' | npx wrangler secret put ACCESS_AUD
+          printf '%s' '${{ steps.access.outputs.team_domain }}' | npx wrangler secret put ACCESS_TEAM_DOMAIN
+
+      - name: Deploy Tredict bridge with updated service binding
+        run: npx wrangler@4.120.1 deploy --config wrangler.toml --keep-vars
+
+      - name: Verify RunnerBear, D1, Access and Tredict
+        env:
+          RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            HEALTH_CODE="$(curl --silent --output /tmp/rb-health --write-out '%{http_code}' https://app.runnerbear.workers.dev/health)"
+            APP_CODE="$(curl --silent --output /tmp/rb-app --write-out '%{http_code}' https://app.runnerbear.workers.dev/)"
+            echo "attempt=$attempt health=$HEALTH_CODE app=$APP_CODE"
+            if [ "$HEALTH_CODE" = "200" ] && [ "$APP_CODE" != "200" ]; then break; fi
+            sleep 3
+          done
+          [ "$HEALTH_CODE" = "200" ]
+          [ "$APP_CODE" != "200" ]
+          node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/rb-health","utf8"));if(x.ok!==true||x.assets!==true||x.database!==true||x.tredictService!==true||x.tredictRpc!==true)process.exit(1)'
+          curl --fail --silent --show-error \
+            -H 'Origin: https://1runnerbear.github.io' \
+            -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+            https://runnerbear-tredict-bridge.runnerbear.workers.dev/api/snapshot?days=7 > /tmp/rb-snapshot
+          node -e 'const fs=require("fs");const x=JSON.parse(fs.readFileSync("/tmp/rb-snapshot","utf8"));if(x.ok!==true||!(x.activities||[]).length)process.exit(1)'

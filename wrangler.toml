@@ -8,5 +8,5 @@ RUNNERBEAR_ORIGIN = "https://1runnerbear.github.io"
 
 [[services]]
 binding = "RUNNERBEAR_CLOUD"
-service = "runnerbear-cloud"
+service = "app"
 entrypoint = "MigrationService"
