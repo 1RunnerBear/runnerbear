@@ -1,7 +1,7 @@
-/* RunnerBear v10.8.1 · Cloud migration + cross-device state client */
+/* RunnerBear v10.9 · Cloud migration + cross-device state client */
 (function(){
   'use strict';
-  const BUILD='10.8.1';
+  const BUILD='10.9';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
@@ -54,7 +54,7 @@
       capacity:cache.capacity||{},zones:cache.zones||{},
       syncedAt:cache.syncedAt||new Date().toISOString(),
       bridgeParts:Array.isArray(cache.bridgeParts)?cache.bridgeParts:[],
-      source:'runnerbear-cloud-v10.8.1'
+      source:'runnerbear-cloud-v10.9'
     };
     localStorage.setItem(CACHE,JSON.stringify(normalized));
     localStorage.setItem(LAST,normalized.syncedAt);
