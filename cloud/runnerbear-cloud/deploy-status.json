@@ -1,0 +1,14 @@
+{
+  "build": "9.8.0",
+  "status": "failed",
+  "checked_at": "2026-08-11T05:47:20.754198+00:00",
+  "run_id": "31462802545",
+  "source_sha": "c0248daa10eb2b97a155eb5a309b3a985dc4c972",
+  "steps": {
+    "install": "success",
+    "validate": "success",
+    "deploy": "failure",
+    "migrate": "skipped",
+    "smoke": "skipped"
+  }
+}
