@@ -7,6 +7,7 @@ on:
       - '*.css'
       - 'index.html'
       - 'site.webmanifest'
+      - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
   pull_request:
     paths:
@@ -14,6 +15,7 @@ on:
       - '*.css'
       - 'index.html'
       - 'site.webmanifest'
+      - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
 
 permissions:
@@ -87,6 +89,9 @@ jobs:
 
           print(f'Validated {len(ids)} unique ids and {len(local)} local asset references.')
           PY
+
+      - name: Test structured Tredict workout compiler
+        run: node --test tests/tredict-outbound.test.cjs
 
       - name: Validate web manifest
         run: python -m json.tool site.webmanifest > /dev/null

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="no">
+<html lang="no" class="rb108-booting">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -42,12 +42,16 @@
 <link rel="stylesheet" href="runnerbear-today-v35.css?v=980">
 <link rel="stylesheet" href="runnerbear-v97.css?v=980">
 <link rel="stylesheet" href="runnerbear-v98.css?v=980">
-<link rel="stylesheet" href="runnerbear-v107-coach-os.css?v=108">
+<link rel="stylesheet" href="runnerbear-v107-coach-os.css?v=1081">
 </head>
 <body>
 <div class="app">
 <header class="topbar"><div class="brand"><div class="rb">RB</div><div><b>RUNNERBEAR</b><span>Runfest 21K · Sandnes</span></div></div><div class="race-count"><b><span id="countdown">–</span> dager</b><span>til start</span></div></header>
 <nav class="desktop-nav" aria-label="Hovedmeny"><button class="navbtn active" data-tab="today">I dag</button><button class="navbtn" data-tab="plan">Plan</button><button class="navbtn" data-tab="race">Race</button><button class="navbtn" data-tab="more">Mer</button></nav>
+<div id="rb108Boot" class="rb108-boot" role="status" aria-live="polite">
+  <span class="rb108-boot-mark" aria-hidden="true"></span>
+  <div><b>Henter dagens plan</b><span>RunnerBear samler økt og ferske data.</span></div>
+</div>
 <main>
 <section id="today" class="view active">
 <div class="today-grid"><article class="card primary" id="todayCard"><div class="kicker"><span id="todayDate">I dag</span><span class="tag" id="todayType">–</span></div><h1 id="todayTitle">–</h1><p class="lead" id="todayDesc">–</p><div class="keymetrics"><div><b id="todayPace">–</b><span>styring / fart</span></div><div><b id="todayHr">–</b><span>puls</span></div><div><b id="todayKm">–</b><span>total</span></div></div><div class="purpose"><span>HENSIKT</span><b id="todayPurpose">–</b></div><div class="meta" id="todayShoe"></div><div class="meta fuel" id="todayFuel"></div><div class="coach-note" id="todayCoach">–</div><div id="paceAdjustmentToday" class="adjustment hidden"></div><div class="action-row"><label class="complete"><input type="checkbox" id="todayDone"> <span>Gjennomført</span></label><button class="secondary" id="adaptBtn">Tilpass dagen</button></div><div id="adaptPanel" class="adapt-panel hidden"><div class="micro">Hva har endret seg?</div><div class="choice-row"><button data-reason="tired">😴 Sliten</button><button data-reason="achilles">🦶 Akilles</button><button data-reason="time">⏱️ Dårlig tid</button><button data-reason="skip">📅 Kan ikke i dag</button></div><div id="adaptAdvice" class="adapt-advice"></div></div><div id="todayFeedbackWrap"></div></article><aside class="stack"><article class="card coach-card"><div class="kicker"><span>RB COACH</span><span id="coachLight" class="status-pill neutral">UAVKLART</span></div><h2 id="coachHeadline">Planen starter her</h2><p id="coachMessage">–</p><div class="coach-focus"><span>FOKUS</span><b id="coachFocus">–</b></div></article><article class="card readiness"><div class="kicker"><span>1:23 READINESS</span><span id="readinessStage">BYGGES</span></div><div class="road"><div class="roadline"><i id="roadFill"></i></div><div class="roadpoints"><span>nå</span><span>Gate 1</span><span>Gate 2</span><span>Runfest</span></div></div><p id="readinessText" class="muted">–</p><button class="textbtn" id="showEvidence">Se bevisene →</button></article></aside></div>
@@ -98,5 +102,6 @@
 <script src="runnerbear-v97.js?v=980"></script>
 <script src="runnerbear-v100-engine.js?v=108"></script>
 <script src="runnerbear-v100-ui.js?v=108"></script>
-<script src="runnerbear-v107-coach-os.js?v=108"></script>
+<script src="runnerbear-tredict-outbound.js?v=1081"></script>
+<script src="runnerbear-v107-coach-os.js?v=1082"></script>
 </body></html>

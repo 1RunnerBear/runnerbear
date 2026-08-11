@@ -46,7 +46,7 @@ window.RUNNERBEAR_UI_BUILD = "10.8";
   }
   if(!document.querySelector('script[data-rb-cloud-v982]')){
     const s=document.createElement('script');
-    s.src='runnerbear-cloud-v982.js?v=984';
+    s.src='runnerbear-cloud-v982.js?v=1081';
     s.async=false;
     s.dataset.rbCloudV982='1';
     document.head.appendChild(s);

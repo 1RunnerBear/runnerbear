@@ -1,11 +1,12 @@
 import legacy from './index.js';
 
-const BUILD='10.8';
+const BUILD='10.8.1';
 const USER_ID='primary';
 const TREDICT_SOURCE='tredict';
 const TREDICT_STATE='tredict';
 const LOCAL_STATE='localStorage';
 const MIGRATION_STATE='migration';
+const OUTBOUND_STATE='tredictOutbound';
 const FRESH_MS=5*60*1000;
 const MAX_LOCAL_KEYS=400;
 const MAX_LOCAL_BYTES=1_500_000;
@@ -37,6 +38,12 @@ async function upsertState(env,namespace,data){
     ON CONFLICT(user_id, namespace) DO UPDATE SET payload_json=excluded.payload_json, updated_at=excluded.updated_at`)
     .bind(owner(env),namespace,JSON.stringify(data??{}),t).run();
   return t;
+}
+
+async function readState(env,namespace,fallback={}){
+  const row=await env.DB.prepare('SELECT payload_json FROM rb_state WHERE user_id=?1 AND namespace=?2').bind(owner(env),namespace).first();
+  if(!row?.payload_json)return fallback;
+  try{return JSON.parse(row.payload_json)}catch{return fallback}
 }
 
 async function upsertSync(env,status,detail,lastSyncedAt=now()){
@@ -111,8 +118,88 @@ function cacheFromSnapshot(s){
   return{
     activities:Array.isArray(s?.activities)?s.activities:[],
     hrv:s?.hrv||{},sleep:s?.sleep||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
-    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.8'
+    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.8.1'
   };
+}
+
+const STEP_INTENSITY=new Set(['warmup','active','recover','rest','cooldown','misc']);
+const STEP_DURATION=new Set(['time','distance','open']);
+const TARGET_ZONE=new Set(['cadence','heartrate','pace','power']);
+const TARGET_MODE=new Set(['padding','range']);
+function bounded(value,min,max,label){const n=Number(value);if(!Number.isFinite(n)||n<min||n>max)throw new Error(`Invalid ${label}`);return n}
+function text(value,max,label,required=false){const s=String(value||'').replace(/\s+/g,' ').trim();if(required&&!s)throw new Error(`${label} is required`);return s.slice(0,max)}
+function sanitizeTargets(raw={}){
+  const out={};
+  for(const key of ['cadence','heartrate','pace','power'])if(raw?.[key])out[key]={value:bounded(raw[key].value,1,5000,`${key} target`),padding:bounded(raw[key].padding??0,0,1000,`${key} padding`)};
+  for(const key of ['ftp','ftpa','hrMax'])if(raw?.[key])out[key]={from:bounded(raw[key].from,0,3,`${key} from`),to:bounded(raw[key].to,0,3,`${key} to`)};
+  return out;
+}
+function sanitizeBaseStep(raw={}){
+  const durationType=String(raw.durationType||'');if(!STEP_DURATION.has(durationType))throw new Error('Invalid durationType');
+  const intensityType=String(raw.intensityType||'active');if(!STEP_INTENSITY.has(intensityType))throw new Error('Invalid intensityType');
+  const out={note:text(raw.note,255,'step note'),intensityType,durationType};
+  if(durationType==='time')out.duration=Math.round(bounded(raw.duration,1,86400,'step duration'));
+  if(durationType==='distance')out.distance=Math.round(bounded(raw.distance,1,100000,'step distance'));
+  if(raw.progressionType)out.progressionType=raw.progressionType==='ramp'?'ramp':'steady';
+  if(raw.targetMode){if(!TARGET_MODE.has(raw.targetMode))throw new Error('Invalid targetMode');out.targetMode=raw.targetMode}
+  if(raw.targetZoneType){if(!TARGET_ZONE.has(raw.targetZoneType))throw new Error('Invalid targetZoneType');out.targetZoneType=raw.targetZoneType}
+  if(raw.targets)out.targets=sanitizeTargets(raw.targets);
+  return out;
+}
+function sanitizeStep(raw={}){
+  if(raw.repetitions!==undefined){
+    const steps=Array.isArray(raw.steps)?raw.steps:[];if(!steps.length||steps.length>12)throw new Error('Invalid repetition steps');
+    return{repetitions:Math.round(bounded(raw.repetitions,1,100,'repetitions')),steps:steps.map(sanitizeBaseStep)};
+  }
+  return sanitizeBaseStep(raw);
+}
+function sanitizeOutbound(input={}){
+  const payload=input?.payload&&typeof input.payload==='object'?input.payload:{};
+  const plan=payload?.plan&&typeof payload.plan==='object'?payload.plan:{};
+  const rows=Array.isArray(payload.planTrainings)?payload.planTrainings:[];if(!rows.length||rows.length>80)throw new Error('Plan requires 1–80 workouts');
+  const cleanRows=rows.map(row=>{
+    const w=row?.structuredWorkout||{},steps=Array.isArray(w.steps)?w.steps:[];if(!steps.length||steps.length>80)throw new Error('Workout requires valid steps');
+    return{day:Math.round(bounded(row.day,1,1024,'plan day')),time:Math.round(bounded(row.time??1020,0,1439,'workout time')),structuredWorkout:{title:text(w.title,255,'workout title',true),notes:text(w.notes,1024,'workout notes'),trainingType:'planned',sportType:'running',subSportType:'generic',steps:steps.map(sanitizeStep)}};
+  });
+  const source=input?.source&&typeof input.source==='object'?input.source:{};
+  const startDate=isoDate(source.startDate),endDate=isoDate(source.endDate),externalIds=Array.isArray(source.externalIds)?source.externalIds.map(x=>text(x,160,'external id')).slice(0,80):[];
+  if(!startDate||!endDate||endDate<startDate)throw new Error('Plan requires a valid date range');
+  if(externalIds.length!==cleanRows.length||externalIds.some(x=>!x))throw new Error('Plan requires one stable external ID per workout');
+  return{
+    source:{version:'10.8.1',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
+    payload:{plan:{title:text(plan.title,255,'plan title',true),description:text(plan.description,10240,'plan description',true),categories:['building','intensity','race_specific'],targetgroups:['intermediate'],zonetypes:['heartrate','pace'],language:'en'},planTrainings:cleanRows}
+  };
+}
+function canonical(value){if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));return value}
+async function sha256(value){const bytes=new TextEncoder().encode(JSON.stringify(canonical(value))),hash=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+function addIsoDays(ds,days){const d=new Date(`${ds}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+Number(days||0));return d.toISOString().slice(0,10)}
+function publicOutbound(state={}){return{status:String(state.status||'not-published'),hash:String(state.hash||''),clientSignature:String(state.clientSignature||''),planId:String(state.planId||''),planTitle:String(state.planTitle||''),startDate:String(state.startDate||''),endDate:String(state.endDate||''),workoutCount:Number(state.workoutCount)||0,calendarCount:Number(state.calendarCount)||0,updatedAt:String(state.updatedAt||''),message:String(state.message||'')}}
+async function outboundStatus(env){return publicOutbound(await readState(env,OUTBOUND_STATE,{}))}
+async function verifyOutbound(env){
+  if(!env.TREDICT)throw new Error('Tredict service binding missing');const state=await readState(env,OUTBOUND_STATE,{});
+  if(!state.planId||!state.startDate||!state.endDate)throw new Error('No published Tredict plan to verify');
+  const raw=await env.TREDICT.plannedWorkouts(`${state.startDate}T00:00:00.000Z`,`${state.endDate}T23:59:59.999Z`),rows=raw?._embedded?.plannedWorkoutList||raw?.plannedWorkoutList||[];
+  const expected=Array.isArray(state.expected)?state.expected:[],matched=expected.filter(x=>rows.some(r=>isoDate(r?.date)===x.date&&(String(r?.notes||'').includes(`[RB:${x.externalId}]`)||String(r?.title||'')===x.title)));
+  const active=expected.length>0&&matched.length===expected.length,next={...state,status:active?'calendar-active':'published',calendarCount:matched.length,updatedAt:now(),message:active?'Tredict-kalenderen inneholder alle RunnerBear-øktene. Garmin-synk styres videre av Tredict.':`${matched.length} av ${expected.length} RunnerBear-økter finnes i Tredict-kalenderen.`};
+  await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,active,...publicOutbound(next)};
+}
+async function outboundPlan(request,env,publish=false){
+  if(!env.TREDICT)throw new Error('Tredict service binding missing');
+  const bundle=sanitizeOutbound(await bodyJson(request)),hash=await sha256(bundle.payload),previous=await readState(env,OUTBOUND_STATE,{});
+  const expected=bundle.payload.planTrainings.map((x,i)=>({date:addIsoDays(bundle.source.startDate,x.day-1),title:x.structuredWorkout.title,externalId:bundle.source.externalIds[i]||''}));
+  const base={hash,clientSignature:bundle.source.clientSignature,planTitle:bundle.payload.plan.title,startDate:bundle.source.startDate,endDate:bundle.source.endDate,workoutCount:bundle.source.workoutCount,expected,updatedAt:now()};
+  if(!publish)return{ok:true,build:BUILD,preview:true,...base,workouts:bundle.payload.planTrainings.map((x,i)=>({externalId:bundle.source.externalIds[i]||'',day:x.day,title:x.structuredWorkout.title,steps:x.structuredWorkout.steps.length}))};
+  if(previous.hash===hash&&['published','calendar-active'].includes(previous.status)&&previous.planId)return{ok:true,build:BUILD,idempotent:true,...publicOutbound(previous)};
+  if(previous.hash===hash&&previous.status==='publishing')return{ok:false,build:BUILD,error:'Publication already in progress',...publicOutbound(previous)};
+  await upsertState(env,OUTBOUND_STATE,{...base,status:'publishing',message:'Publiserer strukturert plan til Tredict'});
+  try{
+    const result=await env.TREDICT.createPlan(bundle.payload),published={...base,status:'published',planId:String(result?.planId||''),message:'Planen er opprettet i Tredict. Aktiver den én gang i kalenderen for Garmin-synk.',publishedAt:now()};
+    if(!published.planId)throw new Error('Tredict did not return planId');
+    await upsertState(env,OUTBOUND_STATE,published);return{ok:true,build:BUILD,idempotent:false,...publicOutbound(published)};
+  }catch(error){
+    const failed={...base,status:'review-required',message:'Tredict-svaret var ikke sikkert. Kontroller før ny publisering.',error:error instanceof Error?error.message:String(error)};
+    await upsertState(env,OUTBOUND_STATE,failed);throw error;
+  }
 }
 
 async function syncTredict(env,{force=false,days=365}={}){
@@ -203,6 +290,22 @@ export default {
       const auth=await session(request,env,ctx);if(!auth)return json({ok:false,error:'Unauthorized'},401);
       try{return json({build:BUILD,...await syncTredict(env,{force:true,days:Number(url.searchParams.get('days')||365)})})}
       catch(error){return json({ok:false,build:BUILD,error:'Tredict sync failed',detail:error instanceof Error?error.message:String(error)},502)}
+    }
+
+    if(request.method==='GET'&&path==='/api/outbound/tredict/status'){
+      const auth=await session(request,env,ctx);if(!auth)return json({ok:false,error:'Unauthorized'},401);
+      return json({ok:true,build:BUILD,...await outboundStatus(env)});
+    }
+
+    if(request.method==='POST'&&path==='/api/outbound/tredict/verify'){
+      const auth=await session(request,env,ctx);if(!auth)return json({ok:false,error:'Unauthorized'},401);
+      try{return json(await verifyOutbound(env))}catch(error){return json({ok:false,build:BUILD,error:'Tredict calendar verification failed',detail:error instanceof Error?error.message:String(error)},502)}
+    }
+
+    if(request.method==='POST'&&(path==='/api/outbound/tredict/preview'||path==='/api/outbound/tredict/publish')){
+      const auth=await session(request,env,ctx);if(!auth)return json({ok:false,error:'Unauthorized'},401);
+      try{return json(await outboundPlan(request,env,path.endsWith('/publish')))}
+      catch(error){return json({ok:false,build:BUILD,error:'Tredict plan publication failed',detail:error instanceof Error?error.message:String(error)},/invalid|required|requires/i.test(String(error))?400:502)}
     }
 
     if(request.method==='POST'&&path==='/api/migrate/local'){

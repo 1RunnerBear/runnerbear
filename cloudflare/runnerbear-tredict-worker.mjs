@@ -1,4 +1,4 @@
-/* RunnerBear v10.8 · Tredict Bridge · Cloudflare Worker
+/* RunnerBear v10.8.1 · Tredict Bridge · Cloudflare Worker
    Secrets (Cloudflare): TREDICT_TOKEN, RUNNERBEAR_BRIDGE_KEY
    Browser fetch remains backwards-compatible. RunnerBear Cloud uses the named
    TredictService RPC entrypoint through a private Cloudflare Service Binding.
@@ -82,6 +82,11 @@ async function td(env,path,params={}){
   if(!r.ok){let msg='';try{msg=await boundedText(r)}catch{};const e=new Error(`Tredict ${path}: HTTP ${r.status}${msg?` · ${msg}`:''}`);e.status=r.status;throw e}
   return r.json();
 }
+async function tdPost(env,path,body){
+  const r=await fetch(new URL(TREDICT+path),{method:'POST',headers:{Authorization:`Bearer ${env.TREDICT_TOKEN}`,Accept:'application/json;charset=UTF-8','Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){let msg='';try{msg=await boundedText(r)}catch{};const e=new Error(`Tredict ${path}: HTTP ${r.status}${msg?` · ${msg}`:''}`);e.status=r.status;throw e}
+  return r.json();
+}
 async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}}
 
 async function buildSnapshot(env,requestedDays=365){
@@ -105,7 +110,7 @@ async function buildSnapshot(env,requestedDays=365){
   summaries.forEach(a=>{if(details.has(a.id))a.detail=details.get(a.id)});
   const bodyRows=by.body.ok?(by.body.data?.bodyvalues||by.body.data?._embedded?.bodyvalues||[]):[];
   return{
-    ok:true,version:'10.8',syncedAt:new Date().toISOString(),windowDays:days,
+    ok:true,version:'10.8.1',syncedAt:new Date().toISOString(),windowDays:days,
     activities:summaries,
     hrv:by.hrv.ok?(by.hrv.data?.hrv||{}):{},
     sleep:by.sleep.ok?(by.sleep.data?.sleep||{}):{},
@@ -122,7 +127,17 @@ export class TredictService extends WorkerEntrypoint {
     if(!out.ok)throw new Error(`${out.error}${out.detail?` · ${out.detail}`:''}`);
     return out;
   }
-  async health(){return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'10.8'}}
+  async plannedWorkouts(startDate,endDate){
+    if(!this.env.TREDICT_TOKEN)throw new Error('TREDICT_NOT_CONFIGURED');
+    return td(this.env,'plannedTrainingList',{startDate,endDate,sportType:'running'});
+  }
+  async createPlan(payload){
+    if(!this.env.TREDICT_TOKEN)throw new Error('TREDICT_NOT_CONFIGURED');
+    const result=await tdPost(this.env,'plan',payload);
+    if(!result?.planId)throw new Error('Tredict plan response did not include planId');
+    return{planId:String(result.planId)};
+  }
+  async health(){return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'10.8.1',outbound:true}}
 }
 
 export default {
@@ -137,7 +152,7 @@ export default {
     if(request.headers.get('X-RunnerBear-Key')!==env.RUNNERBEAR_BRIDGE_KEY)return json({ok:false,error:'BRIDGE_AUTH_FAILED'},401,origin,true);
 
     const url=new URL(request.url);
-    if(url.pathname==='/health')return json({ok:true,service:'RunnerBear Tredict Bridge',version:'10.8'},200,origin,true);
+    if(url.pathname==='/health')return json({ok:true,service:'RunnerBear Tredict Bridge',version:'10.8.1',outbound:true},200,origin,true);
     if(url.pathname!=='/api/snapshot')return json({ok:false,error:'NOT_FOUND'},404,origin,true);
     const out=await buildSnapshot(env,url.searchParams.get('days')||365);
     return json(out,out.ok?200:(out.status||502),origin,true);

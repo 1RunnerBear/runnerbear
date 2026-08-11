@@ -1,7 +1,7 @@
-/* RunnerBear v10.8 · Cloud migration + cross-device state client */
+/* RunnerBear v10.8.1 · Cloud migration + cross-device state client */
 (function(){
   'use strict';
-  const BUILD='10.8';
+  const BUILD='10.8.1';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
@@ -10,6 +10,7 @@
   const LAST='runnerbear_tredict_last_sync';
   const MIGRATED='runnerbear_cloud_migrated_v1';
   const MIGRATE_QUERY='rb_migrate';
+  const OUTBOUND='runnerbear_tredict_outbound_v1';
   let hydrating=false,baseline='',uploadTimer=0,lastBootstrap=null;
 
   const qs=(s,r=document)=>r.querySelector(s);
@@ -53,10 +54,17 @@
       capacity:cache.capacity||{},zones:cache.zones||{},
       syncedAt:cache.syncedAt||new Date().toISOString(),
       bridgeParts:Array.isArray(cache.bridgeParts)?cache.bridgeParts:[],
-      source:'runnerbear-cloud-v10.8'
+      source:'runnerbear-cloud-v10.8.1'
     };
     localStorage.setItem(CACHE,JSON.stringify(normalized));
     localStorage.setItem(LAST,normalized.syncedAt);
+  }
+
+  function applyOutbound(state){
+    if(state&&typeof state==='object'&&!Array.isArray(state)){
+      const previous=readJson(localStorage.getItem(OUTBOUND)||'{}',{});
+      localStorage.setItem(OUTBOUND,JSON.stringify({...state,clientSignature:state.clientSignature||previous.clientSignature||''}));
+    }
   }
 
   async function api(path,options={}){
@@ -90,6 +98,7 @@
     lastBootstrap=data;
     applyLocalState(data?.state?.localStorage||{});
     applyTredict(data?.state?.tredict||null);
+    applyOutbound(data?.state?.tredictOutbound||null);
     baseline=signature(localSnapshot());
     installBridgeAdapter();
     refreshUi();
@@ -109,6 +118,27 @@
       throw error;
     }
   }
+
+  function outboundBundle(queue){
+    const compiler=window.RunnerBearTredictOutbound;if(!compiler?.plan)throw new Error('Tredict planbygger er ikke lastet');
+    const built=compiler.plan(queue);return{source:{...built.source,clientSignature:compiler.signature(queue)},payload:built.payload};
+  }
+  async function previewOutbound(queue){
+    if(!IS_CLOUD)throw new Error('Utgående Tredict-synk krever RunnerBear Cloud');
+    const bundle=outboundBundle(queue);return api('/api/outbound/tredict/preview',{method:'POST',body:JSON.stringify(bundle)});
+  }
+  async function publishOutbound(queue){
+    if(!IS_CLOUD)throw new Error('Utgående Tredict-synk krever RunnerBear Cloud');
+    const bundle=outboundBundle(queue),result=await api('/api/outbound/tredict/publish',{method:'POST',body:JSON.stringify(bundle)});
+    const saved={...result,clientSignature:bundle.source.clientSignature};applyOutbound(saved);return saved;
+  }
+  async function outboundStatus(){
+    if(!IS_CLOUD)return null;const result=await api('/api/outbound/tredict/status');applyOutbound(result);return result;
+  }
+  async function verifyOutbound(){
+    if(!IS_CLOUD)throw new Error('Utgående Tredict-synk krever RunnerBear Cloud');const result=await api('/api/outbound/tredict/verify',{method:'POST'});applyOutbound(result);return result;
+  }
+  function cachedOutbound(){return readJson(localStorage.getItem(OUTBOUND)||'{}',{})}
 
   function installBridgeAdapter(){
     if(!IS_CLOUD)return;
@@ -242,7 +272,7 @@
     const mo=new MutationObserver(()=>migrationCard());mo.observe(document.body,{childList:true,subtree:true});
   }
 
-  window.RunnerBearCloud={build:BUILD,origin:CLOUD_ORIGIN,bootstrap,cloudSync,uploadLocal};
+  window.RunnerBearCloud={build:BUILD,origin:CLOUD_ORIGIN,bootstrap,cloudSync,uploadLocal,previewOutbound,publishOutbound,outboundStatus,verifyOutbound,cachedOutbound};
   window.addEventListener('load',()=>{
     if(IS_CLOUD)startCloud();
     else if(IS_LEGACY)startLegacy();
