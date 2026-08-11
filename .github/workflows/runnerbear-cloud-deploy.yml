@@ -6,7 +6,27 @@ on:
     branches:
       - main
     paths:
-      - cloud/runnerbear-cloud/deploy-trigger.txt
+      # Root app assets copied into the Worker static bundle.
+      - '*.html'
+      - '*.js'
+      - '*.css'
+      - '*.svg'
+      - '*.png'
+      - '*.jpg'
+      - '*.jpeg'
+      - '*.webp'
+      - '*.ico'
+      - '*.webmanifest'
+      # Cloud deploy inputs. Generated status files are intentionally excluded
+      # so the deploy bot cannot trigger itself in a loop.
+      - 'cloud/runnerbear-cloud/src/**'
+      - 'cloud/runnerbear-cloud/scripts/**'
+      - 'cloud/runnerbear-cloud/migrations/**'
+      - 'cloud/runnerbear-cloud/package.json'
+      - 'cloud/runnerbear-cloud/package-lock.json'
+      - 'cloud/runnerbear-cloud/wrangler.jsonc'
+      - 'cloud/runnerbear-cloud/deploy-trigger.txt'
+      - '.github/workflows/runnerbear-cloud-deploy.yml'
 
 permissions:
   contents: write
