@@ -81,12 +81,12 @@ jobs:
 
       - name: Smoke test Worker health
         id: health
-        if: steps.smoke.outcome == 'success'
+        if: steps.deploy_cloud.outcome == 'success'
         continue-on-error: true
         run: |
           BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 1 https://runnerbear-cloud.torbjorn-forre.workers.dev/health)"
           echo "$BODY"
-          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.build!=="9.8.1" || x.assets!==true) process.exit(1)' "$BODY"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.build!=="9.8.1" || x.assets!==true || x.database!==true) process.exit(1)' "$BODY"
 
       - name: Smoke test RunnerBear app shell or existing Access guard
         id: app_smoke
@@ -170,7 +170,7 @@ jobs:
           }
           report = {
             "build": "9.8.1",
-            "status": "success" if outcomes["guard"] == "success" else "failed",
+            "status": "success" if outcomes["guard"] == "success" and outcomes["health"] == "success" else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -188,5 +188,5 @@ jobs:
           git push
 
       - name: Fail workflow when RunnerBear Cloud is not private
-        if: always() && steps.guard.outcome != 'success'
+        if: always() && (steps.guard.outcome != 'success' || steps.health.outcome != 'success')
         run: exit 1
