@@ -1,14 +1,14 @@
 {
   "build": "9.8.0",
-  "status": "failed",
-  "checked_at": "2026-08-11T05:48:30.064126+00:00",
-  "run_id": "31462866257",
-  "source_sha": "2509a36519897896d37b2125cbc5afa782534960",
+  "status": "success",
+  "checked_at": "2026-08-11T06:13:09.376244+00:00",
+  "run_id": "31464264558",
+  "source_sha": "4a4b2614585d70f22e23d305ecf4d4f11bedc630",
   "steps": {
     "install": "success",
     "validate": "success",
-    "deploy": "failure",
-    "migrate": "skipped",
-    "smoke": "skipped"
+    "deploy": "success",
+    "migrate": "success",
+    "smoke": "success"
   }
 }
