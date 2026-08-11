@@ -1,5 +1,5 @@
 window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.runnerbear.workers.dev";
-window.RUNNERBEAR_UI_BUILD = "9.8.5";
+window.RUNNERBEAR_UI_BUILD = "10.6";
 
 /* RunnerBear Today v9.6 loader. Kept here so the decision surface can evolve
    independently without touching the training/data layers. */
@@ -67,6 +67,17 @@ window.RUNNERBEAR_UI_BUILD = "9.8.5";
     s.src='runnerbear-v105-mobile-fixes.js?v=105';
     s.async=false;
     s.dataset.rbV105Fixes='1';
+    document.head.appendChild(s);
+  }
+
+  /* v10.6: completed sessions become first-class coaching evidence.
+     Links historical flexible days to actual Tredict data (including Concept2
+     files classified as misc/generic) and adds a concise Bakken review in Plan. */
+  if(!document.querySelector('script[data-rb-v106-activity]')){
+    const s=document.createElement('script');
+    s.src='runnerbear-v106-activity-intelligence.js?v=106';
+    s.async=false;
+    s.dataset.rbV106Activity='1';
     document.head.appendChild(s);
   }
 })();
