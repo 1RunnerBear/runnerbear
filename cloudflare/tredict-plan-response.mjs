@@ -54,3 +54,11 @@ export function splitTredictPlanPayload(payload){
     additions:trainings.map(planTraining=>({planTraining}))
   };
 }
+
+const PLAN_TRAINING_RETRY_DELAYS=[800,1800,3600];
+
+export function tredictPlanTrainingRetryDelay(error,attempt){
+  const status=Number(error?.status)||0;
+  if(![400,404,409,429].includes(status))return 0;
+  return PLAN_TRAINING_RETRY_DELAYS[attempt]||0;
+}
