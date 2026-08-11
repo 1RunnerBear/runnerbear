@@ -27,7 +27,12 @@
   }
 
   function notify(text,error=false){
-    try{window.RunnerBearCloud?.toast?.(text,error?'error':'ok');return}catch{}
+    try{
+      if(typeof window.RunnerBearCloud?.toast==='function'){
+        window.RunnerBearCloud.toast(text,error?'error':'ok');
+        return;
+      }
+    }catch{}
     let el=document.getElementById('rb982RescueToast');
     if(!el){el=document.createElement('div');el.id='rb982RescueToast';el.className='rb982-toast';document.body.appendChild(el)}
     el.textContent=text;el.dataset.tone=error?'error':'ok';el.classList.add('show');
