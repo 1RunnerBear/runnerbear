@@ -26,3 +26,12 @@ test('creates plan metadata first and appends relative-day trainings separately'
   assert.equal('planTrainings' in split.create,false);
   assert.deepEqual(split.additions,[{planTraining:payload.planTrainings[0]},{planTraining:payload.planTrainings[1]}]);
 });
+
+test('retries transient plan-training propagation failures only',async()=>{
+  const {tredictPlanTrainingRetryDelay}=await import('../cloudflare/tredict-plan-response.mjs');
+  assert.equal(tredictPlanTrainingRetryDelay({status:400},0),800);
+  assert.equal(tredictPlanTrainingRetryDelay({status:404},1),1800);
+  assert.equal(tredictPlanTrainingRetryDelay({status:429},2),3600);
+  assert.equal(tredictPlanTrainingRetryDelay({status:400},3),0);
+  assert.equal(tredictPlanTrainingRetryDelay({status:500},0),0);
+});
