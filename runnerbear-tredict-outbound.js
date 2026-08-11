@@ -17,7 +17,7 @@
 
   function paceTarget(text){
     const s=String(text||'').replace(/[–—]/g,'-');
-    const range=s.match(/(\d+:\d{2})\s*-\s*(\d+:\d{2})(?:\s*\/\s*km)?/i);
+    const range=s.match(/(\d+:\d{2})\s*-\s*(\d+:\d{2})\s*\/\s*km\b/i);
     if(range){
       const a=paceSeconds(range[1]),b=paceSeconds(range[2]),value=Math.round((a+b)/2);
       return{targetMode:'padding',targetZoneType:'pace',targets:{pace:{value,padding:Math.max(2,Math.ceil(Math.abs(a-b)/2))}}};
