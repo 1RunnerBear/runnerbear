@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>RunnerBear · Flytt data</title>
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#17231b;background:#f5f7f4}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(145deg,#f7f9f6,#eef3ef)}
+main{width:min(100%,520px);background:rgba(255,255,255,.94);border:1px solid rgba(30,60,40,.10);border-radius:24px;padding:28px;box-shadow:0 22px 70px rgba(31,52,38,.10)}
+.kicker{font-size:10px;font-weight:850;letter-spacing:.14em;color:#748179;margin-bottom:12px}h1{font-size:28px;line-height:1.05;letter-spacing:-.04em;margin:0 0 12px}p{font-size:14px;line-height:1.55;color:#66736b;margin:0 0 18px}.status{display:grid;gap:9px;padding:14px 0 18px}.row{display:flex;justify-content:space-between;gap:16px;font-size:12px}.row span{color:#77837b}.row b{text-align:right}button{width:100%;border:0;border-radius:14px;padding:14px 16px;background:#17231b;color:#fff;font:inherit;font-size:14px;font-weight:850;cursor:pointer;touch-action:manipulation}button:disabled{opacity:.58;cursor:progress}.msg{min-height:22px;margin-top:14px;font-size:12px;font-weight:750;color:#607067}.msg.error{color:#8b3632}.msg.ok{color:#27613b}.small{margin-top:18px;font-size:11px;color:#849087}
+</style>
+</head>
+<body>
+<main>
+  <div class="kicker">RUNNERBEAR CLOUD · ENGANGSFLYTTING</div>
+  <h1>Flytt lokale RunnerBear-data</h1>
+  <p>Denne siden er isolert fra den gamle appen og bruker samme lokale nettleserdata. API-nøkler og Tredict-cache flyttes ikke.</p>
+  <div class="status">
+    <div class="row"><span>Bridge</span><b id="bridgeState">Sjekker…</b></div>
+    <div class="row"><span>Lokale datapunkter</span><b id="keyCount">–</b></div>
+    <div class="row"><span>Mål</span><b>RunnerBear Cloud</b></div>
+  </div>
+  <button type="button" id="migrateBtn">Flytt data nå →</button>
+  <div class="msg" id="msg"></div>
+  <div class="small">Ved suksess åpnes den private RunnerBear Cloud-versjonen automatisk.</div>
+</main>
+<script>
+(function(){
+  'use strict';
+  const CLOUD='https://runnerbear-cloud.torbjorn-forre.workers.dev';
+  const BRIDGE='https://runnerbear-tredict-bridge.torbjorn-forre.workers.dev';
+  const KEY='runnerbear_bridge_key';
+  const MIGRATED='runnerbear_cloud_migrated_v1';
+  const btn=document.getElementById('migrateBtn');
+  const msg=document.getElementById('msg');
+  const bridgeState=document.getElementById('bridgeState');
+  const keyCount=document.getElementById('keyCount');
+  let running=false;
+
+  function safeKey(key){
+    const k=String(key||'');
+    if(!/^(runnerbear_|runfest26_|rb)/i.test(k))return false;
+    if(/(?:token|secret|bridge_key|api_key|access_aud|access_team|cloudflare)/i.test(k))return false;
+    if(k==='runnerbear_bridge_url'||k==='runnerbear_tredict_cache_v1'||k==='runnerbear_tredict_last_sync')return false;
+    if(/^runnerbear_cloud_/i.test(k))return false;
+    return k.length<=160;
+  }
+  function snapshot(){
+    const out={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);if(!safeKey(k))continue;
+      const v=localStorage.getItem(k);if(typeof v==='string')out[k]=v;
+    }
+    return Object.fromEntries(Object.entries(out).sort(([a],[b])=>a.localeCompare(b)));
+  }
+  function setMessage(text,tone=''){
+    msg.textContent=text;msg.className='msg'+(tone?' '+tone:'');
+  }
+  function refresh(){
+    const bridgeKey=localStorage.getItem(KEY)||'';
+    const snap=snapshot();
+    bridgeState.textContent=bridgeKey.length>=16?'Klar':'Bridge-nøkkel mangler';
+    keyCount.textContent=String(Object.keys(snap).length);
+    btn.disabled=bridgeKey.length<16||running;
+    if(localStorage.getItem(MIGRATED)==='1'){
+      setMessage('Denne nettleseren er allerede markert som migrert. Du kan kjøre overføringen på nytt om ønskelig.','ok');
+      btn.disabled=bridgeKey.length<16||running;
+      btn.textContent='Flytt data på nytt →';
+    }
+  }
+  async function migrate(){
+    if(running)return;
+    const bridgeKey=localStorage.getItem(KEY)||'';
+    if(bridgeKey.length<16){setMessage('Bridge-nøkkelen finnes ikke i denne nettleseren.','error');refresh();return}
+    running=true;btn.disabled=true;btn.textContent='Flytter data…';setMessage('Sender lokale RunnerBear-data sikkert til Cloud…');
+    const ctl=new AbortController();const timer=setTimeout(()=>ctl.abort(),20000);
+    try{
+      const r=await fetch(BRIDGE+'/api/migrate-local',{
+        method:'POST',mode:'cors',credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:ctl.signal,
+        headers:{'Accept':'application/json','Content-Type':'application/json','X-RunnerBear-Key':bridgeKey},
+        body:JSON.stringify({localStorage:snapshot()})
+      });
+      let body=null;try{body=await r.json()}catch{}
+      if(!r.ok||body?.ok!==true)throw new Error(body?.detail||body?.error||('Migrering HTTP '+r.status));
+      localStorage.setItem(MIGRATED,'1');
+      setMessage((body.storedKeys||0)+' lokale datapunkter er flyttet. Åpner RunnerBear Cloud…','ok');
+      btn.textContent='Data er flyttet ✓';
+      setTimeout(()=>{location.href=CLOUD},900);
+    }catch(error){
+      const text=error?.name==='AbortError'?'Migreringen svarte ikke innen 20 sekunder.':(error?.message||'Migreringen feilet.');
+      setMessage(text,'error');running=false;btn.textContent='Prøv igjen →';refresh();
+    }finally{clearTimeout(timer)}
+  }
+  btn.addEventListener('click',function(event){event.preventDefault();migrate()});
+  refresh();
+})();
+</script>
+</body>
+</html>
