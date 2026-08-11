@@ -1,4 +1,4 @@
-/* RunnerBear v9.8.3 · direct legacy migration rescue */
+/* RunnerBear v9.8.4 · resilient direct legacy migration */
 (function(){
   'use strict';
   const CLOUD='https://runnerbear-cloud.torbjorn-forre.workers.dev';
@@ -31,18 +31,27 @@
     let el=document.getElementById('rb982RescueToast');
     if(!el){el=document.createElement('div');el.id='rb982RescueToast';el.className='rb982-toast';document.body.appendChild(el)}
     el.textContent=text;el.dataset.tone=error?'error':'ok';el.classList.add('show');
-    clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),5000);
+    clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),6000);
+  }
+  function statusText(text,error=false){
+    const card=document.getElementById('rb982TodayMigration');
+    const p=card?.querySelector('p');
+    if(p){p.textContent=text;p.dataset.tone=error?'error':'ok'}
   }
   function setBusy(busy){
     const card=document.getElementById('rb982TodayMigration');if(!card)return;
-    const btn=card.querySelector('button');if(btn){btn.disabled=busy;btn.textContent=busy?'Flytter data…':'Flytt data →'}
-    const p=card.querySelector('p');if(p&&busy)p.textContent='Sender lokale RunnerBear-data sikkert til RunnerBear Cloud. Dette skal bare ta et øyeblikk.';
+    card.dataset.busy=busy?'1':'0';
+    const btn=card.querySelector('[data-rb982-rescue-migrate]');
+    if(btn){btn.disabled=busy;btn.textContent=busy?'Flytter data…':'Flytt data →'}
+    if(busy)statusText('Sender lokale RunnerBear-data sikkert til RunnerBear Cloud…');
   }
   async function migrate(){
     if(running||localStorage.getItem(MIGRATED)==='1')return;
     const bridgeKey=localStorage.getItem(KEY)||'';
     if(bridgeKey.length<16){
-      render();notify('Denne nettleseren mangler bridge-nøkkelen som trengs for engangsflyttingen.',true);return;
+      statusText('Denne nettleseren mangler den gamle bridge-nøkkelen. Jeg kan ikke lese lokale data uten den.',true);
+      notify('Bridge-nøkkel mangler på denne nettleseren.',true);
+      return;
     }
     running=true;setBusy(true);
     const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),20000);
@@ -57,10 +66,10 @@
       localStorage.setItem(MIGRATED,'1');
       render();
       notify(`${body.storedKeys||0} lokale datapunkter er flyttet til RunnerBear Cloud.`);
-      setTimeout(()=>{location.href=CLOUD},900);
+      setTimeout(()=>{location.href=CLOUD},1200);
     }catch(error){
       const msg=error?.name==='AbortError'?'Migreringen svarte ikke innen 20 sekunder.':(error?.message||'Migreringen feilet.');
-      notify(msg,true);setBusy(false);
+      statusText(msg,true);notify(msg,true);setBusy(false);
     }finally{clearTimeout(timer);running=false}
   }
   function render(){
@@ -71,15 +80,19 @@
     const done=localStorage.getItem(MIGRATED)==='1';
     card.innerHTML=done?
       '<div><span>RUNNERBEAR CLOUD</span><h3>Data er flyttet</h3><p>Bruk den private Cloud-versjonen videre på alle enheter.</p></div><button type="button" data-rb982-rescue-open>Åpne Cloud →</button>':
-      '<div><span>ENGANGSFLYTTING</span><h3>Flytt RunnerBear-data nå</h3><p>Overføringen går direkte via den sikre RunnerBear-bridgen. Ingen popup er nødvendig.</p></div><button type="button" data-rb982-rescue-migrate>Flytt data →</button>';
-    card.querySelector('[data-rb982-rescue-migrate]')?.addEventListener('click',migrate);
-    card.querySelector('[data-rb982-rescue-open]')?.addEventListener('click',()=>{location.href=CLOUD});
+      '<div><span>ENGANGSFLYTTING</span><h3>Flytt RunnerBear-data nå</h3><p>Klikk én gang. Overføringen går direkte via den sikre RunnerBear-bridgen.</p></div><button type="button" data-rb982-rescue-migrate>Flytt data →</button>';
+  }
+  function onClick(event){
+    const migrateBtn=event.target?.closest?.('[data-rb982-rescue-migrate]');
+    if(migrateBtn){event.preventDefault();event.stopPropagation();migrate();return}
+    const openBtn=event.target?.closest?.('[data-rb982-rescue-open]');
+    if(openBtn){event.preventDefault();event.stopPropagation();location.href=CLOUD}
   }
   function start(){
     render();
+    document.addEventListener('click',onClick,true);
     const mo=new MutationObserver(()=>{if(!document.getElementById('rb982TodayMigration'))render()});
     if(document.body)mo.observe(document.body,{childList:true,subtree:true});
-    if(localStorage.getItem(MIGRATED)!=='1'&&(localStorage.getItem(KEY)||'').length>=16)setTimeout(migrate,700);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
