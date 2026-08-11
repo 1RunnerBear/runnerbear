@@ -16,3 +16,13 @@ test('summarizes rejected responses without serializing arbitrary bodies',async(
   assert.match(describeTredictPlanResponse({error:'INVALID_PLAN',meta:{field:'steps'}}),/INVALID_PLAN/);
   assert.match(describeTredictPlanResponse({success:true}),/success=true/);
 });
+
+test('creates plan metadata first and appends relative-day trainings separately',async()=>{
+  const {splitTredictPlanPayload}=await import('../cloudflare/tredict-plan-response.mjs');
+  const payload={plan:{title:'RunnerBear plan'},planTrainings:[{day:1,structuredWorkout:{title:'Easy'}},{day:3,structuredWorkout:{title:'Quality'}}]};
+  const split=splitTredictPlanPayload(payload);
+  assert.deepEqual(split.create.plan,payload.plan);
+  assert.match(split.create.llmDescription,/RunnerBear/);
+  assert.equal('planTrainings' in split.create,false);
+  assert.deepEqual(split.additions,[{planTraining:payload.planTrainings[0]},{planTraining:payload.planTrainings[1]}]);
+});
