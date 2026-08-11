@@ -1,5 +1,5 @@
 window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.torbjorn-forre.workers.dev";
-window.RUNNERBEAR_UI_BUILD = "9.8.3";
+window.RUNNERBEAR_UI_BUILD = "9.8.4";
 
 /* RunnerBear Today v9.6 loader. Kept here so the decision surface can evolve
    independently without touching the training/data layers. */
@@ -36,12 +36,11 @@ window.RUNNERBEAR_UI_BUILD = "9.8.3";
     document.head.appendChild(s);
   }
 
-  /* v9.8.3: RunnerBear Cloud is the cross-device authority. The rescue client
-     migrates the legacy browser directly through the already-authenticated bridge. */
+  /* v9.8.4: manual, resilient one-click legacy migration. */
   if(!document.querySelector('link[data-rb-cloud-v982]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
-    l.href='runnerbear-cloud-v982.css?v=984';
+    l.href='runnerbear-cloud-v982.css?v=986';
     l.dataset.rbCloudV982='1';
     document.head.appendChild(l);
   }
@@ -54,7 +53,7 @@ window.RUNNERBEAR_UI_BUILD = "9.8.3";
   }
   if(!document.querySelector('script[data-rb-migration-rescue]')){
     const s=document.createElement('script');
-    s.src='runnerbear-migration-rescue.js?v=984';
+    s.src='runnerbear-migration-rescue.js?v=986';
     s.async=false;
     s.dataset.rbMigrationRescue='1';
     document.head.appendChild(s);
