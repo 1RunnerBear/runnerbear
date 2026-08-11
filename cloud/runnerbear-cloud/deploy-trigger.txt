@@ -1,2 +1,2 @@
-RunnerBear Cloud v9.8.2 Tredict RPC verification deploy
-2026-08-11T09:07:00+02:00
+RunnerBear Cloud v9.8.3 private migration RPC deploy
+2026-08-11T09:28:00+02:00
