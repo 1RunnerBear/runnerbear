@@ -1,9 +1,9 @@
 {
-  "build": "9.8.3",
+  "build": "10.8",
   "status": "success",
-  "checked_at": "2026-08-11T11:14:41.031233+00:00",
-  "run_id": "31485729354",
-  "source_sha": "7a4affb0201a112f81af1edcc8c87235255b135e",
+  "checked_at": "2026-08-11T14:14:27.339452+00:00",
+  "run_id": "31500424360",
+  "source_sha": "426dc60b149913e8e74859eb4679d7f0df160930",
   "steps": {
     "deploy": "success",
     "bridge": "success",
