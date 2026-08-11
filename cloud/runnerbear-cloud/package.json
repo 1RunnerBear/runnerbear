@@ -1,0 +1,17 @@
+{
+  "name": "runnerbear-cloud",
+  "private": true,
+  "version": "9.8.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "check": "wrangler check",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create runnerbear-cloud",
+    "db:migrate:local": "wrangler d1 migrations apply runnerbear-cloud --local",
+    "db:migrate:remote": "wrangler d1 migrations apply runnerbear-cloud --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
