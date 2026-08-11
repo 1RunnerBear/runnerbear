@@ -13,7 +13,6 @@ const MAX_LOCAL_BYTES=1_500_000;
 function json(data,status=200){return Response.json(data,{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
 function now(){return new Date().toISOString()}
 function owner(env){return String(env.PRIMARY_USER_ID||USER_ID)}
-function parseJson(value,fallback={}){try{return JSON.parse(value)}catch{return fallback}}
 function isoDate(value){const s=String(value||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
 function finite(value){const n=Number(value);return Number.isFinite(n)?n:null}
 
@@ -146,6 +145,27 @@ async function decorateBootstrap(response,sync){
   }catch{return response}
 }
 
+async function health(request,env,ctx){
+  const response=await legacy.fetch(request,env,ctx);
+  if(!response.ok)return response;
+  try{
+    const body=await response.json();
+    let rpc={ok:false,version:'',error:''};
+    if(env.TREDICT){
+      try{
+        const check=await env.TREDICT.health();
+        rpc={ok:check?.ok===true,version:String(check?.version||''),error:''};
+      }catch(error){rpc={ok:false,version:'',error:error instanceof Error?error.message:String(error)}}
+    }
+    body.cloudBuild=BUILD;
+    body.tredictService=!!env.TREDICT;
+    body.tredictRpc=rpc.ok;
+    body.tredictRpcVersion=rpc.version;
+    if(rpc.error)body.tredictRpcError=rpc.error;
+    return json(body);
+  }catch{return response}
+}
+
 export default {
   async fetch(request,env,ctx){
     const url=new URL(request.url),path=url.pathname.replace(/\/+$/,'')||'/';
@@ -170,11 +190,7 @@ export default {
       return decorateBootstrap(response,sync);
     }
 
-    if(request.method==='GET'&&path==='/health'){
-      const response=await legacy.fetch(request,env,ctx);
-      if(!response.ok)return response;
-      try{const body=await response.json();body.cloudBuild=BUILD;body.tredictService=!!env.TREDICT;return json(body)}catch{return response}
-    }
+    if(request.method==='GET'&&path==='/health')return health(request,env,ctx);
 
     return legacy.fetch(request,env,ctx);
   }
