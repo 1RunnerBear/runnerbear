@@ -26,6 +26,7 @@ async function cf(path, options = {}) {
     const details = (data.errors || []).map((error) => `${error.code || ''} ${error.message || ''}`.trim()).join('; ');
     const failure = new Error(`Cloudflare API ${response.status}: ${details || response.statusText}`);
     failure.status = response.status;
+    failure.errors = data.errors || [];
     throw failure;
   }
   return data.result;
@@ -33,6 +34,23 @@ async function cf(path, options = {}) {
 
 function request(method, value) {
   return { method, body: JSON.stringify(value) };
+}
+
+async function changeSubdomain(from, to) {
+  try {
+    await cf(`/accounts/${ACCOUNT_ID}/workers/subdomain`, request('PUT', { subdomain: to }));
+    return;
+  } catch (error) {
+    const alreadyAssociated = error.status === 409 && error.errors.some((item) => item?.code === 10036);
+    if (!alreadyAssociated) throw error;
+  }
+  await cf(`/accounts/${ACCOUNT_ID}/workers/subdomain`, { method: 'DELETE' });
+  try {
+    await cf(`/accounts/${ACCOUNT_ID}/workers/subdomain`, request('PUT', { subdomain: to }));
+  } catch (error) {
+    await cf(`/accounts/${ACCOUNT_ID}/workers/subdomain`, request('PUT', { subdomain: from })).catch(() => {});
+    throw error;
+  }
 }
 
 async function state() {
@@ -69,7 +87,7 @@ writeOutput({
 if (mode === 'apply') {
   let changedSubdomain = false;
   if (current.subdomain !== TARGET_SUBDOMAIN) {
-    await cf(`/accounts/${ACCOUNT_ID}/workers/subdomain`, request('PUT', { subdomain: TARGET_SUBDOMAIN }));
+    await changeSubdomain(current.subdomain, TARGET_SUBDOMAIN);
     changedSubdomain = true;
   }
   try {
@@ -81,7 +99,7 @@ if (mode === 'apply') {
     }
   } catch (error) {
     if (changedSubdomain) {
-      await cf(`/accounts/${ACCOUNT_ID}/workers/subdomain`, request('PUT', { subdomain: LEGACY_SUBDOMAIN })).catch(() => {});
+      await changeSubdomain(TARGET_SUBDOMAIN, LEGACY_SUBDOMAIN).catch(() => {});
     }
     throw error;
   }
