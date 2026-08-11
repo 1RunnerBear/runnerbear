@@ -27,11 +27,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check JavaScript syntax
+
+      - name: Check JavaScript loaded by index
         run: |
-          for f in plan.js runnerbear-v5-*.js runnerbear-premium-v*.js runnerbear-v8*.js; do
-            node --check "$f"
-          done
+          python - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+
+          html = Path('index.html').read_text(encoding='utf-8')
+          refs = re.findall(r'<script\b[^>]*\bsrc=["\']([^"\']+)["\']', html, flags=re.I)
+          scripts = []
+          for ref in refs:
+              ref = ref.split('?', 1)[0].split('#', 1)[0]
+              if not ref or ref.startswith(('http://', 'https://')):
+                  continue
+              path = Path(ref.lstrip('/'))
+              if not path.exists():
+                  raise SystemExit(f'Missing script referenced by index.html: {path}')
+              if path.suffix == '.js' and path not in scripts:
+                  scripts.append(path)
+
+          if not scripts:
+              raise SystemExit('No local JavaScript files found in index.html')
+
+          for path in scripts:
+              print(f'node --check {path}')
+              subprocess.run(['node', '--check', str(path)], check=True)
+
+          print(f'Validated syntax for {len(scripts)} JavaScript files loaded by index.html.')
+          PY
+
       - name: Check HTML ids and local assets
         run: |
           python - <<'PY'
@@ -62,3 +87,6 @@ jobs:
 
           print(f'Validated {len(ids)} unique ids and {len(local)} local asset references.')
           PY
+
+      - name: Validate web manifest
+        run: python -m json.tool site.webmanifest > /dev/null
