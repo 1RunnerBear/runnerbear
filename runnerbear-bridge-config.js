@@ -41,15 +41,22 @@ window.RUNNERBEAR_UI_BUILD = "9.8.2";
   if(!document.querySelector('link[data-rb-cloud-v982]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
-    l.href='runnerbear-cloud-v982.css?v=982';
+    l.href='runnerbear-cloud-v982.css?v=983';
     l.dataset.rbCloudV982='1';
     document.head.appendChild(l);
   }
   if(!document.querySelector('script[data-rb-cloud-v982]')){
     const s=document.createElement('script');
-    s.src='runnerbear-cloud-v982.js?v=982';
+    s.src='runnerbear-cloud-v982.js?v=983';
     s.async=false;
     s.dataset.rbCloudV982='1';
+    document.head.appendChild(s);
+  }
+  if(!document.querySelector('script[data-rb-migration-rescue]')){
+    const s=document.createElement('script');
+    s.src='runnerbear-migration-rescue.js?v=983';
+    s.async=false;
+    s.dataset.rbMigrationRescue='1';
     document.head.appendChild(s);
   }
 })();
