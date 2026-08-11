@@ -1,9 +1,9 @@
 {
   "build": "9.8.1",
-  "status": "failed",
-  "checked_at": "2026-08-11T06:36:46.211314+00:00",
-  "run_id": "31465707668",
-  "source_sha": "cbfaefc38688d7825e8b4dc52dc2cf8c2b824e79",
+  "status": "success",
+  "checked_at": "2026-08-11T06:43:55.544840+00:00",
+  "run_id": "31466146507",
+  "source_sha": "3ff9ff4d92dec89b960ef22c2c8fff5f16c4d784",
   "steps": {
     "install": "success",
     "validate": "success",
@@ -13,8 +13,8 @@
     "smoke": "skipped",
     "health": "success",
     "app_smoke": "success",
-    "access": "failure",
-    "access_vars": "skipped",
-    "guard": "skipped"
+    "access": "success",
+    "access_vars": "success",
+    "guard": "success"
   }
 }
