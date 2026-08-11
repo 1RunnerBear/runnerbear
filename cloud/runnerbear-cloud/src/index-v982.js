@@ -1,6 +1,6 @@
 import legacy from './index.js';
 
-const BUILD='9.8.2';
+const BUILD='10.8';
 const USER_ID='primary';
 const TREDICT_SOURCE='tredict';
 const TREDICT_STATE='tredict';
@@ -9,12 +9,20 @@ const MIGRATION_STATE='migration';
 const FRESH_MS=5*60*1000;
 const MAX_LOCAL_KEYS=400;
 const MAX_LOCAL_BYTES=1_500_000;
+const MAX_BODY_BYTES=2_000_000;
 
 function json(data,status=200){return Response.json(data,{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}})}
 function now(){return new Date().toISOString()}
 function owner(env){return String(env.PRIMARY_USER_ID||USER_ID)}
 function isoDate(value){const s=String(value||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:''}
 function finite(value){const n=Number(value);return Number.isFinite(n)?n:null}
+async function bodyJson(request){
+  const declared=Number(request.headers.get('content-length')||0);if(declared>MAX_BODY_BYTES)throw new Error('Payload too large');
+  if(!request.body)return{};const reader=request.body.getReader(),chunks=[];let total=0;
+  while(true){const{done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>MAX_BODY_BYTES){await reader.cancel('Payload too large');throw new Error('Payload too large')}chunks.push(value)}
+  if(!total)return{};const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
 
 async function session(request,env,ctx){
   const u=new URL(request.url);u.pathname='/api/session';u.search='';
@@ -78,15 +86,36 @@ async function storeCapacity(env,capacity){
   return statements.length;
 }
 
+function healthValue(source,key,index){
+  const value=source?.[key];
+  const selected=Array.isArray(value)?value[index]:value;
+  return selected===null||selected===undefined?null:finite(selected);
+}
+
+async function storeHealth(env,cache){
+  const hrv=cache?.hrv&&typeof cache.hrv==='object'?cache.hrv:{},sleep=cache?.sleep&&typeof cache.sleep==='object'?cache.sleep:{},body=Array.isArray(cache?.body)?cache.body:[];
+  const rows=new Map(),put=(date,patch)=>{const ds=isoDate(String(date||'').replace(/^(\d{4})(\d{2})(\d{2}).*$/,'$1-$2-$3'));if(!ds)return;rows.set(ds,{...(rows.get(ds)||{}),...patch})};
+  Object.keys(hrv).forEach(key=>put(key,{hrv:healthValue(hrv,key,0),hrvBaseline:healthValue(hrv,key,1)}));
+  Object.keys(sleep).forEach(key=>put(key,{sleep:healthValue(sleep,key,0),sleepBaseline:healthValue(sleep,key,1)}));
+  body.forEach(x=>put(x?.timestamp,{rhr:finite(x?.hrRestDynamic??x?.restingHeartrate)}));
+  if(!rows.size)return 0;
+  const t=now(),id=owner(env),stmt=env.DB.prepare(`INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at)
+    VALUES (?1,?2,?3,?4,?5,?6,?7)
+    ON CONFLICT(user_id,date) DO UPDATE SET hrv_ms=excluded.hrv_ms,sleep_seconds=excluded.sleep_seconds,
+      rhr_bpm=excluded.rhr_bpm,payload_json=excluded.payload_json,updated_at=excluded.updated_at`);
+  await batch(env.DB,[...rows].map(([date,x])=>stmt.bind(id,date,x.hrv??null,x.sleep??null,x.rhr??null,JSON.stringify(x),t)));
+  return rows.size;
+}
+
 function cacheFromSnapshot(s){
   return{
     activities:Array.isArray(s?.activities)?s.activities:[],
     hrv:s?.hrv||{},sleep:s?.sleep||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
-    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v9.8.2'
+    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.8'
   };
 }
 
-async function syncTredict(env,{force=false,days=60}={}){
+async function syncTredict(env,{force=false,days=365}={}){
   if(!env.DB)throw new Error('D1 binding missing');
   if(!env.TREDICT)throw new Error('Tredict service binding missing');
   const existing=await env.DB.prepare('SELECT last_synced_at,status FROM rb_sync_sources WHERE user_id=?1 AND source=?2')
@@ -94,12 +123,12 @@ async function syncTredict(env,{force=false,days=60}={}){
   const age=Date.now()-Date.parse(existing?.last_synced_at||0);
   if(!force&&existing?.status==='ok'&&Number.isFinite(age)&&age>=0&&age<FRESH_MS)return{ok:true,skipped:true,lastSyncedAt:existing.last_synced_at};
   try{
-    const snapshot=await env.TREDICT.snapshot(Math.max(7,Math.min(60,Number(days)||60)));
+    const snapshot=await env.TREDICT.snapshot(Math.max(30,Math.min(365,Number(days)||365)));
     const cache=cacheFromSnapshot(snapshot);
-    const [activities,capacity]=await Promise.all([storeActivities(env,cache.activities),storeCapacity(env,cache.capacity)]);
+    const [activities,capacity,health]=await Promise.all([storeActivities(env,cache.activities),storeCapacity(env,cache.capacity),storeHealth(env,cache)]);
     await upsertState(env,TREDICT_STATE,cache);
-    await upsertSync(env,'ok',{version:snapshot?.version||'',parts:cache.bridgeParts,activities,capacity},cache.syncedAt);
-    return{ok:true,skipped:false,syncedAt:cache.syncedAt,activities,capacity,parts:cache.bridgeParts};
+    await upsertSync(env,'ok',{version:snapshot?.version||'',parts:cache.bridgeParts,activities,capacity,health},cache.syncedAt);
+    return{ok:true,skipped:false,syncedAt:cache.syncedAt,activities,capacity,health,parts:cache.bridgeParts};
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
     await upsertSync(env,'error',{message},existing?.last_synced_at||now());
@@ -128,7 +157,7 @@ function filterLocalStorage(input){
 }
 
 async function migrateLocal(request,env){
-  const input=await request.json();
+  const input=await bodyJson(request);
   const filtered=filterLocalStorage(input?.localStorage);
   const migratedAt=now();
   await upsertState(env,LOCAL_STATE,filtered.data);
@@ -172,7 +201,7 @@ export default {
 
     if(request.method==='POST'&&path==='/api/sync/tredict'){
       const auth=await session(request,env,ctx);if(!auth)return json({ok:false,error:'Unauthorized'},401);
-      try{return json({build:BUILD,...await syncTredict(env,{force:true,days:Number(url.searchParams.get('days')||60)})})}
+      try{return json({build:BUILD,...await syncTredict(env,{force:true,days:Number(url.searchParams.get('days')||365)})})}
       catch(error){return json({ok:false,build:BUILD,error:'Tredict sync failed',detail:error instanceof Error?error.message:String(error)},502)}
     }
 
@@ -185,7 +214,7 @@ export default {
     if(request.method==='GET'&&path==='/api/bootstrap'){
       const auth=await session(request,env,ctx);if(!auth)return json({ok:false,error:'Unauthorized'},401);
       let sync=null;
-      try{sync=await syncTredict(env,{force:false,days:60})}catch(error){sync={ok:false,error:error instanceof Error?error.message:String(error)}}
+      try{sync=await syncTredict(env,{force:false,days:365})}catch(error){sync={ok:false,error:error instanceof Error?error.message:String(error)}}
       const response=await legacy.fetch(request,env,ctx);
       return decorateBootstrap(response,sync);
     }

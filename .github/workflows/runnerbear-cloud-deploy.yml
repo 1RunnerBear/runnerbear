@@ -113,7 +113,7 @@ jobs:
         run: |
           BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
           echo "$BODY"
-          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="9.8.2" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="9.8.2") process.exit(1)' "$BODY"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.8" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.8") process.exit(1)' "$BODY"
 
       - name: Smoke test RunnerBear app shell or existing Access guard
         id: app_smoke
@@ -196,7 +196,7 @@ jobs:
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "9.8.2",
+            "build": "10.8",
             "status": "success" if outcomes["guard"] == "success" and outcomes["health"] == "success" else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),

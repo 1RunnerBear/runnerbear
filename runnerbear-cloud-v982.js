@@ -1,7 +1,7 @@
-/* RunnerBear v9.8.2 · Cloud migration + cross-device state client */
+/* RunnerBear v10.8 · Cloud migration + cross-device state client */
 (function(){
   'use strict';
-  const BUILD='9.8.2';
+  const BUILD='10.8';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
@@ -53,7 +53,7 @@
       capacity:cache.capacity||{},zones:cache.zones||{},
       syncedAt:cache.syncedAt||new Date().toISOString(),
       bridgeParts:Array.isArray(cache.bridgeParts)?cache.bridgeParts:[],
-      source:'runnerbear-cloud-v9.8.2'
+      source:'runnerbear-cloud-v10.8'
     };
     localStorage.setItem(CACHE,JSON.stringify(normalized));
     localStorage.setItem(LAST,normalized.syncedAt);
@@ -86,7 +86,7 @@
 
   async function bootstrap(){
     if(!IS_CLOUD)return null;
-    const data=await api('/api/bootstrap?days=180');
+    const data=await api('/api/bootstrap?days=365');
     lastBootstrap=data;
     applyLocalState(data?.state?.localStorage||{});
     applyTredict(data?.state?.tredict||null);
@@ -100,7 +100,7 @@
   async function cloudSync(show=false){
     if(!IS_CLOUD)return null;
     try{
-      const result=await api('/api/sync/tredict?days=60',{method:'POST'});
+      const result=await api('/api/sync/tredict?days=365',{method:'POST'});
       await bootstrap();
       if(show)toast('Garmin / Tredict er synkronisert.');
       return result;

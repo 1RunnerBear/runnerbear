@@ -19,8 +19,9 @@ function json(body,status,origin,allowed=true){return new Response(JSON.stringif
 async function bodyJson(request){
   const declared=Number(request.headers.get('content-length')||0);
   if(declared>MAX_BODY_BYTES)throw new Error('Payload too large');
-  const text=await request.text();
-  if(text.length>MAX_BODY_BYTES)throw new Error('Payload too large');
+  if(!request.body)return{};const reader=request.body.getReader(),chunks=[];let total=0;
+  while(true){const{done,value}=await reader.read();if(done)break;total+=value.byteLength;if(total>MAX_BODY_BYTES){await reader.cancel('Payload too large');throw new Error('Payload too large')}chunks.push(value)}
+  const bytes=new Uint8Array(total);let offset=0;for(const chunk of chunks){bytes.set(chunk,offset);offset+=chunk.byteLength}const text=new TextDecoder().decode(bytes);
   return text?JSON.parse(text):{};
 }
 
