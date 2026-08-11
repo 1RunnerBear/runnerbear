@@ -1,7 +1,7 @@
 const weeks=window.RUNFEST_WEEKS;
 const classLabel={easy:'Rolig',quality:'Kvalitet',race:'Race',rest:'Hvile',cross:'Cross'};
 const START=new Date(2026,7,10,12),RACE=new Date(2026,9,3,12),today=new Date();
-const baselineThreshold={date:'2026-08-09',pace:'4:02',hr:175,source:'Garmin'};
+const baselineThreshold={date:'2026-08-09',pace:'4:02',hr:173,source:'Garmin'};
 const shoeMeta={
 'Adidas Adios Pro 4':'Race / HM-spesifikk',
 'Nike Zoom Fly 6':'Primær terskel',

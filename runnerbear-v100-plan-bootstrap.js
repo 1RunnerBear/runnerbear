@@ -15,7 +15,7 @@
     flexibleSessions:2,
     autoVolume:true,
     thresholdPaceSec:242,
-    thresholdHr:175,
+    thresholdHr:173,
     maxHr:188
   };
   const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k)||'')??f}catch{return f}};

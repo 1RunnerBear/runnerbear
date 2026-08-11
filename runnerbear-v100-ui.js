@@ -1,7 +1,7 @@
 /* RunnerBear v10.1 · Bakken Coach UI + decision-first polish */
 (function(){
 'use strict';
-const $=id=>document.getElementById(id),qs=(s,r=document)=>r.querySelector(s),qsa=(s,r=document)=>[...r.querySelectorAll(s)],esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const $=id=>document.getElementById(id),qs=(s,r=document)=>r?.querySelector?.(s)||null,qsa=(s,r=document)=>[...(r?.querySelectorAll?.(s)||[])],esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 const fmt=s=>{s=Math.max(0,Math.round(+s||0));const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),x=s%60;return h?`${h}:${String(m).padStart(2,'0')}:${String(x).padStart(2,'0')}`:`${m}:${String(x).padStart(2,'0')}`},round=v=>Math.round(v*2)/2,localIso=d=>{const x=d instanceof Date?d:new Date(d),z=n=>String(n).padStart(2,'0');return`${x.getFullYear()}-${z(x.getMonth()+1)}-${z(x.getDate())}`};
 function engine(){return window.RunnerBearCoachEngine}
 function selectedDate(){const stored=sessionStorage.getItem('runnerbear_v92_plan_day')||'';if(/^\d{4}-\d{2}-\d{2}$/.test(stored))return stored;const card=qs('#weeks .day.rb31-selected')||qs('#weeks .day.open'),label=qs('.daydate',card)?.textContent?.trim();return engine()?.schedule().find(x=>x.label===label)?.ds||''}

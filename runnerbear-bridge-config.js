@@ -1,5 +1,5 @@
 window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.runnerbear.workers.dev";
-window.RUNNERBEAR_UI_BUILD = "10.6";
+window.RUNNERBEAR_UI_BUILD = "10.7";
 
 /* RunnerBear Today v9.6 loader. Kept here so the decision surface can evolve
    independently without touching the training/data layers. */

@@ -1,7 +1,7 @@
 window.RUNFEST_WEEKS=[
 {n:1,range:'10.–16. aug',phase:'Bygge · kontroll',km:52,focus:'Kontrollert terskel + korte 45/15. Ingen hero-økter.',days:[
 ['Man 10. aug','cross','Zwift lett + styrke','45 min rolig Z1/Z2 + 20 min løpestyrke.','Sykkel 90–100 rpm, lett motstand. Åpne styrkedetaljer i Prinsipper.','',0,''],
-['Tir 11. aug','quality','6 × 6 min subterskel','60 s rolig jogg. Totalt ca. 13 km.','Start ca. 4:10–4:12/km og jobb kontrollert mot 4:03–4:05. Puls hovedsakelig 160–170, tak ca. 172. Ikke jag 175.','Nike Zoom Fly 6',13,'Vanlig måltid 2–3 t før. Ved morgenøkt: 20–30 g karbohydrat før er nok.'],
+['Tir 11. aug','quality','6 × 6 min subterskel','60 s rolig jogg. Totalt ca. 13 km.','Start ca. 4:10–4:12/km og jobb kontrollert mot 4:03–4:05. Puls hovedsakelig 160–170, tak ca. 172. Ikke jag terskelpuls.','Nike Zoom Fly 6',13,'Vanlig måltid 2–3 t før. Ved morgenøkt: 20–30 g karbohydrat før er nok.'],
 ['Ons 12. aug','easy','7 km rolig','Restitusjon.','HR ca. 130–142. Kort legg/soleus vedlikehold etterpå.','Nike Vomero Premium',7,''],
 ['Tor 13. aug','easy','7 km + 6 strides','Rolig + 6 × 15 s lett raske.','Avslappet og kontrollert. Full pause mellom strides.','Nike Vomero 18',7,''],
 ['Fre 14. aug','quality','20 × 45/15','Kontinuerlig 45/15. Totalt ca. 9 km.','Ca. 3:55–4:00/km tidlig, evt. 3:50–3:55 sent. Puls kan nærme seg 170–172. Ingen sluttspurt.','Nike Zoom Fly 6',9,''],
@@ -41,7 +41,7 @@ window.RUNFEST_WEEKS=[
 ['Søn 13. sep','easy','18 km langtur','Siste 4 km kan gå 4:20–4:30 hvis alt er grønt.','Dropp progresjon ved tretthet eller akillesirritasjon.','Nike Vomero 18 Plus',18,'Fuel-test #3: 1 gel ca. 35–40 min. Øv på vanninntak som på løpsdagen.']]},
 {n:6,range:'14.–20. sep',phase:'Spesifikk · toppuke',km:60,focus:'Peak. Gate 2 avgjør om 1:23 er riktig A-mål.',days:[
 ['Man 14. sep','cross','Zwift lett + kort styrke','40–45 min lett + 15 min vedlikehold.','Ingen tunge beinøvelser.','',0,''],
-['Tir 15. sep','quality','5 × 7 min subterskel','60–75 s jogg. Totalt ca. 13 km.','Ca. 4:02–4:07/km. Hold igjen og la pulsen ligge under 175. Fredag er viktigst.','Xtep 360X 3.0 / Nike Zoom Fly 6',13,''],
+['Tir 15. sep','quality','5 × 7 min subterskel','60–75 s jogg. Totalt ca. 13 km.','Ca. 4:02–4:07/km. Hold igjen og la pulsen ligge under dokumentert terskel. Fredag er viktigst.','Xtep 360X 3.0 / Nike Zoom Fly 6',13,''],
 ['Ons 16. sep','easy','8 km rolig','Restitusjon.','HR 125–142.','Nike Vomero Premium',8,''],
 ['Tor 17. sep','easy','7 km + 5 strides','Kort og lett.','Du skal føle deg bedre etter enn før.','Nike Vomero 18',7,''],
 ['Fre 18. sep','quality','GATE 2 · 3 × 3 km','2 min jogg. Totalt ca. 14 km.','3:55–3:58/km på relativt flat asfalt. Hvis dette krever pressing tidlig, justeres racefart mot 1:24–1:25.','Adidas Adios Pro 4',14,'Bruk samme sko og mest mulig samme før-økt-rutine som Gate 1.'],

@@ -37,7 +37,7 @@ function evidence(){
  const hm=flat.find(f=>/HM-spesifikk/i.test(f.title)),hmStim=hm&&isDone(hm.label)?evaluateStimulus(hm,getFeedback(hm.label)):null;
  return[
   {name:'Kontinuitet',state:cont==null?'neutral':cont>=.85?'green':cont>=.7?'yellow':'red',text:cont==null?'Planen har ikke startet ennå.':`${done}/${pastRuns.length} siste planlagte løpeøkter.`},
-  {name:'Terskeltrend',state:tr.diff>=3?'green':'neutral',text:tr.diff>=3?tr.text:'Baseline er 4:02/km · 175 bpm.'},
+  {name:'Terskeltrend',state:tr.diff>=3?'green':'neutral',text:tr.diff>=3?tr.text:'Baseline er 4:02/km · 173 bpm.'},
   {name:'Gate 1',state:g1||'neutral',text:g1?({green:'Kontrollert.',yellow:'Måtte jobbe.',red:'For hardt.'}[g1]):'Venter på 11. september.'},
   {name:'Gate 2',state:g2||'neutral',text:g2?({green:'1:23 kvalifisert.',yellow:'Nær, men ikke klart grønt.',red:'3:56/km skal ikke tvinges.'}[g2]):'Venter på 18. september.'},
   {name:'Akilles',state:achWorse?'red':achKnown?'green':'neutral',text:achWorse?'Nylig verre respons.':achKnown?'Siste registreringer er stabile/bedre.':'Trenger feedback.'},

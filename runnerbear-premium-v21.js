@@ -53,7 +53,7 @@
   function thresholdRows(){
     try{if(typeof thresholdHistory==='function')return thresholdHistory().map(x=>({date:x.date,pace:x.pace,hr:x.hr,source:x.source||'Garmin'}))}catch{}
     let extra=[];try{extra=JSON.parse(localStorage.getItem('runfest26_threshold_history')||'[]')}catch{}
-    return[{date:'2026-08-09',pace:'4:02',hr:175,source:'Garmin'},...extra].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    return[{date:'2026-08-09',pace:'4:02',hr:173,source:'Garmin'},...extra].sort((a,b)=>String(a.date).localeCompare(String(b.date)));
   }
   function evidenceRows(){
     const out=[];for(const g of goals()){
