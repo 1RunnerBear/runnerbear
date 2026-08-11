@@ -2,6 +2,12 @@ name: RunnerBear Cloud deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      run_d1_maintenance:
+        description: 'Apply and smoke-test D1 migrations during this manual deploy'
+        required: false
+        default: false
+        type: boolean
   push:
     branches:
       - main
@@ -88,13 +94,13 @@ jobs:
         continue-on-error: true
         run: npx wrangler deploy
 
-      - name: Apply D1 migrations
+      - name: Apply D1 migrations (manual maintenance)
         id: migrate
-        if: steps.deploy_cloud.outcome == 'success'
+        if: steps.deploy_cloud.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.run_d1_maintenance
         continue-on-error: true
         run: npx wrangler d1 migrations apply DB --remote
 
-      - name: Smoke test D1 schema
+      - name: Smoke test D1 schema (manual maintenance)
         id: smoke
         if: steps.migrate.outcome == 'success'
         continue-on-error: true
