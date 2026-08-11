@@ -1,5 +1,4 @@
 /* RunnerBear v9.8.2 · Cloud migration + sync */
-html.rb97.rb982 #more>#rb982MigrationCard,
 html.rb982 .rb982-migration-card{
   display:flex!important;
   align-items:center;
@@ -41,6 +40,53 @@ html.rb982 .rb982-migration-card button{
   font-weight:800;
   cursor:pointer;
 }
+html.rb982.rb982-legacy #today>.rb982-today-migration{
+  display:flex!important;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin:0 0 16px!important;
+  padding:17px 18px!important;
+  border:1px solid rgba(31,61,42,.10)!important;
+  border-radius:18px!important;
+  background:linear-gradient(135deg,rgba(248,251,248,.98),rgba(241,247,242,.96))!important;
+  box-shadow:0 8px 26px rgba(35,57,43,.06)!important;
+}
+html.rb982.rb982-legacy #today>.rb982-today-migration>div{min-width:0}
+html.rb982.rb982-legacy #today>.rb982-today-migration span{
+  display:block;
+  margin-bottom:5px;
+  font-size:8px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.13em;
+  color:#728078;
+}
+html.rb982.rb982-legacy #today>.rb982-today-migration h3{
+  margin:0 0 4px;
+  font-size:17px;
+  line-height:1.15;
+  letter-spacing:-.02em;
+}
+html.rb982.rb982-legacy #today>.rb982-today-migration p{
+  margin:0;
+  font-size:11px;
+  line-height:1.4;
+  color:#68756d;
+}
+html.rb982.rb982-legacy #today>.rb982-today-migration button{
+  flex:0 0 auto;
+  border:0;
+  border-radius:13px;
+  padding:11px 14px;
+  background:#17231b;
+  color:#fff;
+  font:inherit;
+  font-size:11px;
+  font-weight:850;
+  cursor:pointer;
+  white-space:nowrap;
+}
 .rb982-toast{
   position:fixed;
   z-index:10000;
@@ -66,7 +112,6 @@ html.rb982 .rb982-migration-card button{
 .rb982-toast.show{opacity:1;transform:translate(-50%,0)}
 .rb982-toast[data-tone="error"]{color:#792e2e;background:rgba(255,248,247,.97)}
 @media(max-width:640px){
-  html.rb97.rb982 #more>#rb982MigrationCard,
   html.rb982 .rb982-migration-card{
     align-items:stretch;
     flex-direction:column;
@@ -74,4 +119,12 @@ html.rb982 .rb982-migration-card button{
     padding:18px;
   }
   html.rb982 .rb982-migration-card button{width:100%}
+  html.rb982.rb982-legacy #today>.rb982-today-migration{
+    align-items:stretch;
+    flex-direction:column;
+    gap:11px;
+    margin:0 12px 14px!important;
+    padding:15px!important;
+  }
+  html.rb982.rb982-legacy #today>.rb982-today-migration button{width:100%}
 }
