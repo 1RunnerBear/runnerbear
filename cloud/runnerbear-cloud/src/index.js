@@ -1,6 +1,10 @@
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
+const BUILD = '9.8.1';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
+const JWKS_CACHE = new Map();
 
 function json(data, status = 200, extra = {}) {
   return Response.json(data, { status, headers: { ...JSON_HEADERS, ...extra } });
@@ -8,6 +12,10 @@ function json(data, status = 200, extra = {}) {
 
 function owner(env) {
   return String(env.PRIMARY_USER_ID || 'primary');
+}
+
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
 function allowedOrigin(request, env) {
@@ -39,8 +47,42 @@ async function verifyToken(provided, expected) {
   return crypto.subtle.timingSafeEqual(a, b);
 }
 
-async function requireAuth(request, env) {
-  return verifyToken(request.headers.get('X-RunnerBear-Key') || '', env.RUNNERBEAR_API_KEY || '');
+function accessJwks(teamDomain) {
+  const key = String(teamDomain || '').replace(/\/+$/, '');
+  let jwks = JWKS_CACHE.get(key);
+  if (!jwks) {
+    jwks = createRemoteJWKSet(new URL(`${key}/cdn-cgi/access/certs`));
+    JWKS_CACHE.set(key, jwks);
+  }
+  return jwks;
+}
+
+async function accessIdentity(request, env) {
+  const token = request.headers.get('cf-access-jwt-assertion') || '';
+  const teamDomain = String(env.ACCESS_TEAM_DOMAIN || '').replace(/\/+$/, '');
+  const audience = String(env.ACCESS_AUD || '');
+  const expectedEmail = normalizeEmail(env.PRIMARY_USER_EMAIL);
+
+  if (token && teamDomain && audience) {
+    try {
+      const { payload } = await jwtVerify(token, accessJwks(teamDomain), {
+        issuer: teamDomain,
+        audience,
+      });
+      const email = normalizeEmail(payload.email || request.headers.get('cf-access-authenticated-user-email'));
+      if (!email || (expectedEmail && email !== expectedEmail)) return null;
+      return { mode: 'cloudflare-access', email, subject: String(payload.sub || '') };
+    } catch (error) {
+      console.warn(JSON.stringify({ event: 'runnerbear_access_rejected', message: error instanceof Error ? error.message : String(error) }));
+      return null;
+    }
+  }
+
+  // Transitional fallback for admin/migration tooling. Browser use moves to Access in v9.8.1.
+  if (await verifyToken(request.headers.get('X-RunnerBear-Key') || '', env.RUNNERBEAR_API_KEY || '')) {
+    return { mode: 'legacy-key', email: expectedEmail, subject: 'legacy-admin' };
+  }
+  return null;
 }
 
 async function bodyJson(request) {
@@ -139,7 +181,7 @@ async function getBootstrap(request, env) {
 
   return {
     ok: true,
-    build: '9.8.0',
+    build: BUILD,
     owner: id,
     generatedAt: new Date().toISOString(),
     windowDays: days,
@@ -289,14 +331,32 @@ export default {
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request, env) });
-    if (path === '/health') return json({ ok: true, service: 'runnerbear-cloud', build: '9.8.0', database: !!env.DB }, 200, cors(request, env));
+    if (path === '/health') return json({
+      ok: true,
+      service: 'runnerbear-cloud',
+      build: BUILD,
+      database: !!env.DB,
+      assets: !!env.ASSETS,
+      accessConfigured: !!(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD),
+    }, 200, cors(request, env));
+
+    if (!path.startsWith('/api/')) {
+      if (env.ASSETS) return env.ASSETS.fetch(request);
+      return new Response('RunnerBear assets unavailable', { status: 503 });
+    }
 
     if (!env.DB) return json({ ok: false, error: 'D1 binding missing' }, 503, cors(request, env));
-    if (!await requireAuth(request, env)) return json({ ok: false, error: 'Unauthorized' }, 401, cors(request, env));
+    const identity = await accessIdentity(request, env);
+    if (!identity) return json({ ok: false, error: 'Unauthorized' }, 401, cors(request, env));
 
     try {
       await ensureUser(env);
-      if (request.method === 'GET' && path === '/api/bootstrap') return json(await getBootstrap(request, env), 200, cors(request, env));
+      if (request.method === 'GET' && path === '/api/session') return json({ ok: true, build: BUILD, owner: owner(env), identity }, 200, cors(request, env));
+      if (request.method === 'GET' && path === '/api/bootstrap') {
+        const data = await getBootstrap(request, env);
+        data.identity = identity;
+        return json(data, 200, cors(request, env));
+      }
       if (request.method === 'PUT' && path.startsWith('/api/state/')) return putState(request, env, decodeURIComponent(path.slice('/api/state/'.length)));
       if (request.method === 'PUT' && path === '/api/plan') return putPlan(request, env);
       if (request.method === 'PUT' && path === '/api/activities') return putActivities(request, env);
