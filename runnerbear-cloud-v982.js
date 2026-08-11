@@ -2,10 +2,10 @@
 (function(){
   'use strict';
   const BUILD='9.8.2';
-  const CLOUD_ORIGIN='https://runnerbear-cloud.torbjorn-forre.workers.dev';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
-  const IS_CLOUD=location.origin===CLOUD_ORIGIN;
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
+  const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
+  const IS_CLOUD=!IS_LEGACY;
   const CACHE='runnerbear_tredict_cache_v1';
   const LAST='runnerbear_tredict_last_sync';
   const MIGRATED='runnerbear_cloud_migrated_v1';

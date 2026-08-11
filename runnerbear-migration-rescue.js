@@ -1,9 +1,9 @@
 /* RunnerBear v9.8.4 · resilient direct legacy migration */
 (function(){
   'use strict';
-  const CLOUD='https://runnerbear-cloud.torbjorn-forre.workers.dev';
+  const CLOUD='https://app.runnerbear.workers.dev';
   const LEGACY='https://1runnerbear.github.io';
-  const BRIDGE_FALLBACK='https://runnerbear-tredict-bridge.torbjorn-forre.workers.dev';
+  const BRIDGE_FALLBACK='https://runnerbear-tredict-bridge.runnerbear.workers.dev';
   const MIGRATED='runnerbear_cloud_migrated_v1';
   const KEY='runnerbear_bridge_key';
   const URLKEY='runnerbear_bridge_url';

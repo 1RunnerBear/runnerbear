@@ -45,7 +45,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       RUNNERBEAR_OWNER_EMAIL: torbjorn.forre@gmail.com
-      RUNNERBEAR_APP_DOMAIN: runnerbear-cloud.torbjorn-forre.workers.dev
+      RUNNERBEAR_APP_DOMAIN: app.runnerbear.workers.dev
     defaults:
       run:
         working-directory: cloud/runnerbear-cloud
@@ -111,7 +111,7 @@ jobs:
         if: steps.deploy_cloud.outcome == 'success'
         continue-on-error: true
         run: |
-          BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 https://runnerbear-cloud.torbjorn-forre.workers.dev/health)"
+          BODY="$(curl --fail --silent --show-error --retry 5 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
           echo "$BODY"
           node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="9.8.2" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="9.8.2") process.exit(1)' "$BODY"
 
@@ -120,7 +120,7 @@ jobs:
         if: steps.health.outcome == 'success'
         continue-on-error: true
         run: |
-          CODE="$(curl --silent --output /tmp/rb-app --write-out '%{http_code}' https://runnerbear-cloud.torbjorn-forre.workers.dev/)"
+          CODE="$(curl --silent --output /tmp/rb-app --write-out '%{http_code}' https://app.runnerbear.workers.dev/)"
           echo "RunnerBear root HTTP $CODE"
           if [ "$CODE" = "200" ]; then
             grep -q 'RUNNERBEAR' /tmp/rb-app
@@ -151,8 +151,8 @@ jobs:
         continue-on-error: true
         run: |
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
-            HEALTH_CODE="$(curl --silent --output /tmp/rb-health --write-out '%{http_code}' https://runnerbear-cloud.torbjorn-forre.workers.dev/health)"
-            APP_CODE="$(curl --silent --output /tmp/rb-app --write-out '%{http_code}' https://runnerbear-cloud.torbjorn-forre.workers.dev/)"
+            HEALTH_CODE="$(curl --silent --output /tmp/rb-health --write-out '%{http_code}' https://app.runnerbear.workers.dev/health)"
+            APP_CODE="$(curl --silent --output /tmp/rb-app --write-out '%{http_code}' https://app.runnerbear.workers.dev/)"
             echo "attempt=$attempt health=$HEALTH_CODE app=$APP_CODE"
             if [ "$HEALTH_CODE" = "200" ] && [ "$APP_CODE" != "200" ]; then
               exit 0
