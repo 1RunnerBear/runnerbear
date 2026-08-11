@@ -4,7 +4,7 @@
    TredictService RPC entrypoint through a private Cloudflare Service Binding.
 */
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { describeTredictPlanResponse,extractTredictPlanId } from './tredict-plan-response.mjs';
+import { describeTredictPlanResponse,extractTredictPlanId,splitTredictPlanPayload } from './tredict-plan-response.mjs';
 
 const TREDICT='https://www.tredict.com/api/oauth/v2/';
 const DEFAULT_ORIGIN='https://1runnerbear.github.io';
@@ -134,10 +134,16 @@ export class TredictService extends WorkerEntrypoint {
   }
   async createPlan(payload){
     if(!this.env.TREDICT_TOKEN)throw new Error('TREDICT_NOT_CONFIGURED');
-    const result=await tdPost(this.env,'plan',payload);
+    const split=splitTredictPlanPayload(payload),result=await tdPost(this.env,'plan',split.create);
     const planId=extractTredictPlanId(result);
     if(!planId)throw new Error(`Tredict plan response did not include planId · ${describeTredictPlanResponse(result)}`);
-    return{planId};
+    let added=0;
+    for(const addition of split.additions){
+      const response=await tdPost(this.env,'plan/training',{planId,...addition});
+      if(response?.error)throw new Error(`Tredict rejected plan training ${added+1}/${split.additions.length} · ${describeTredictPlanResponse(response)}`);
+      added++;
+    }
+    return{planId,trainingCount:added};
   }
   async health(){return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'10.8.1',outbound:true}}
 }
