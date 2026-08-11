@@ -36,16 +36,18 @@ All protected routes require `X-RunnerBear-Key` until Cloudflare Access replaces
 
 `/api/bootstrap` returns one bounded payload containing the central RunnerBear state, plan, recent activities, recent health, capacity, shoes and sync status. The caller may request 7–365 days of activity/health history; the default is 120 days.
 
-## Deployment checklist
+## Provision and deploy
+
+Wrangler 4.45+ supports automatic resource provisioning. The D1 binding therefore contains only `binding: "DB"`; the first authenticated deploy can create and attach the D1 resource automatically.
 
 1. Install dependencies: `npm install`.
-2. Create D1: `npx wrangler d1 create runnerbear-cloud`.
-3. Put the returned database ID into `wrangler.jsonc`.
-4. Apply migration: `npx wrangler d1 migrations apply runnerbear-cloud --remote`.
-5. Set a strong API secret: `npx wrangler secret put RUNNERBEAR_API_KEY`.
-6. Set `CORS_ORIGINS` to the exact RunnerBear frontend origin.
-7. Deploy: `npx wrangler deploy`.
-8. Smoke test `/health`, then authenticated `/api/bootstrap`.
+2. First deploy/provision: `npm run deploy`.
+3. Apply schema: `npm run db:migrate:remote`.
+4. Verify the schema: `npm run db:smoke:remote`.
+5. When a temporary API-key client is needed, set it with `npx wrangler secret put RUNNERBEAR_API_KEY`. Job 2 is intended to replace this with Cloudflare Access.
+6. Before the browser client is switched over, set `CORS_ORIGINS` to the exact RunnerBear frontend origin.
+
+A manual GitHub Actions deployment workflow is included at `.github/workflows/runnerbear-cloud-deploy.yml`. It expects GitHub repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
 
 ## Design notes
 
