@@ -4,7 +4,7 @@
    TredictService RPC entrypoint through a private Cloudflare Service Binding.
 */
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { describeTredictPlanResponse,extractTredictPlanId,splitTredictPlanPayload } from './tredict-plan-response.mjs';
+import { describeTredictPlanResponse,extractTredictPlanId,splitTredictPlanPayload,tredictPlanTrainingRetryDelay } from './tredict-plan-response.mjs';
 
 const TREDICT='https://www.tredict.com/api/oauth/v2/';
 const DEFAULT_ORIGIN='https://1runnerbear.github.io';
@@ -88,6 +88,16 @@ async function tdPost(env,path,body){
   if(!r.ok){let msg='';try{msg=await boundedText(r)}catch{};const e=new Error(`Tredict ${path}: HTTP ${r.status}${msg?` · ${msg}`:''}`);e.status=r.status;throw e}
   return r.json();
 }
+const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+async function addPlanTraining(env,body){
+  for(let attempt=0;;attempt++){
+    try{return await tdPost(env,'plan/training',body)}catch(error){
+      const delay=tredictPlanTrainingRetryDelay(error,attempt);
+      if(!delay)throw error;
+      await wait(delay);
+    }
+  }
+}
 async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}}
 
 async function buildSnapshot(env,requestedDays=365){
@@ -139,7 +149,7 @@ export class TredictService extends WorkerEntrypoint {
     if(!planId)throw new Error(`Tredict plan response did not include planId · ${describeTredictPlanResponse(result)}`);
     let added=0;
     for(const addition of split.additions){
-      const response=await tdPost(this.env,'plan/training',{planId,...addition});
+      const response=await addPlanTraining(this.env,{planId,...addition});
       if(response?.error)throw new Error(`Tredict rejected plan training ${added+1}/${split.additions.length} · ${describeTredictPlanResponse(response)}`);
       added++;
     }
