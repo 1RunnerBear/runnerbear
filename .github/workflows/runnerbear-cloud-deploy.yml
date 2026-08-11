@@ -45,7 +45,7 @@ jobs:
         id: deploy_cloud
         if: steps.validate.outcome == 'success'
         continue-on-error: true
-        run: npx wrangler deploy -y
+        run: npx wrangler deploy
 
       - name: Apply D1 migrations
         id: migrate
