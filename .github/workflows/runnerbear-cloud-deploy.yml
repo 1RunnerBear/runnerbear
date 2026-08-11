@@ -59,6 +59,15 @@ jobs:
         continue-on-error: true
         run: npx wrangler d1 execute DB --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='rb_users'" --json
 
+      - name: Smoke test Worker health
+        id: health
+        if: steps.smoke.outcome == 'success'
+        continue-on-error: true
+        run: |
+          BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 1 https://runnerbear-cloud.torbjorn-forre.workers.dev/health)"
+          echo "$BODY"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true) process.exit(1)' "$BODY"
+
       - name: Write deploy report
         if: always()
         working-directory: .
@@ -68,6 +77,7 @@ jobs:
           DEPLOY_OUTCOME: ${{ steps.deploy_cloud.outcome }}
           MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          HEALTH_OUTCOME: ${{ steps.health.outcome }}
           RUN_ID: ${{ github.run_id }}
           SHA: ${{ github.sha }}
         run: |
@@ -79,10 +89,11 @@ jobs:
             "deploy": os.environ.get("DEPLOY_OUTCOME", ""),
             "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
             "smoke": os.environ.get("SMOKE_OUTCOME", ""),
+            "health": os.environ.get("HEALTH_OUTCOME", ""),
           }
           report = {
             "build": "9.8.0",
-            "status": "success" if outcomes["smoke"] == "success" else "failed",
+            "status": "success" if outcomes["smoke"] == "success" and outcomes["health"] == "success" else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -99,5 +110,5 @@ jobs:
           git push
 
       - name: Fail workflow when cloud deploy failed
-        if: always() && steps.smoke.outcome != 'success'
+        if: always() && steps.health.outcome != 'success'
         run: exit 1
