@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "runnerbear-cloud",
-  "main": "src/index-v982.js",
+  "main": "src/index-v983.js",
   "compatibility_date": "2026-08-11",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": true,
