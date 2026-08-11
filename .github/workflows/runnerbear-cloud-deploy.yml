@@ -212,7 +212,14 @@ jobs:
           git add cloud/runnerbear-cloud/deploy-status.json
           git add cloud/runnerbear-cloud/access-status.json 2>/dev/null || true
           git commit -m "Record RunnerBear Cloud deploy status" || true
-          git push
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep 2
+          done
+          exit 1
 
       - name: Fail workflow when RunnerBear Cloud is not private
         if: always() && (steps.guard.outcome != 'success' || steps.health.outcome != 'success')
