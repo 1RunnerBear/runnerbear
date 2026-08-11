@@ -1,13 +1,13 @@
 {
   "ok": true,
   "build": "9.8.1",
-  "appDomain": "runnerbear-cloud.torbjorn-forre.workers.dev",
-  "appId": "c79ae143-e62e-4544-8cd9-6acd89d003f6",
-  "aud": "9e04e9f4bcf94c9d11fbbcae7fa3c91623ac7bce8f05a6213480e76c62461848",
+  "appDomain": "app.runnerbear.workers.dev",
+  "appId": "8539cb26-7c62-4508-bad9-27f264953e01",
+  "aud": "6a2b0a0287aeadc146e533bd8d93afc6a151c8503c35916dae229925663beb8e",
   "teamDomain": "https://runnerbear.cloudflareaccess.com",
   "ownerEmail": "torbjorn.forre@gmail.com",
   "loginMethod": "onetimepin",
   "sessionDuration": "720h",
   "healthBypass": true,
-  "checkedAt": "2026-08-11T10:02:27.054Z"
+  "checkedAt": "2026-08-11T11:11:24.206Z"
 }
