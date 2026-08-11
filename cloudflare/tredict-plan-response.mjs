@@ -40,3 +40,17 @@ export function describeTredictPlanResponse(result){
   const success=Object.prototype.hasOwnProperty.call(result,'success')?compact(result.success):'';
   return`${detail?`detail=${detail}; `:''}keys=${keys}${success?`; success=${success}`:''}`.slice(0,420);
 }
+
+export function splitTredictPlanPayload(payload){
+  const plan=payload?.plan&&typeof payload.plan==='object'?payload.plan:null;
+  const trainings=Array.isArray(payload?.planTrainings)?payload.planTrainings:[];
+  if(!plan)throw new Error('Tredict plan metadata is missing');
+  if(!trainings.length)throw new Error('Tredict plan requires trainings');
+  return{
+    create:{
+      plan,
+      llmDescription:'OpenAI Codex · RunnerBear v10.8.1'
+    },
+    additions:trainings.map(planTraining=>({planTraining}))
+  };
+}
