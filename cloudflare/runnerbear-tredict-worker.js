@@ -1,8 +1,10 @@
-/* RunnerBear v9.4 · Tredict Bridge · Cloudflare Worker
+/* RunnerBear v9.8.2 · Tredict Bridge · Cloudflare Worker
    Secrets (Cloudflare): TREDICT_TOKEN, RUNNERBEAR_BRIDGE_KEY
-   Optional var: RUNNERBEAR_ORIGIN (defaults to GitHub Pages origin)
-   Read-only bridge for activities + recovery/capacity data.
+   Browser fetch remains backwards-compatible. RunnerBear Cloud uses the named
+   TredictService RPC entrypoint through a private Cloudflare Service Binding.
 */
+import { WorkerEntrypoint } from 'cloudflare:workers';
+
 const TREDICT='https://www.tredict.com/api/oauth/v2/';
 const DEFAULT_ORIGIN='https://1runnerbear.github.io';
 
@@ -42,7 +44,44 @@ async function td(env,path,params={}){
   if(!r.ok){let msg='';try{msg=(await r.text()).slice(0,300)}catch{};const e=new Error(`Tredict ${path}: HTTP ${r.status}${msg?` · ${msg}`:''}`);e.status=r.status;throw e}
   return r.json();
 }
-async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}
+async function safe(name,fn){try{return{name,ok:true,data:await fn()}}catch(e){return{name,ok:false,status:e.status||0,error:e.message||String(e)}}}
+
+async function buildSnapshot(env,requestedDays=28){
+  if(!env.TREDICT_TOKEN)return{ok:false,error:'TREDICT_NOT_CONFIGURED',status:503,parts:[]};
+  const days=Math.max(7,Math.min(60,Number(requestedDays||28)));
+  const now=new Date(),old=daysAgo(days),nowIso=now.toISOString(),oldIso=old.toISOString();
+  const calls=await Promise.all([
+    safe('activities',()=>td(env,'activityList',{startDate:nowIso,endDate:oldIso,pageSize:100,extendedSummary:1})),
+    safe('hrv',()=>td(env,'hrv',{startDate:nowIso,endDate:oldIso})),
+    safe('sleep',()=>td(env,'sleep',{startDate:nowIso,endDate:oldIso})),
+    safe('body',()=>td(env,'bodyvalues')),
+    safe('capacity',()=>td(env,'capacity',{sportType:'running'})),
+    safe('zones',()=>td(env,'zones',{sportType:'running'}))
+  ]);
+  const by=Object.fromEntries(calls.map(x=>[x.name,x]));
+  if(!by.activities.ok)return{ok:false,error:'TREDICT_ACTIVITY_READ_FAILED',detail:by.activities.error,status:by.activities.status||502,parts:calls.map(({name,ok,status})=>({name,ok,status}))};
+  const activityRows=by.activities.data?._embedded?.activityList||by.activities.data?.activityList||[];
+  const bodyRows=by.body.ok?(by.body.data?.bodyvalues||by.body.data?._embedded?.bodyvalues||[]):[];
+  return{
+    ok:true,version:'9.8.2',syncedAt:new Date().toISOString(),windowDays:days,
+    activities:activityRows.map(pickSummary),
+    hrv:by.hrv.ok?(by.hrv.data?.hrv||{}):{},
+    sleep:by.sleep.ok?(by.sleep.data?.sleep||{}):{},
+    body:trimBody(bodyRows,old),
+    capacity:by.capacity.ok?(by.capacity.data?.capacity||{}):{},
+    zones:by.zones.ok?(by.zones.data?.zones||{}):{},
+    parts:calls.map(({name,ok,status,error})=>({name,ok,status,error:error||undefined}))
+  };
+}
+
+export class TredictService extends WorkerEntrypoint {
+  async snapshot(days=28){
+    const out=await buildSnapshot(this.env,days);
+    if(!out.ok)throw new Error(`${out.error}${out.detail?` · ${out.detail}`:''}`);
+    return out;
+  }
+  async health(){return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'9.8.2'}}
+}
 
 export default {
   async fetch(request,env){
@@ -56,33 +95,9 @@ export default {
     if(request.headers.get('X-RunnerBear-Key')!==env.RUNNERBEAR_BRIDGE_KEY)return json({ok:false,error:'BRIDGE_AUTH_FAILED'},401,origin,true);
 
     const url=new URL(request.url);
-    if(url.pathname==='/health')return json({ok:true,service:'RunnerBear Tredict Bridge',version:'9.4'},200,origin,true);
+    if(url.pathname==='/health')return json({ok:true,service:'RunnerBear Tredict Bridge',version:'9.8.2'},200,origin,true);
     if(url.pathname!=='/api/snapshot')return json({ok:false,error:'NOT_FOUND'},404,origin,true);
-
-    const days=Math.max(7,Math.min(60,Number(url.searchParams.get('days')||28)));
-    const now=new Date(),old=daysAgo(days),nowIso=now.toISOString(),oldIso=old.toISOString();
-    const calls=await Promise.all([
-      safe('activities',()=>td(env,'activityList',{startDate:nowIso,endDate:oldIso,pageSize:100,extendedSummary:1})),
-      safe('hrv',()=>td(env,'hrv',{startDate:nowIso,endDate:oldIso})),
-      safe('sleep',()=>td(env,'sleep',{startDate:nowIso,endDate:oldIso})),
-      safe('body',()=>td(env,'bodyvalues')),
-      safe('capacity',()=>td(env,'capacity',{sportType:'running'})),
-      safe('zones',()=>td(env,'zones',{sportType:'running'}))
-    ]);
-    const by=Object.fromEntries(calls.map(x=>[x.name,x]));
-    if(!by.activities.ok)return json({ok:false,error:'TREDICT_ACTIVITY_READ_FAILED',detail:by.activities.error,status:by.activities.status,parts:calls.map(({name,ok,status})=>({name,ok,status}))},502,origin,true);
-    const activityRows=by.activities.data?._embedded?.activityList||by.activities.data?.activityList||[];
-    const bodyRows=by.body.ok?(by.body.data?.bodyvalues||by.body.data?._embedded?.bodyvalues||[]):[];
-    const payload={
-      ok:true,version:'9.4',syncedAt:new Date().toISOString(),windowDays:days,
-      activities:activityRows.map(pickSummary),
-      hrv:by.hrv.ok?(by.hrv.data?.hrv||{}):{},
-      sleep:by.sleep.ok?(by.sleep.data?.sleep||{}):{},
-      body:trimBody(bodyRows,old),
-      capacity:by.capacity.ok?(by.capacity.data?.capacity||{}):{},
-      zones:by.zones.ok?(by.zones.data?.zones||{}):{},
-      parts:calls.map(({name,ok,status,error})=>({name,ok,status,error:error||undefined}))
-    };
-    return json(payload,200,origin,true);
+    const out=await buildSnapshot(env,url.searchParams.get('days')||28);
+    return json(out,out.ok?200:(out.status||502),origin,true);
   }
 };
