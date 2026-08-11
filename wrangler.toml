@@ -1,7 +1,12 @@
 name = "runnerbear-tredict-bridge"
-main = "cloudflare/runnerbear-tredict-worker.mjs"
+main = "cloudflare/runnerbear-tredict-worker-v983.mjs"
 compatibility_date = "2026-08-10"
 workers_dev = true
 
 [vars]
 RUNNERBEAR_ORIGIN = "https://1runnerbear.github.io"
+
+[[services]]
+binding = "RUNNERBEAR_CLOUD"
+service = "runnerbear-cloud"
+entrypoint = "MigrationService"
