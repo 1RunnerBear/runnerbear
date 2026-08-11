@@ -38,6 +38,11 @@ test('easy runs stay flexible and strides are explicit',()=>{
   assert.equal(steps[1].steps[1].duration,60);
 });
 
+test('race duration goals are not mistaken for pace targets',()=>{
+  const race=compiler.workout({externalId:'runnerbear-race',date:'2026-10-03',type:'race',title:'RUNFEST 21K',km:21.1,detail:'B: 1:24–1:25. Åpne 3:58–4:00/km.'});
+  assert.equal(race.structuredWorkout.steps[0].targets.pace.value,239);
+});
+
 test('plan uses relative days and a stable content signature',()=>{
   const queue=[sixBySix,{externalId:'runnerbear-easy',date:'2026-08-13',type:'easy',title:'7 km rolig',km:7,desc:'Restitusjon.'}];
   const out=compiler.plan(queue);
