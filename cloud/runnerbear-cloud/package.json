@@ -6,12 +6,12 @@
   "scripts": {
     "dev": "wrangler dev",
     "check": "wrangler check",
-    "deploy": "wrangler deploy",
-    "db:create": "wrangler d1 create runnerbear-cloud",
-    "db:migrate:local": "wrangler d1 migrations apply runnerbear-cloud --local",
-    "db:migrate:remote": "wrangler d1 migrations apply runnerbear-cloud --remote"
+    "deploy": "wrangler deploy -y",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:smoke:remote": "wrangler d1 execute DB --remote --command=\"SELECT name FROM sqlite_master WHERE type='table' AND name='rb_users'\" --json"
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.45.0"
   }
 }
