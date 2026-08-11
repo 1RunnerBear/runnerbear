@@ -107,8 +107,22 @@
   function jumpCurrent(){
     if(isLegacy()){
       try{sessionStorage.setItem('runfest26_plan_week',String(currentWeek().n));const sel=$('weekFilter');if(sel){sel.value=String(currentWeek().n);renderPlan()}}catch{}
-    }else sessionStorage.setItem('runnerbear_v72_week','0');
+    }else{
+      sessionStorage.setItem('runnerbear_v72_week','0');
+      try{window.RunnerBearAdaptive?.renderFlexiblePlan?.()}catch{}
+    }
     sessionStorage.removeItem('runnerbear_v92_plan_day');requestAnimationFrame(enhance);setTimeout(enhance,40);
+  }
+
+  function openPlanAtToday(){
+    jumpCurrent();
+    const apply=()=>{
+      const s=source();if(!s)return;
+      const d=s.days.find(x=>iso(x.date)===iso(new Date()))||s.days[0];if(!d)return;
+      sessionStorage.setItem('runnerbear_v92_plan_day',d.id);
+      ensureOverview(s);compactPlan(s);securePlanCompletion(s);selectDay(d.id,false);
+    };
+    requestAnimationFrame(apply);setTimeout(apply,70);
   }
 
   function weekStats(s){
@@ -154,7 +168,7 @@
     const s=source();if(!s)return;const found=s.days.some(d=>d.id===id)?id:s.days[0]?.id;if(!found)return;
     sessionStorage.setItem('runnerbear_v92_plan_day',found);
     qsa('#weeks .day').forEach(d=>d.classList.remove('open','rb31-selected'));
-    const card=dayCardById(s,found);if(card){card.classList.add('open','rb31-selected');if(scroll)card.scrollIntoView({behavior:'smooth',block:'nearest'})}
+    const card=dayCardById(s,found);if(card){card.classList.add('open','rb31-selected');if(scroll)card.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'})}
     qsa('#rb31PlanOverview [data-rb31-day]').forEach(b=>b.classList.toggle('selected',b.dataset.rb31Day===found));
   }
 
@@ -239,7 +253,12 @@
   const prev=window.renderAll;
   if(typeof prev==='function')window.renderAll=function(){const out=prev.apply(this,arguments);requestAnimationFrame(enhance);setTimeout(enhance,50);return out};
   const prevSwitch=window.switchTab;
-  if(typeof prevSwitch==='function')window.switchTab=function(id,scroll){const out=prevSwitch.apply(this,arguments);if(id==='plan'||id==='today'){requestAnimationFrame(enhance);setTimeout(enhance,60)}return out};
+  if(typeof prevSwitch==='function')window.switchTab=function(id,scroll){
+    const out=prevSwitch.apply(this,arguments);
+    if(id==='plan')openPlanAtToday();
+    else if(id==='today'){requestAnimationFrame(enhance);setTimeout(enhance,60)}
+    return out;
+  };
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)requestAnimationFrame(enhance)});
   enhance();requestAnimationFrame(enhance);setTimeout(enhance,100);
 })();

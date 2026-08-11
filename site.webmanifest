@@ -1,9 +1,9 @@
 {
   "name": "RunnerBear",
   "short_name": "RunnerBear",
-  "description": "RunnerBear · Permanent Coach · Live Garmin/Tredict Data · v9.5.1",
+  "description": "RunnerBear · Permanent Coach · Live Garmin/Tredict Data · v9.8",
   "id": "/runnerbear/?app=v2",
-  "start_url": "/runnerbear/?app=v951",
+  "start_url": "/runnerbear/?app=v980",
   "scope": "/runnerbear/",
   "display": "standalone",
   "background_color": "#F7F8F6",

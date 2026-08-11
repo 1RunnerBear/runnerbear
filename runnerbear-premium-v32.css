@@ -154,11 +154,13 @@ html.rb9.rb32 #plan .coach-card,
 html.rb9.rb32 #plan .readiness{display:none!important}
 
 @media(max-width:640px){
-  html.rb9.rb32 #plan .section-head{margin-bottom:8px!important}
+  html.rb9.rb32 #plan .section-head{width:100%!important;margin-bottom:8px!important;align-items:flex-start!important;text-align:left!important}
+  html.rb9.rb32 #plan .section-head>div{width:100%!important}
   html.rb9.rb32 #plan .section-head .eyebrow{font-size:9px!important}
   html.rb9.rb32 #plan .section-head h1{font-size:31px!important}
   html.rb9.rb32 #plan .section-head p{display:block!important;font-size:12px!important;line-height:1.35!important}
-  html.rb9.rb32 #rb31PlanOverview .rb31-plan-overview{padding:12px!important;border-radius:18px!important}
+  html.rb9.rb32 #rb31PlanOverview{width:100%!important;margin-left:0!important;margin-right:0!important}
+  html.rb9.rb32 #rb31PlanOverview .rb31-plan-overview{box-sizing:border-box!important;width:100%!important;margin-left:0!important;margin-right:0!important;padding:12px!important;border-radius:18px!important}
   html.rb9.rb32 .rb31-week-nav{grid-template-columns:36px minmax(0,1fr) 36px!important;gap:5px!important;margin-bottom:7px}
   html.rb9.rb32 .rb31-nav-btn{min-height:48px!important}
   html.rb9.rb32 .rb31-week-center strong{font-size:17px!important}

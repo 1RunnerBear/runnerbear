@@ -3,7 +3,7 @@
    Cross-device authentication remains a separate follow-up by design. */
 (function(){
   'use strict';
-  const BUILD='9.7';
+  const BUILD='9.8';
   const $=id=>document.getElementById(id);
   const qs=(s,r=document)=>r.querySelector(s);
   const qsa=(s,r=document)=>[...r.querySelectorAll(s)];

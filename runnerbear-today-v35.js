@@ -11,6 +11,11 @@
   const fmtDate=d=>new Intl.DateTimeFormat('nb-NO',{weekday:'long',day:'numeric',month:'long'}).format(d).replace(/^./,c=>c.toUpperCase());
   let lastSignature='';
 
+  function greeting(){
+    const hour=new Date().getHours();
+    return hour<10?'God morgen':hour<17?'God dag':'God kveld';
+  }
+
   function tone(){
     const pill=$('rb9CoachPill')||$('coachLight');
     if(pill?.classList.contains('red'))return'red';
@@ -41,18 +46,6 @@
         ['Belastning',load,text('rb9LoadSub')]
       ]
     };
-  }
-
-  function nextSessions(){
-    try{
-      if(typeof flat==='undefined'||!Array.isArray(flat))return[];
-      const start=new Date();start.setHours(23,59,59,999);
-      return flat.filter(f=>f?.date&&new Date(f.date)>start).sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(0,2).map(f=>({
-        when:new Intl.DateTimeFormat('nb-NO',{weekday:'short',day:'numeric'}).format(new Date(f.date)).replace('.',''),
-        title:f.title||'Planlagt økt',
-        type:f.type||''
-      }));
-    }catch{return[]}
   }
 
   function actual(){
@@ -90,13 +83,16 @@
   function metric(label,value){return `<div><span>${esc(label)}</span><b>${esc(value||'–')}</b></div>`}
 
   function surfaceHtml(){
-    const t=tone(),h=health(),w=workout(),next=nextSessions();
+    const t=tone(),h=health(),w=workout();
     const actualHtml=w.actual?`<div class="rb35-actual"><span>GJENNOMFØRT · GARMIN/TREDICT</span><b>✓ ${esc(w.actual.title)}</b><small>${esc(w.actual.metrics.join(' · '))}</small></div>`:'';
     const details=[w.desc&&`<div><span>ØKT</span><p>${esc(w.desc)}</p></div>`,w.purpose&&`<div><span>HENSIKT</span><p>${esc(w.purpose)}</p></div>`,w.shoe&&`<div><span>SKO</span><p>${esc(w.shoe)}</p></div>`,w.fuel&&`<div><span>ENERGI</span><p>${esc(w.fuel)}</p></div>`].filter(Boolean).join('');
     const healthDetails=h.items.map(([k,v,sub])=>`<div><span>${esc(k)}</span><b>${esc(v)}</b><small>${esc(sub||'')}</small></div>`).join('');
-    const nextHtml=next.length?next.map(n=>`<div class="rb35-next-row"><span>${esc(n.when)}</span><b>${esc(n.title)}</b></div>`).join(''):`<div class="rb35-next-empty">Neste økter vises når planen er klar.</div>`;
     return `<section class="rb35-surface" aria-label="I dag">
-      <header class="rb35-date"><span>${esc(fmtDate(new Date()))}</span><small>RUNNERBEAR · I DAG</small></header>
+      <header class="rb35-greeting">
+        <span>SMART. LIGHTER. FASTER.</span>
+        <h1>${esc(greeting())}, Torbjørn</h1>
+        <div><p>${esc(fmtDate(new Date()))}</p><small>RUNNERBEAR · I DAG</small></div>
+      </header>
       <article class="rb35-status rb35-${t}">
         <div class="rb35-status-mark" aria-hidden="true"></div>
         <div><span>RB COACH</span><h2>${esc(statusLabel(t))}</h2><p>${esc(statusMessage(t))}</p></div>
@@ -125,19 +121,10 @@
         <p>${esc(healthLine(h))}</p>
         <details id="rb35HealthDetails"><summary>Se helsedata <span>↓</span></summary><div class="rb35-health-grid">${healthDetails}</div></details>
       </article>
-
-      <article class="rb35-next">
-        <div class="rb35-kicker"><span>NESTE</span><button type="button" data-rb35-plan>Se planen →</button></div>
-        ${nextHtml}
-      </article>
     </section>`;
   }
 
   function bind(root){
-    qs('[data-rb35-plan]',root)?.addEventListener('click',()=>{
-      if(typeof window.switchTab==='function')window.switchTab('plan',true);
-      else qs('.bottom-nav [data-tab="plan"]')?.click();
-    });
     qsa('[data-rb35-reason]',root).forEach(btn=>btn.addEventListener('click',()=>{
       const original=qs(`#adaptPanel [data-reason="${btn.dataset.rb35Reason}"]`);
       if(original){original.click();setTimeout(()=>{const advice=text('adaptAdvice');const out=$('rb35AdaptAdvice');if(out)out.innerHTML=$('adaptAdvice')?.innerHTML||esc(advice)},30)}
@@ -149,7 +136,7 @@
     const today=$('today');if(!today)return;
     let root=$('rb35Today');
     if(!root){root=document.createElement('div');root.id='rb35Today';today.prepend(root)}
-    const sig=[tone(),text('rb9CoachText'),text('todayTitle'),text('todayDesc'),text('todayPace'),text('todayHr'),text('todayKm'),text('todayShoe'),text('todayCoach'),text('rb9Hrv'),text('rb9Sleep'),text('rb9Rhr'),text('rb9Load'),JSON.stringify(nextSessions()),actual()?.title||''].join('|');
+    const sig=[greeting(),fmtDate(new Date()),tone(),text('rb9CoachText'),text('todayTitle'),text('todayDesc'),text('todayPace'),text('todayHr'),text('todayKm'),text('todayShoe'),text('todayCoach'),text('rb9Hrv'),text('rb9Sleep'),text('rb9Rhr'),text('rb9Load'),actual()?.title||''].join('|');
     if(sig===lastSignature&&root.children.length)return;
     const open=new Set(qsa('details[open]',root).map(x=>x.id));
     lastSignature=sig;
