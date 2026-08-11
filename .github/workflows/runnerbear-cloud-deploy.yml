@@ -2,6 +2,11 @@ name: RunnerBear Cloud deploy
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - cloud/runnerbear-cloud/deploy-trigger.txt
 
 permissions:
   contents: read
