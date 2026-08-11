@@ -18,6 +18,8 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RUNNERBEAR_OWNER_EMAIL: torbjorn.forre@gmail.com
+      RUNNERBEAR_APP_DOMAIN: runnerbear-cloud.torbjorn-forre.workers.dev
     defaults:
       run:
         working-directory: cloud/runnerbear-cloud
@@ -39,11 +41,29 @@ jobs:
         id: validate
         if: steps.install.outcome == 'success'
         continue-on-error: true
-        run: node --check src/index.js
+        run: |
+          node --check src/index.js
+          node --check scripts/configure-access.mjs
 
-      - name: Deploy and provision D1
-        id: deploy_cloud
+      - name: Build private RunnerBear static app
+        id: assets
         if: steps.validate.outcome == 'success'
+        continue-on-error: true
+        run: |
+          rm -rf public
+          mkdir -p public
+          find ../.. -maxdepth 1 -type f \( \
+            -name '*.html' -o -name '*.js' -o -name '*.css' -o \
+            -name '*.svg' -o -name '*.png' -o -name '*.jpg' -o \
+            -name '*.jpeg' -o -name '*.webp' -o -name '*.ico' -o \
+            -name '*.webmanifest' \
+          \) -exec cp '{}' public/ \;
+          test -s public/index.html
+          echo "RunnerBear assets: $(find public -maxdepth 1 -type f | wc -l)"
+
+      - name: Deploy Worker, assets and D1 binding
+        id: deploy_cloud
+        if: steps.assets.outcome == 'success'
         continue-on-error: true
         run: npx wrangler deploy
 
@@ -66,7 +86,46 @@ jobs:
         run: |
           BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 1 https://runnerbear-cloud.torbjorn-forre.workers.dev/health)"
           echo "$BODY"
-          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true) process.exit(1)' "$BODY"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.build!=="9.8.1" || x.assets!==true) process.exit(1)' "$BODY"
+
+      - name: Smoke test RunnerBear app shell
+        id: app_smoke
+        if: steps.health.outcome == 'success'
+        continue-on-error: true
+        run: |
+          HTML="$(curl --fail --silent --show-error --retry 3 --retry-delay 1 https://runnerbear-cloud.torbjorn-forre.workers.dev/)"
+          printf '%s' "$HTML" | grep -q 'RUNNERBEAR'
+
+      - name: Configure Cloudflare Access
+        id: access
+        if: steps.app_smoke.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/configure-access.mjs
+
+      - name: Install Access JWT validation settings
+        id: access_vars
+        if: steps.access.outcome == 'success'
+        continue-on-error: true
+        run: |
+          printf '%s' '${{ steps.access.outputs.aud }}' | npx wrangler secret put ACCESS_AUD
+          printf '%s' '${{ steps.access.outputs.team_domain }}' | npx wrangler secret put ACCESS_TEAM_DOMAIN
+
+      - name: Verify private app guard
+        id: guard
+        if: steps.access_vars.outcome == 'success'
+        continue-on-error: true
+        run: |
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            HEALTH_CODE="$(curl --silent --output /tmp/rb-health --write-out '%{http_code}' https://runnerbear-cloud.torbjorn-forre.workers.dev/health)"
+            APP_CODE="$(curl --silent --output /tmp/rb-app --write-out '%{http_code}' https://runnerbear-cloud.torbjorn-forre.workers.dev/)"
+            echo "attempt=$attempt health=$HEALTH_CODE app=$APP_CODE"
+            if [ "$HEALTH_CODE" = "200" ] && [ "$APP_CODE" != "200" ]; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo 'RunnerBear Access guard did not become active as expected.'
+          exit 1
 
       - name: Write deploy report
         if: always()
@@ -74,10 +133,15 @@ jobs:
         env:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          ASSETS_OUTCOME: ${{ steps.assets.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy_cloud.outcome }}
           MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           HEALTH_OUTCOME: ${{ steps.health.outcome }}
+          APP_SMOKE_OUTCOME: ${{ steps.app_smoke.outcome }}
+          ACCESS_OUTCOME: ${{ steps.access.outcome }}
+          ACCESS_VARS_OUTCOME: ${{ steps.access_vars.outcome }}
+          GUARD_OUTCOME: ${{ steps.guard.outcome }}
           RUN_ID: ${{ github.run_id }}
           SHA: ${{ github.sha }}
         run: |
@@ -86,14 +150,19 @@ jobs:
           outcomes = {
             "install": os.environ.get("INSTALL_OUTCOME", ""),
             "validate": os.environ.get("VALIDATE_OUTCOME", ""),
+            "assets": os.environ.get("ASSETS_OUTCOME", ""),
             "deploy": os.environ.get("DEPLOY_OUTCOME", ""),
             "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
             "smoke": os.environ.get("SMOKE_OUTCOME", ""),
             "health": os.environ.get("HEALTH_OUTCOME", ""),
+            "app_smoke": os.environ.get("APP_SMOKE_OUTCOME", ""),
+            "access": os.environ.get("ACCESS_OUTCOME", ""),
+            "access_vars": os.environ.get("ACCESS_VARS_OUTCOME", ""),
+            "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "9.8.0",
-            "status": "success" if outcomes["smoke"] == "success" and outcomes["health"] == "success" else "failed",
+            "build": "9.8.1",
+            "status": "success" if outcomes["guard"] == "success" else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -106,9 +175,10 @@ jobs:
           git config user.name "runnerbear-cloud-bot"
           git config user.email "runnerbear-cloud-bot@users.noreply.github.com"
           git add cloud/runnerbear-cloud/deploy-status.json
+          git add cloud/runnerbear-cloud/access-status.json 2>/dev/null || true
           git commit -m "Record RunnerBear Cloud deploy status" || true
           git push
 
-      - name: Fail workflow when cloud deploy failed
-        if: always() && steps.health.outcome != 'success'
+      - name: Fail workflow when RunnerBear Cloud is not private
+        if: always() && steps.guard.outcome != 'success'
         run: exit 1
