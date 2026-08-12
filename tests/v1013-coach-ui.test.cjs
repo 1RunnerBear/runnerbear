@@ -7,6 +7,7 @@ const root=path.resolve(__dirname,'..');
 const app=fs.readFileSync(path.join(root,'runnerbear-v107-coach-os.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'runnerbear-v1013-coach-ui.css'),'utf8');
+const polish=fs.readFileSync(path.join(root,'runnerbear-v1014-premium-polish.css'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'site.webmanifest'),'utf8'));
 const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json'),'utf8'));
 
@@ -41,7 +42,7 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v1013');
-  assert.equal(version.build,'10.13');
+  assert.equal(manifest.start_url,'/?app=v1014');
+  assert.equal(version.build,'10.14');
   assert.equal(version.channel,'live');
 });
