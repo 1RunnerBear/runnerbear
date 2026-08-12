@@ -6,8 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="theme-color" content="#F7F8F6">
-<title>RunnerBear · Smart. Lighter. Faster.</title>
+<meta name="theme-color" content="#F7F5EF">
+<title>RunnerBear · Bakken-coach</title>
 <link rel="icon" type="image/svg+xml" href="runnerbear-app-icon-v2.svg?v=27">
 <link rel="manifest" href="site.webmanifest?v=1012">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -43,11 +43,12 @@
 <link rel="stylesheet" href="runnerbear-v97.css?v=980">
 <link rel="stylesheet" href="runnerbear-v98.css?v=980">
 <link rel="stylesheet" href="runnerbear-v107-coach-os.css?v=1012">
+<link rel="stylesheet" href="runnerbear-v1013-coach-ui.css?v=1013">
 </head>
 <body>
 <div class="app">
-<header class="topbar"><div class="brand"><div class="rb">RB</div><div><b>RUNNERBEAR</b><span>Runfest 21K · Sandnes</span></div></div><div class="race-count"><b><span id="countdown">–</span> dager</b><span>til start</span></div></header>
-<nav class="desktop-nav" aria-label="Hovedmeny"><button class="navbtn active" data-tab="today">I dag</button><button class="navbtn" data-tab="plan">Plan</button><button class="navbtn" data-tab="race">Race</button><button class="navbtn" data-tab="more">Mer</button></nav>
+<header class="topbar"><div class="brand"><div class="rb"><img src="runnerbear-brand-mark-flat.svg?v=1013" alt=""></div><div><b>RunnerBear</b><span>Bakken-coach</span></div></div><div class="race-count"><b><span id="countdown">–</span> dager</b><span>til start</span></div></header>
+<nav class="desktop-nav" aria-label="Hovedmeny"><button class="navbtn active" data-tab="today">I dag</button><button class="navbtn" data-tab="plan">Plan</button><button class="navbtn" data-tab="race">Mål</button><button class="navbtn" data-tab="more">Mer</button></nav>
 <div id="rb108Boot" class="rb108-boot" role="status" aria-live="polite">
   <span class="rb108-boot-mark" aria-hidden="true"></span>
   <div><b>Henter dagens plan</b><span>RunnerBear samler økt og ferske data.</span></div>
@@ -62,7 +63,7 @@
 <section id="race" class="view"><div class="section-head"><div><span class="eyebrow">RUNFEST · 3. OKTOBER</span><h1>Race</h1><p>Målet velges av bevisene, ikke ønsket alene.</p></div></div><div class="race-grid"><article class="card"><div class="kicker"><span>MÅLKORRIDOR</span><span>splitter</span></div><div class="goalbuttons"><button class="goal active" data-goal="4980">1:23</button><button class="goal" data-goal="5040">1:24</button><button class="goal" data-goal="5100">1:25</button></div><div class="racepace" id="goalPace">–</div><div class="splits"><div><span>0–3 km</span><b id="rOpen">–</b></div><div><span>3–15 km</span><b id="rMid">–</b></div><div><span>15–20 km</span><b id="rLate">–</b></div><div><span>5 km</span><b id="r5">–</b></div><div><span>10 km</span><b id="r10">–</b></div><div><span>15 km</span><b id="r15">–</b></div><div><span>20 km</span><b id="r20">–</b></div></div></article><article class="card"><div class="kicker"><span>BESLUTNINGSPORTER</span><span>kontroll</span></div><div class="gatebox"><b>Gate 1 · 11. sep</b><span>3 × 3 km @ 4:00–4:03/km</span><select id="gate1"><option value="">Ikke vurdert</option><option value="green">Grønn · tydelig kontrollert</option><option value="yellow">Gul · måtte jobbe</option><option value="red">Rød · måtte presse</option></select></div><div class="gatebox"><b>Gate 2 · 18. sep</b><span>3 × 3 km @ 3:55–3:58/km</span><select id="gate2"><option value="">Ikke vurdert</option><option value="green">Grønn · tydelig kontrollert</option><option value="yellow">Gul · måtte jobbe</option><option value="red">Rød · måtte presse</option></select></div><div id="gateAdvice" class="advice">–</div></article></div><article class="card evidence-card" id="evidenceCard"><div class="kicker"><span>1:23 · BEVISENE</span><span id="evidenceSummary">–</span></div><div id="evidenceList" class="evidence-list"></div></article></section>
 <section id="more" class="view"><div class="section-head"><div><span class="eyebrow">VERKTØY</span><h1>Mer</h1><p>Det som hjelper beslutningene. Ikke Garmin Connect 2.0.</p></div></div><div class="more-grid"><article class="card threshold-card"><div class="kicker"><span>TERSKELHISTORIKK</span><span>Garmin-anker</span></div><div id="thresholdCurrent" class="threshold-current">–</div><div id="thresholdTrend" class="advice">–</div><div id="thresholdList" class="threshold-list"></div><details class="add-threshold"><summary>+ Registrer ny Garmin-terskel</summary><div class="threshold-form"><input id="thDate" type="date"><input id="thPace" placeholder="Fart, f.eks. 3:59"><input id="thHr" type="number" min="130" max="200" placeholder="Puls"><button id="addThreshold">Lagre</button></div></details><div id="thresholdProposal" class="proposal"></div></article><article class="card"><div class="kicker"><span>SKOROTASJON</span><span>faktisk km</span></div><div id="shoeWall" class="shoe-wall"></div></article></div><article class="card"><div class="kicker"><span>SONER & STYRING</span><span>175 · 4:02</span></div><div class="zones"><div><b>Restitusjon</b><strong>125–140</strong><span>bpm</span></div><div><b>Rolig / langtur</b><strong>130–148</strong><span>bpm</span></div><div><b>Lang subterskel</b><strong>160–170</strong><span>bpm</span></div><div><b>Kort subterskel</b><strong>165–172</strong><span>bpm</span></div></div><p class="muted small">Garmin-terskel er et anker. Når puls, pust og opplevd belastning spriker, velger RunnerBear den konservative tolkningen.</p></article><article class="card principles"><div class="kicker"><span>BAKKEN-KJERNEN</span><span>låst prinsipp</span></div><div class="principle-grid"><div><b>Kontrollert terskel</b><span>Stimulus høy nok til adaptasjon, lav nok til å kunne gjentas.</span></div><div><b>Easy means easy</b><span>Rolige dager støtter kvalitetsdagene. Ingen skjult moderat trening.</span></div><div><b>Intervaller &gt; kontinuerlig terskel</b><span>Pausene er funksjonelle og bidrar til intensitetskontroll.</span></div><div><b>X-element med måte</b><span>Raskere arbeid finnes, men er et supplement – ikke hovedmotoren.</span></div><div><b>Respons trumfer ego</b><span>Høy RPE, avvikende puls eller akillesreaksjon gjør coachen mer konservativ.</span></div><div><b>Spesifisitet sent</b><span>Halvmaratonfart kommer gradvis nærmere konkurransen.</span></div></div></article><div class="danger-zone"><button id="resetData">Nullstill RunnerBear-data</button></div></section>
 </main>
-<nav class="bottom-nav" aria-label="Mobilmeny"><button class="navbtn active" data-tab="today"><span>●</span>I dag</button><button class="navbtn" data-tab="plan"><span>▤</span>Plan</button><button class="navbtn" data-tab="race"><span>⚑</span>Race</button><button class="navbtn" data-tab="more"><span>•••</span>Mer</button></nav></div>
+<nav class="bottom-nav" aria-label="Mobilmeny"><button class="navbtn active" data-tab="today"><span>●</span>I dag</button><button class="navbtn" data-tab="plan"><span>▤</span>Plan</button><button class="navbtn" data-tab="race"><span>◎</span>Mål</button><button class="navbtn" data-tab="more"><span>•••</span>Mer</button></nav></div>
 <script src="plan.js?v=108"></script>
 <script src="runnerbear-v100-plan-bootstrap.js?v=108"></script>
 <script src="runnerbear-v5-1.js?v=108"></script>
@@ -104,5 +105,5 @@
 <script src="runnerbear-v100-ui.js?v=108"></script>
 <script src="runnerbear-tredict-outbound.js?v=1081"></script>
 <script src="runnerbear-v1012-analysis.js?v=1012"></script>
-<script src="runnerbear-v107-coach-os.js?v=1012"></script>
+<script src="runnerbear-v107-coach-os.js?v=1013"></script>
 </body></html>
