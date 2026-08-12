@@ -1,12 +1,14 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const path=require('node:path');
 
-const app=fs.readFileSync('runnerbear-v107-coach-os.js','utf8');
-const html=fs.readFileSync('index.html','utf8');
-const css=fs.readFileSync('runnerbear-v1013-coach-ui.css','utf8');
-const manifest=JSON.parse(fs.readFileSync('site.webmanifest','utf8'));
-const version=JSON.parse(fs.readFileSync('runnerbear-version.json','utf8'));
+const root=path.resolve(__dirname,'..');
+const app=fs.readFileSync(path.join(root,'runnerbear-v107-coach-os.js'),'utf8');
+const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const css=fs.readFileSync(path.join(root,'runnerbear-v1013-coach-ui.css'),'utf8');
+const manifest=JSON.parse(fs.readFileSync(path.join(root,'site.webmanifest'),'utf8'));
+const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json'),'utf8'));
 
 test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assert.match(html,/runnerbear-v1013-coach-ui\.css\?v=1013/);
