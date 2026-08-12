@@ -1,5 +1,5 @@
 window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.runnerbear.workers.dev";
-window.RUNNERBEAR_UI_BUILD = "10.11";
+window.RUNNERBEAR_UI_BUILD = "10.12";
 
 /* RunnerBear Today v9.6 loader. Kept here so the decision surface can evolve
    independently without touching the training/data layers. */
@@ -87,13 +87,13 @@ window.RUNNERBEAR_UI_BUILD = "10.11";
   if(!document.querySelector('link[data-rb-v1011-trust]')){
     const l=document.createElement('link');
     l.rel='stylesheet';
-    l.href='runnerbear-v1011-trust.css?v=1011';
+    l.href='runnerbear-v1011-trust.css?v=1012';
     l.dataset.rbV1011Trust='1';
     document.head.appendChild(l);
   }
   if(!document.querySelector('script[data-rb-v1011-trust]')){
     const s=document.createElement('script');
-    s.src='runnerbear-v1011-trust.js?v=1011';
+    s.src='runnerbear-v1011-trust.js?v=1012';
     s.async=false;
     s.dataset.rbV1011Trust='1';
     document.head.appendChild(s);

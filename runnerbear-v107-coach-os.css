@@ -1,4 +1,4 @@
-/* RunnerBear v10.9 · result-first coach and goal lifecycle */
+/* RunnerBear v10.12 · result-first coach and trustworthy session analysis */
 :root{
   --rb107-bg:#f5f7f4;
   --rb107-card:#ffffff;
@@ -353,22 +353,28 @@ html.rb107-ready .topbar .brand .rb{background:var(--rb107-green);box-shadow:non
 /* v10.9 · result first */
 .rb109-result-card{overflow:hidden;padding:0;border-color:#d8e5dc;background:linear-gradient(160deg,#fff 0,#f7faf8 100%)}
 .rb109-result-card.yellow{border-color:#e8d3b2;background:linear-gradient(160deg,#fff 0,#fbf6ed 100%)}
+.rb109-result-card.neutral{border-color:#dfe4e1;background:linear-gradient(160deg,#fff 0,#f6f7f6 100%)}
 .rb109-result-head{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:start;padding:22px 22px 12px}
 .rb109-result-mark{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#4d7a5b;color:#fff}
 .rb109-result-card.yellow .rb109-result-mark{background:#a76d30}
+.rb109-result-card.neutral .rb109-result-mark{background:#76817a}
 .rb109-result-head h2{margin:4px 0 3px;font-size:28px;line-height:1.08;letter-spacing:-.04em}
 .rb109-result-head p{margin:0;color:#6e7a72;font-size:11px}
 .rb109-result-badge{padding:6px 9px;border-radius:999px;background:#e6f1e9;color:#3f6f50;font-size:9px;white-space:nowrap}
 .rb109-result-badge.yellow{background:#f6ead6;color:#8c6127}
+.rb109-result-badge.neutral{background:#ecefed;color:#616b65}
 .rb109-result-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:8px 22px 0;border:1px solid #dfe7e2;border-radius:16px;overflow:hidden;background:#dfe7e2}
 .rb109-result-metrics>div{padding:14px;background:#fff;display:grid;gap:4px}
 .rb109-result-metrics span{font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#738078;font-weight:850}
 .rb109-result-metrics b{font-size:15px;letter-spacing:-.02em}
 .rb109-coach-verdict{margin:14px 22px 0;padding:15px 16px;border-radius:15px;background:#eaf3ed;display:grid;gap:6px;color:#3c5645}
 .rb109-result-card.yellow .rb109-coach-verdict{background:#f8efdf;color:#71532d}
+.rb109-result-card.neutral .rb109-coach-verdict{background:#eef1ef;color:#4f5b54}
 .rb109-coach-verdict>span{font-size:8px;letter-spacing:.12em;text-transform:uppercase;font-weight:900;color:#4d7a5b}
 .rb109-result-card.yellow .rb109-coach-verdict>span{color:#9a6a2e}
+.rb109-result-card.neutral .rb109-coach-verdict>span{color:#68736c}
 .rb109-coach-verdict>p{margin:0;font-size:11px;line-height:1.55}
+.rb1012-confidence{font-size:8.5px;color:#6d7871;font-weight:750}
 .rb109-coach-verdict>div{display:grid;gap:2px;padding-top:8px;border-top:1px solid rgba(77,122,91,.18)}
 .rb109-coach-verdict>div b{font-size:11px;color:#263c2d}
 .rb109-coach-verdict>div small{font-size:9px;color:#66756b}
@@ -392,6 +398,7 @@ html.rb107-ready .topbar .brand .rb{background:var(--rb107-green);box-shadow:non
 .rb109-result-card.compact{padding-bottom:16px}
 .rb109-result-card.compact .rb109-result-head{padding-bottom:8px}
 .rb109-result-card.compact .rb109-coach-verdict{margin-bottom:14px}
+.rb108-verdict.neutral{background:#ecefed;color:#616b65}
 .rb109-open-analysis{margin:0 22px}
 .rb109-pending{padding:20px;display:grid;grid-template-columns:auto 1fr;gap:14px;border-color:#dbe5de;background:#fbfcfb}
 .rb109-pending-mark{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:#edf3ef;color:#4d7a5b}
