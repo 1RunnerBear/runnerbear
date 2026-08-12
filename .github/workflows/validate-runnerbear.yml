@@ -93,5 +93,8 @@ jobs:
       - name: Test structured Tredict workout compiler
         run: node --test tests/tredict-outbound.test.cjs
 
+      - name: Test v10.11 sync and evidence safeguards
+        run: node --test tests/v1011-trust.test.cjs
+
       - name: Validate web manifest
         run: python -m json.tool site.webmanifest > /dev/null
