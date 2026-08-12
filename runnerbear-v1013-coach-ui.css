@@ -1,0 +1,274 @@
+/* RunnerBear v10.13 · premium coach-first interface
+   Garmin owns the raw record. RunnerBear owns the next decision. */
+:root{
+  --rb113-canvas:#f7f5ef;
+  --rb113-surface:#fffefa;
+  --rb113-ink:#10261b;
+  --rb113-muted:#66736c;
+  --rb113-line:#dedfd9;
+  --rb113-forest:#0d3f2b;
+  --rb113-forest-2:#17543a;
+  --rb113-sage:#e7efe7;
+  --rb113-sage-2:#d5e3d4;
+  --rb113-quality:#d86f3c;
+  --rb113-quality-soft:#faeee7;
+  --rb113-shadow:0 12px 36px rgba(17,43,29,.055);
+}
+
+html.rb107-ready body{background:var(--rb113-canvas);color:var(--rb113-ink)}
+html.rb107-ready .app{max-width:1120px;padding-top:14px}
+html.rb107-ready main{padding-top:0}
+html.rb107-ready .rb107-surface{color:var(--rb113-ink)}
+html.rb107-ready .rb107-shell{gap:16px}
+html.rb107-ready .rb107-card{border-color:var(--rb113-line);border-radius:20px;background:var(--rb113-surface);box-shadow:var(--rb113-shadow)}
+html.rb107-ready .rb107-overline{color:var(--rb113-muted);letter-spacing:.115em}
+
+/* One calm brand system. */
+html.rb107-ready .topbar{min-height:56px;margin-bottom:10px}
+html.rb107-ready .topbar .brand{gap:11px}
+html.rb107-ready .topbar .brand .rb{
+  width:42px;height:30px;border-radius:0;background:transparent!important;box-shadow:none!important;overflow:hidden
+}
+html.rb107-ready .topbar .brand .rb img{display:block;width:44px;height:31px;object-fit:contain;object-position:left center}
+html.rb107-ready .topbar .brand b{font-size:17px;line-height:1;letter-spacing:-.025em;text-transform:none;color:var(--rb113-ink)}
+html.rb107-ready .topbar .brand span{margin-top:3px;font-size:9px;letter-spacing:.08em;color:var(--rb113-muted)}
+html.rb107-ready .desktop-nav{border-color:var(--rb113-line)}
+html.rb107-ready .desktop-nav .navbtn.active{color:var(--rb113-forest);box-shadow:inset 0 -2px var(--rb113-forest)}
+
+/* Shared controls */
+.rb107-button{background:var(--rb113-forest);border-color:var(--rb113-forest);color:#fff}
+html.rb107-ready .rb107-button.secondary{background:var(--rb113-forest);border-color:var(--rb113-forest);color:#fff}
+.rb107-button.ghost{color:var(--rb113-forest)}
+.rb107-button:focus-visible,.rb107-day-chip:focus-visible,.rb107-choice:focus-visible,.rb107-action:focus-visible,.rb107-week-head:focus-visible{outline-color:rgba(13,63,43,.24)}
+.rb107-type{background:var(--rb113-sage);color:var(--rb113-forest)}
+.rb107-type.quality,.rb107-type.race{background:var(--rb113-quality);color:#fff}
+
+/* Today: greeting -> decision -> workout/result. */
+.rb107-today-head{padding:7px 3px 0}
+.rb107-today-head h1{font-size:34px;color:var(--rb113-ink)}
+.rb107-today-head p{color:var(--rb113-muted)}
+.rb107-sync i{background:var(--rb113-forest)}
+.rb107-decision{padding:14px 18px;border:0;border-radius:15px;background:linear-gradient(135deg,var(--rb113-sage-2),#edf3e9);box-shadow:none}
+.rb107-decision.yellow{background:#f5e8d6;border:0}
+.rb107-decision.red{background:#f3dfdc;border:0}
+.rb107-decision-mark{width:34px;height:34px;background:var(--rb113-forest)}
+.rb107-decision h2{font-size:17px}
+.rb107-decision p{color:#465d50}
+.rb107-decision-link{color:var(--rb113-forest)}
+.rb107-workout{border-color:#d9ddd6}
+.rb107-workout-top{padding:24px 24px 9px}
+.rb107-workout h2{font-size:34px;color:var(--rb113-ink)}
+.rb107-workout-lead{color:var(--rb113-muted)}
+.rb107-metrics{border-color:var(--rb113-line);background:var(--rb113-line)}
+.rb107-metric{background:#fffefa}
+.rb107-metric span{color:var(--rb113-muted)}
+.rb107-metric b{color:var(--rb113-ink)}
+.rb107-workout-body{padding:16px 24px 22px}
+.rb107-purpose{border-left:0;border-radius:13px;background:var(--rb113-sage)}
+.rb107-purpose span{color:var(--rb113-forest)}
+.rb107-purpose p{color:#314f3d}
+.rb107-workout-actions{display:grid;grid-template-columns:minmax(180px,260px) auto}
+.rb107-workout-actions .rb107-button{min-height:46px}
+.rb107-details{border-color:var(--rb113-line)}
+.rb107-details summary{color:var(--rb113-forest)}
+.rb107-flex-panel{background:#faf9f5;border-color:var(--rb113-line)}
+.rb107-choice.active{border-color:#9eb9a5;background:var(--rb113-sage);color:var(--rb113-forest)}
+
+/* Raw recovery values stay behind one coach interpretation. */
+.rb113-coach-data{overflow:hidden}
+.rb113-coach-data>summary{padding:16px 18px}
+.rb113-coach-data>summary>strong{font-size:9px;color:var(--rb113-forest);transform:none!important}
+.rb113-coach-data[open]>summary>strong{opacity:.7}
+.rb113-coach-data .rb108-signal-body{grid-template-columns:repeat(3,minmax(0,1fr))}
+.rb113-trend-note{grid-column:1/-1;padding:12px 0 2px;border-top:1px solid var(--rb113-line);display:grid;gap:3px}
+.rb113-trend-note>span{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--rb113-muted);font-weight:850}
+.rb113-trend-note>b{font-size:11px}
+.rb113-trend-note>p,.rb113-trend-note>small{margin:0;font-size:9px;line-height:1.45;color:var(--rb113-muted)}
+
+/* Completed workout becomes the hero; detailed evidence remains expandable. */
+.rb109-result-card{padding:0;overflow:hidden;background:var(--rb113-surface);border-color:#d6ddd6}
+.rb113-result-hero{margin:-1px;border-radius:20px;background:linear-gradient(145deg,#0a3a27,#082f21);color:#fff;padding-bottom:15px}
+.rb109-result-card.yellow .rb113-result-hero{background:linear-gradient(145deg,#65451f,#4d3519)}
+.rb109-result-card.neutral .rb113-result-hero{background:linear-gradient(145deg,#35453b,#27342c)}
+.rb109-result-head{padding:24px 24px 13px}
+.rb109-result-head h2{font-size:32px;color:#fff}
+.rb109-result-head p{color:#c3d3c8}
+.rb109-result-head .rb107-overline{color:#bdd1c3}
+.rb109-result-mark{width:48px;height:48px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.35)}
+.rb109-result-badge,.rb109-result-card.yellow .rb109-result-badge,.rb109-result-card.neutral .rb109-result-badge{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.18)}
+.rb109-result-metrics{margin:9px 24px 0;border-color:rgba(255,255,255,.16);background:rgba(255,255,255,.16)}
+.rb109-result-metrics>div{background:rgba(255,255,255,.055)}
+.rb109-result-metrics span{color:#b8cabf}
+.rb109-result-metrics b{color:#fff}
+.rb109-coach-verdict,.rb109-result-card.yellow .rb109-coach-verdict,.rb109-result-card.neutral .rb109-coach-verdict{margin:14px 24px 0;background:rgba(255,255,255,.075);color:#fff}
+.rb109-coach-verdict>span,.rb109-result-card.yellow .rb109-coach-verdict>span,.rb109-result-card.neutral .rb109-coach-verdict>span{color:#c7d7cd}
+.rb109-coach-verdict>p{color:#fff}
+.rb109-coach-verdict>div{border-color:rgba(255,255,255,.14)}
+.rb109-coach-verdict>div b{color:#fff}
+.rb109-coach-verdict>div small,.rb1012-confidence{color:#bfd0c5}
+.rb109-result-details{margin:0;padding:5px 24px 17px;border-top:0;background:var(--rb113-surface)}
+.rb109-result-details>details{border-color:var(--rb113-line)}
+.rb109-result-details summary{color:var(--rb113-forest)}
+.rb109-result-card.compact .rb113-result-hero{margin:0;border-radius:18px 18px 0 0}
+.rb109-result-card.compact .rb109-open-analysis{margin-top:15px}
+.rb113-next{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:13px 17px;background:var(--rb113-sage)!important;border:0!important;box-shadow:none!important}
+.rb113-next>span{font-size:8px;text-transform:uppercase;letter-spacing:.11em;color:var(--rb113-forest);font-weight:850}
+.rb113-next>div{display:grid;gap:2px}.rb113-next b{font-size:12px}.rb113-next small{font-size:9px;color:var(--rb113-muted)}
+.rb113-next button{width:30px;height:30px;border:0;border-radius:50%;background:var(--rb113-forest);color:#fff;font-size:19px}
+
+/* Plan: current week is the main interaction; four-week context is one tap away. */
+.rb107-section-head h1{color:var(--rb113-ink)}
+.rb107-segment{padding:2px;background:transparent;border-color:var(--rb113-line);border-radius:12px}
+.rb107-segment button{min-width:110px;color:var(--rb113-muted)}
+.rb107-segment button.active{background:var(--rb113-forest);color:#fff;box-shadow:none}
+.rb107-week-strip{padding:15px 12px;border:0!important;box-shadow:none!important;background:transparent!important}
+.rb107-week-strip-head{display:grid;grid-template-columns:36px 1fr 36px;margin-bottom:14px;text-align:center}
+.rb107-week-strip-head>div{display:grid;gap:3px}
+.rb107-week-strip-head>button{width:34px;height:34px;border:0;border-radius:50%;background:transparent;color:var(--rb113-ink);font-size:27px;line-height:1}
+.rb107-week-strip-head>button:hover{background:var(--rb113-sage)}
+.rb107-day-chip.active{background:var(--rb113-forest);color:#fff}
+.rb107-day-chip.today{box-shadow:inset 0 0 0 1px #c2d0c5}
+.rb107-day-chip i.quality,.rb107-day-chip i.race{background:var(--rb113-quality)}
+.rb107-day-chip i.easy{background:var(--rb113-forest)}
+.rb107-week-summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:1px solid var(--rb113-line);border-radius:15px;background:var(--rb113-surface);overflow:hidden}
+.rb107-week-summary>div{border:0;border-left:1px solid var(--rb113-line);border-radius:0;background:transparent;text-align:center;padding:14px}
+.rb107-week-summary>div:first-child{border-left:0}
+.rb107-day-detail{padding:21px}
+.rb107-day-detail .rb107-metrics{margin:16px 0 0}
+.rb113-plan-details{margin-top:15px}
+.rb113-plan-details>summary{list-style:none;min-height:48px;border-radius:12px;background:var(--rb113-forest);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;font-size:11px;font-weight:850;cursor:pointer}
+.rb113-plan-details>summary::-webkit-details-marker{display:none}
+.rb113-plan-details[open]>summary span{transform:rotate(180deg)}
+.rb113-plan-details>div{padding-top:4px}
+.rb113-completed-link,.rb113-back{justify-self:start;border:0;background:transparent;color:var(--rb113-forest);padding:9px 3px;font-size:10px;font-weight:850}
+.rb113-four-weeks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.rb113-four-weeks>section{padding:0;overflow:hidden}
+.rb113-four-weeks header{padding:15px 17px;display:flex;align-items:center;justify-content:space-between;background:var(--rb113-sage)}
+.rb113-four-weeks header div{display:grid;gap:2px}.rb113-four-weeks header span{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--rb113-muted)}
+.rb113-four-weeks header b{font-size:15px}.rb113-four-weeks header strong{font-size:12px}
+.rb113-four-weeks section>div{display:grid;padding:4px 15px 10px}
+.rb113-four-weeks section button{display:grid;grid-template-columns:52px 1fr 8px;gap:10px;align-items:center;padding:10px 0;border:0;border-top:1px solid var(--rb113-line);background:transparent;text-align:left}
+.rb113-four-weeks section button:first-child{border-top:0}.rb113-four-weeks time{font-size:8px;color:var(--rb113-muted)}
+.rb113-four-weeks section button span{font-size:10px;font-weight:750}.rb113-four-weeks section button i{width:6px;height:6px;border-radius:50%;background:#c5cdc6}
+.rb113-four-weeks section button i.quality,.rb113-four-weeks section button i.race{background:var(--rb113-quality)}
+.rb113-four-weeks section button i.easy{background:var(--rb113-forest)}
+
+/* Goals: one premium hero, four forecasts, one coach verdict. */
+html.rb107-ready .rb107-card.rb107-goal-hero{padding:24px;background:linear-gradient(145deg,#0b3d29,#062d1f);color:#fff;border:0;box-shadow:0 18px 45px rgba(10,47,32,.14)}
+.rb107-goal-hero h2{font-size:31px}
+.rb107-goal-now b{font-size:44px}
+.rb107-goal-now small{font-size:9px;color:#b9cbbf}
+.rb107-race-range{grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr))}
+.rb107-race-range>div{background:rgba(255,255,255,.055)}
+.rb109-predictions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0;overflow:hidden}
+.rb107-prediction-head{grid-column:1/-1;padding:16px 18px;border-bottom:1px solid var(--rb113-line)}
+.rb109-prediction-row,.rb109-prediction-row.active{display:grid!important;grid-template-columns:1fr!important;align-content:center;gap:5px;margin:0!important;padding:15px 8px!important;border:0!important;border-left:1px solid var(--rb113-line)!important;border-radius:0!important;background:transparent!important;text-align:center}
+.rb109-prediction-row:nth-of-type(2){border-left:0!important}
+.rb109-prediction-row>span{font-size:9px;color:var(--rb113-muted)}
+.rb109-prediction-row>b{font-size:18px;color:var(--rb113-ink)}
+.rb109-prediction-row>div{display:none!important}
+.rb109-predictions>.rb107-note{grid-column:1/-1;margin:0;border-radius:0;border-top:1px solid var(--rb113-line);background:#faf9f5;padding:12px 17px}
+.rb109-goal-status{border:0;background:linear-gradient(135deg,#5e9a69,#78aa75);color:#fff;box-shadow:none}
+.rb109-goal-status>div:first-child{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35)}
+.rb109-goal-status .rb107-overline,.rb109-goal-status h2,.rb109-goal-status p{color:#fff}
+.rb107-threshold-card{border-color:var(--rb113-line)}
+.rb107-chart svg polyline{stroke:var(--rb113-forest)}
+.rb107-chart svg circle{stroke:var(--rb113-forest)}
+
+/* More explains the contract before exposing settings. */
+.rb113-coach-contract{padding:22px;display:grid;grid-template-columns:.9fr 1.1fr;gap:22px;background:linear-gradient(145deg,#0b3d29,#123d2d)!important;color:#fff}
+.rb113-coach-contract .rb107-overline{color:#bdd0c3}.rb113-coach-contract h2{margin:5px 0 6px;font-size:25px}.rb113-coach-contract p{margin:0;color:#c8d5cc;font-size:10px;line-height:1.5}
+.rb113-coach-contract ul{list-style:none;margin:0;padding:0;display:grid}.rb113-coach-contract li{display:grid;gap:2px;padding:10px 0;border-top:1px solid rgba(255,255,255,.12)}
+.rb113-coach-contract li:first-child{border-top:0}.rb113-coach-contract li b{font-size:10px}.rb113-coach-contract li span{font-size:8.5px;line-height:1.4;color:#c4d2c8}
+.rb108-settings-list{gap:9px}.rb108-settings{box-shadow:none}.rb108-settings>summary{background:var(--rb113-surface)}
+
+@media(min-width:821px){
+  html.rb107-ready.rb32 #today.view.active,
+  html.rb107-ready.rb32 #plan.view.active,
+  html.rb107-ready.rb32 #race.view.active,
+  html.rb107-ready.rb32 #goals.view.active,
+  html.rb107-ready.rb32 #more.view.active{display:block!important}
+  html.rb107-ready #rb107Today,
+  html.rb107-ready #rb107Plan,
+  html.rb107-ready #rb107Goals,
+  html.rb107-ready #rb107More{width:100%!important}
+  html.rb107-ready #rb107Today .rb107-shell{max-width:920px;margin-inline:auto}
+  html.rb107-ready .topbar .race-count[data-rb109="1"]{
+    min-width:190px!important;
+    display:grid!important;
+    justify-items:end!important;
+    gap:2px!important;
+    text-align:right!important
+  }
+  html.rb107-ready .topbar .race-count[data-rb109="1"]>b{display:flex!important;align-items:baseline;justify-content:flex-end;gap:4px!important}
+  html.rb107-ready .topbar .race-count[data-rb109="1"]>span{max-width:190px!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+
+@media(max-width:820px){
+  html.rb107-ready .app{padding:10px 0 94px}
+  html.rb107-ready .topbar{margin:0;padding:4px 18px 15px}
+  html.rb107-ready .topbar .brand span{display:none}
+  html.rb107-ready .topbar .race-count{display:none!important}
+  html.rb107-ready main{padding-inline:16px!important}
+  html.rb107-ready .bottom-nav{background:rgba(253,252,248,.94);border-color:var(--rb113-line);box-shadow:0 -9px 28px rgba(17,43,29,.055);backdrop-filter:blur(16px)}
+  html.rb107-ready .bottom-nav .navbtn{color:#66716a}
+  html.rb107-ready .bottom-nav .navbtn.active{color:var(--rb113-forest)}
+  html.rb107-ready .bottom-nav .navbtn.active span{color:var(--rb113-forest)}
+  .rb107-surface{padding-bottom:13px}
+  .rb107-shell{gap:12px}
+  .rb107-today-head{align-items:flex-start}
+  .rb107-today-head h1{font-size:29px}
+  .rb107-sync{margin-top:5px}
+  .rb107-workout-top{padding:20px 18px 8px}
+  .rb107-workout h2{font-size:27px}
+  .rb107-workout-body{padding:14px 18px 18px}
+  .rb107-workout-actions{grid-template-columns:1fr}
+  .rb107-workout-actions .rb107-button{width:100%}
+  .rb107-workout-actions .ghost{min-height:34px}
+  .rb113-coach-data>summary{padding:14px 15px}
+  .rb113-coach-data .rb108-signal-body{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rb109-result-head{padding:20px 18px 11px}
+  .rb109-result-head h2{font-size:26px}
+  .rb109-result-metrics{margin-inline:18px}
+  .rb109-coach-verdict{margin-inline:18px}
+  .rb109-result-details{padding-inline:18px}
+  .rb107-section-head{align-items:center}
+  .rb107-segment button{min-width:76px}
+  .rb107-week-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rb107-week-summary>div{padding:12px 6px}
+  .rb107-day-detail{padding:18px}
+  .rb113-four-weeks{grid-template-columns:1fr}
+  html.rb107-ready .rb107-card.rb107-goal-hero{grid-template-columns:1fr;padding:21px}
+  .rb107-goal-now{text-align:left}
+  .rb107-goal-now b{font-size:40px}
+  .rb107-race-range{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rb107-race-range>div{display:grid;grid-template-columns:1fr}
+  .rb109-prediction-row>b{font-size:16px}
+  .rb109-goal-status{grid-template-columns:auto 1fr}
+  .rb113-coach-contract{grid-template-columns:1fr;padding:19px;gap:10px}
+}
+
+@media(max-width:390px){
+  html.rb107-ready main{padding-inline:12px!important}
+  html.rb107-ready .topbar{padding-inline:14px}
+  .rb107-today-head{display:grid}
+  .rb107-sync{justify-self:start}
+  .rb107-decision{grid-template-columns:auto 1fr}
+  .rb107-decision-link{display:none}
+  .rb107-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .rb107-metric{padding-inline:7px}
+  .rb107-metric b{font-size:11px}
+  .rb113-coach-data .rb108-signal-body{grid-template-columns:1fr}
+  .rb109-result-head{grid-template-columns:1fr}
+  .rb109-result-mark{display:grid}
+  .rb109-result-badge{grid-column:1}
+  .rb109-result-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rb107-race-range{grid-template-columns:1fr 1fr}
+  .rb109-prediction-row{padding-inline:4px!important}
+  .rb109-prediction-row>span{font-size:7.5px}
+  .rb109-prediction-row>b{font-size:14px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .rb107-surface *{scroll-behavior:auto!important;transition:none!important}
+}
