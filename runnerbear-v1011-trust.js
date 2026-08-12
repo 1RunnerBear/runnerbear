@@ -1,4 +1,4 @@
-/* RunnerBear v10.11 · sync trust + conservative evidence layer
+/* RunnerBear v10.12 · sync trust + conservative evidence layer
    Keeps v10.9 coaching and design intact, but makes freshness, publishing and
    trend confidence explicit when the underlying data is not strong enough. */
 (function(root,factory){
@@ -9,7 +9,7 @@
 })(typeof window!=='undefined'?window:globalThis,function(){
   'use strict';
 
-  const BUILD='10.11';
+  const BUILD='10.12';
   const CACHE='runnerbear_tredict_cache_v1';
   const LAST='runnerbear_tredict_last_sync';
   const OUTBOUND='runnerbear_tredict_outbound_v1';
@@ -59,7 +59,8 @@
     return{code:'limited',label:'Begrenset',spread:2.4,copy:'RunnerBear trenger minst tre relevante datapunkter før retningen får tydelig vekt.'};
   }
   function thresholdSummary(rows=[]){
-    const clean=(Array.isArray(rows)?rows:[]).filter(x=>Number(x?.pace)>0&&Number(x?.hr)>0).slice(-8);
+    const all=(Array.isArray(rows)?rows:[]).filter(x=>Number(x?.pace)>0&&Number(x?.hr)>0).slice(-12),groups=new Map();all.forEach(x=>{const key=x.family||'legacy';groups.set(key,[...(groups.get(key)||[]),x])});
+    const selected=[...groups.values()].sort((a,b)=>b.length-a.length||String(b.at(-1)?.date||'').localeCompare(String(a.at(-1)?.date||'')))[0]||[],clean=selected.slice(-8);
     if(clean.length<3)return{code:'building',label:'Bygger datagrunnlag',copy:`${clean.length||'Ingen'} ${clean.length===1?'relevant økt':'relevante økter'} med arbeidsfart og puls. Minst tre sammenlignbare økter kreves før RunnerBear beskriver en trend.`};
     const first=clean[0],last=clean.at(-1),hrGap=Math.abs(Number(first.hr)-Number(last.hr)),paceDelta=Number(first.pace)-Number(last.pace);
     if(hrGap<=3&&paceDelta>=3)return{code:'positive',label:'Positiv retning',copy:`Ved omtrent samme puls er siste arbeidsfart ${Math.round(paceDelta)} sek/km raskere enn det eldste sammenlignbare datapunktet.`};

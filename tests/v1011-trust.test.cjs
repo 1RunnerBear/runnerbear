@@ -20,6 +20,7 @@ test('threshold trend requires at least three comparable sessions',()=>{
   assert.equal(thresholdSummary([{pace:245,hr:171},{pace:242,hr:172}]).code,'building');
   assert.equal(thresholdSummary([{pace:245,hr:171},{pace:243,hr:172},{pace:240,hr:172}]).code,'positive');
   assert.equal(thresholdSummary([{pace:242,hr:171},{pace:241,hr:172},{pace:242,hr:171}]).code,'stable');
+  assert.equal(thresholdSummary([{pace:245,hr:171,family:'6x6'},{pace:242,hr:172,family:'5x8'},{pace:240,hr:172,family:'4x10'}]).code,'building');
 });
 
 test('publication status detects active current plan and changed plan',()=>{
