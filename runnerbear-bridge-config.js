@@ -1,5 +1,5 @@
 window.RUNNERBEAR_BRIDGE_URL = "https://runnerbear-tredict-bridge.runnerbear.workers.dev";
-window.RUNNERBEAR_UI_BUILD = "10.9";
+window.RUNNERBEAR_UI_BUILD = "10.11";
 
 /* RunnerBear Today v9.6 loader. Kept here so the decision surface can evolve
    independently without touching the training/data layers. */
@@ -78,6 +78,24 @@ window.RUNNERBEAR_UI_BUILD = "10.9";
     s.src='runnerbear-v106-activity-intelligence.js?v=106';
     s.async=false;
     s.dataset.rbV106Activity='1';
+    document.head.appendChild(s);
+  }
+
+  /* v10.11: small trust layer on top of v10.9. It does not redesign the app or
+     change the Bakken engine. It only makes stale sync, publishing state, match
+     control and evidence confidence explicit where they matter. */
+  if(!document.querySelector('link[data-rb-v1011-trust]')){
+    const l=document.createElement('link');
+    l.rel='stylesheet';
+    l.href='runnerbear-v1011-trust.css?v=1011';
+    l.dataset.rbV1011Trust='1';
+    document.head.appendChild(l);
+  }
+  if(!document.querySelector('script[data-rb-v1011-trust]')){
+    const s=document.createElement('script');
+    s.src='runnerbear-v1011-trust.js?v=1011';
+    s.async=false;
+    s.dataset.rbV1011Trust='1';
     document.head.appendChild(s);
   }
 })();

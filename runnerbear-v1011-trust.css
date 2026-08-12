@@ -1,0 +1,12 @@
+/* RunnerBear v10.11 · compact trust/status layer. No redesign. */
+.rb1011-trust{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:-2px 0 16px;padding:11px 13px;border:1px solid rgba(90,104,94,.16);border-radius:14px;background:rgba(255,255,255,.72);box-shadow:0 8px 24px rgba(33,48,39,.04)}
+.rb1011-trust>div{display:grid;gap:2px;min-width:0}.rb1011-trust b{font-size:11px;letter-spacing:.02em}.rb1011-trust span{font-size:10px;line-height:1.45;color:var(--rb107-muted,#6d756f)}
+.rb1011-trust button,.rb1011-match-control button{border:0;background:transparent;color:var(--rb107-green,#416c50);font:700 10px/1.2 inherit;padding:7px 0;white-space:nowrap;cursor:pointer}
+.rb1011-trust.warn{border-color:rgba(181,130,45,.2);background:rgba(255,249,238,.86)}.rb1011-trust.error{border-color:rgba(164,71,62,.2);background:rgba(255,245,243,.9)}
+.rb107-sync.rb1011-error i{background:#a4473e!important;box-shadow:0 0 0 4px rgba(164,71,62,.09)!important}
+.rb1011-publish{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;margin-top:14px;padding-top:12px;border-top:1px solid rgba(90,104,94,.12)}
+.rb1011-publish span{grid-column:1;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--rb107-muted,#6d756f)}.rb1011-publish b{grid-column:2;grid-row:1;font-size:10px;text-align:right}.rb1011-publish small{grid-column:1/-1;font-size:9px;line-height:1.45;color:var(--rb107-muted,#6d756f)}
+.rb1011-publish.active b,.rb1011-publish.published b{color:var(--rb107-green,#416c50)}.rb1011-publish.changed b,.rb1011-publish.review b{color:#8b6426}
+.rb1011-match-control{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(90,104,94,.12)}.rb1011-match-control span{font-size:9px;color:var(--rb107-muted,#6d756f)}
+#rb107Goals .rb107-threshold-card[data-rb1011-trend="building"] .rb107-chart{opacity:.58}#rb107Goals .rb107-threshold-card[data-rb1011-trend="building"] .rb107-chart-labels span:nth-child(2){font-weight:700}
+@media(max-width:560px){.rb1011-trust{align-items:flex-start}.rb1011-trust button{padding-top:2px}.rb1011-publish{grid-template-columns:1fr}.rb1011-publish b{grid-column:1;grid-row:auto;text-align:left}.rb1011-publish small{grid-column:1}}
