@@ -23,6 +23,7 @@ on:
       - '*.webp'
       - '*.ico'
       - '*.webmanifest'
+      - 'tests/**'
       # Cloud deploy inputs. Generated status files are intentionally excluded
       # so the deploy bot cannot trigger itself in a loop.
       - 'cloud/runnerbear-cloud/src/**'
