@@ -10,6 +10,7 @@ const css=fs.readFileSync(path.join(root,'runnerbear-v1013-coach-ui.css'),'utf8'
 const polish=fs.readFileSync(path.join(root,'runnerbear-v1014-premium-polish.css'),'utf8');
 const goalsMore=fs.readFileSync(path.join(root,'runnerbear-v1016-goals-more.css'),'utf8');
 const ux=fs.readFileSync(path.join(root,'runnerbear-v1017-ux.css'),'utf8');
+const planPreferences=fs.readFileSync(path.join(root,'runnerbear-v1018-plan-preferences.css'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'site.webmanifest'),'utf8'));
 const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json'),'utf8'));
 
@@ -17,7 +18,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assert.match(html,/runnerbear-v1013-coach-ui\.css\?v=1013/);
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens beslutning/);
-  assert.match(app,/version:'10\.17'/);
+  assert.match(app,/version:'10\.18'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -28,10 +29,10 @@ test('today switches from the prescription to a result-first coach surface',()=>
   assert.match(app,/Vis opprinnelig plan/);
 });
 
-test('plan defaults to a focused week and offers four-week context',()=>{
-  assert.match(app,/>Uke<\/button>/);
-  assert.match(app,/>4 uker<\/button>/);
-  assert.match(app,/Planen åpner på i dag/);
+test('plan defaults to one rolling four-week context',()=>{
+  assert.match(app,/Rullerende 4 uker/);
+  assert.match(app,/Denne uken/);
+  assert.match(app,/Neste uke/);
   assert.match(app,/Gjennomførte økter og coachanalyser/);
 });
 
@@ -43,8 +44,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v1017');
-  assert.equal(version.build,'10.17');
+  assert.equal(manifest.start_url,'/?app=v1018');
+  assert.equal(version.build,'10.18');
   assert.equal(version.channel,'live');
 });
 
@@ -92,4 +93,34 @@ test('v10.17 gives goal administration to Mål only',()=>{
   assert.doesNotMatch(more,/data-rb109-goal-open/);
   assert.doesNotMatch(more,/Profil og mål/);
   assert.match(more,/Innstillinger og sporbarhet/);
+});
+
+test('v10.18 uses a single rolling plan without week toggles',()=>{
+  const plan=app.slice(app.indexOf('function planHtml'),app.indexOf('function secondaryGoalsHtml'));
+  assert.match(html,/runnerbear-v1018-plan-preferences\.css\?v=1018/);
+  assert.match(plan,/Rullerende 4 uker/);
+  assert.match(app,/Foreløpig · uke/);
+  assert.doesNotMatch(plan,/data-rb107-plan-view="overview"/);
+  assert.doesNotMatch(plan,/>Uke<\/button>/);
+});
+
+test('v10.18 exposes editable training preferences and migrates old rhythm',()=>{
+  assert.match(app,/function migrateTrainingPreferences/);
+  assert.match(app,/data-rb118-preferences-form/);
+  assert.match(app,/Normalvolum/);
+  assert.match(app,/Coachområde fra/);
+  assert.match(app,/Foretrukne kvalitetsdager/);
+  assert.match(app,/Alternative dager/);
+  assert.match(app,/legacy\.weekRhythm/);
+});
+
+test('v10.18 supports four one-off day choices and semantic status tones',()=>{
+  assert.match(app,/Kun denne dagen/);
+  assert.match(app,/\['rest','moon','Hvile'\]/);
+  assert.match(app,/runnerbear_v118_day_modes/);
+  assert.match(planPreferences,/--rb118-approved/);
+  assert.match(planPreferences,/--rb118-workout/);
+  assert.match(planPreferences,/--rb118-attention/);
+  assert.match(planPreferences,/--rb118-action/);
+  assert.match(planPreferences,/--rb118-uncertain/);
 });
