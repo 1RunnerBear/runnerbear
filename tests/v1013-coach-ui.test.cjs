@@ -11,6 +11,7 @@ const polish=fs.readFileSync(path.join(root,'runnerbear-v1014-premium-polish.css
 const goalsMore=fs.readFileSync(path.join(root,'runnerbear-v1016-goals-more.css'),'utf8');
 const ux=fs.readFileSync(path.join(root,'runnerbear-v1017-ux.css'),'utf8');
 const planPreferences=fs.readFileSync(path.join(root,'runnerbear-v1018-plan-preferences.css'),'utf8');
+const designSystem=fs.readFileSync(path.join(root,'runnerbear-v1019-design-system.css'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'site.webmanifest'),'utf8'));
 const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json'),'utf8'));
 
@@ -18,7 +19,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assert.match(html,/runnerbear-v1013-coach-ui\.css\?v=1013/);
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens beslutning/);
-  assert.match(app,/version:'10\.18'/);
+  assert.match(app,/version:'10\.19'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -44,8 +45,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v1018');
-  assert.equal(version.build,'10.18');
+  assert.equal(manifest.start_url,'/?app=v1019');
+  assert.equal(version.build,'10.19');
   assert.equal(version.channel,'live');
 });
 
@@ -123,4 +124,17 @@ test('v10.18 supports four one-off day choices and semantic status tones',()=>{
   assert.match(planPreferences,/--rb118-attention/);
   assert.match(planPreferences,/--rb118-action/);
   assert.match(planPreferences,/--rb118-uncertain/);
+});
+
+test('v10.19 locks one calm premium design system across all four views',()=>{
+  assert.match(html,/runnerbear-v1019-design-system\.css\?v=1019/);
+  assert.match(designSystem,/Design Direction 1\.0 \/ Concept 1 \/ Premium rolig/);
+  assert.match(designSystem,/--rb19-canvas:#f5f3ed/);
+  assert.match(designSystem,/--rb19-forest:#16432f/);
+  assert.match(designSystem,/\.rb107-today-head h1,\.rb107-section-head h1/);
+  assert.match(designSystem,/\/\* Plan \*\//);
+  assert.match(designSystem,/\/\* Mål \*\//);
+  assert.match(designSystem,/\/\* Mer \*\//);
+  assert.match(app,/coach:'<path/);
+  assert.doesNotMatch(app,/rb116-coach-mark'>M</);
 });
