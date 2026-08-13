@@ -9,6 +9,7 @@ const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'runnerbear-v1013-coach-ui.css'),'utf8');
 const polish=fs.readFileSync(path.join(root,'runnerbear-v1014-premium-polish.css'),'utf8');
 const goalsMore=fs.readFileSync(path.join(root,'runnerbear-v1016-goals-more.css'),'utf8');
+const ux=fs.readFileSync(path.join(root,'runnerbear-v1017-ux.css'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'site.webmanifest'),'utf8'));
 const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json'),'utf8'));
 
@@ -16,7 +17,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assert.match(html,/runnerbear-v1013-coach-ui\.css\?v=1013/);
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens beslutning/);
-  assert.match(app,/version:'10\.16'/);
+  assert.match(app,/version:'10\.17'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -25,7 +26,6 @@ test('today switches from the prescription to a result-first coach surface',()=>
   assert.match(app,/Coachens vurdering/);
   assert.match(app,/Vis full coachanalyse/);
   assert.match(app,/Vis opprinnelig plan/);
-  assert.match(app,/nextWorkoutHtml/);
 });
 
 test('plan defaults to a focused week and offers four-week context',()=>{
@@ -43,8 +43,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v1016');
-  assert.equal(version.build,'10.16');
+  assert.equal(manifest.start_url,'/?app=v1017');
+  assert.equal(version.build,'10.17');
   assert.equal(version.channel,'live');
 });
 
@@ -63,4 +63,33 @@ test('v10.16 keeps More compact while preserving real controls',()=>{
   assert.match(app,/data-rb108-publish-plan/);
   assert.match(app,/data-rb107-control="autopilot"/);
   assert.match(app,/data-rb109-goal-open/);
+});
+
+test('v10.17 gives Today three explicit, mutually exclusive states',()=>{
+  assert.match(html,/runnerbear-v1017-ux\.css\?v=1017/);
+  assert.match(app,/Dagens plan · før økten/);
+  assert.match(app,/Aktivitet registrert · analyse pågår/);
+  assert.match(app,/Dagens resultat/);
+  assert.doesNotMatch(app,/function nextWorkoutHtml/);
+  assert.doesNotMatch(app,/Ett signal fortjener oppmerksomhet/);
+});
+
+test('v10.17 makes coach changes visible, explained and reversible',()=>{
+  assert.match(app,/function planChange/);
+  assert.match(app,/function changeNoticeHtml/);
+  assert.match(app,/Hvorfor\?/);
+  assert.match(app,/Angre endringen/);
+  assert.match(app,/data-rb117-undo-change/);
+  assert.match(app,/planChange\(p\)\?'adjusted'/);
+  assert.match(ux,/\.rb107-day-chip\.adjusted:before/);
+  assert.match(app,/Coachlogg/);
+});
+
+test('v10.17 gives goal administration to Mål only',()=>{
+  const goals=app.slice(app.indexOf('function goalsHtml'),app.indexOf('const KNOWN_SHOES'));
+  const more=app.slice(app.indexOf('function moreHtml'),app.indexOf('function archivePrimary'));
+  assert.match(goals,/data-rb109-goal-open/);
+  assert.doesNotMatch(more,/data-rb109-goal-open/);
+  assert.doesNotMatch(more,/Profil og mål/);
+  assert.match(more,/Innstillinger og sporbarhet/);
 });
