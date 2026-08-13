@@ -1,4 +1,4 @@
-/* RunnerBear v10.16 · coach-first mobile experience, evidence gates and compact settings
+/* RunnerBear v10.17 · explicit today states, traceable coach changes and clear tab ownership
    Garmin stays the detailed training record. RunnerBear turns the available
    training, recovery and Concept2 signals into a calm next decision. */
 (function(){
@@ -94,6 +94,35 @@
       return {...p,...a,baseDs:p.ds,sourceLabel:p.label,ds,date:dateFrom(ds),label:formatDate(ds,{weekday:'short',day:'numeric',month:'short'}).replace('.','')};
     });
     return applyGoalRaces(rows).sort((a,b)=>a.ds.localeCompare(b.ds));
+  }
+  function planChange(p){
+    if(!p)return null;
+    const raw=rawSchedule().find(x=>x.ds===p.baseDs)||p,adjustment=read(K.adjustments,{})[p.sourceLabel],moved=p.ds!==p.baseDs;
+    if(!adjustment&&!moved)return null;
+    const reasons={
+      'auto-extra-volume':'Ekstra løping er balansert mot senere rolig volum.',
+      'auto-flex-volume':'Ukas løpsvolum holdes innenfor volumtaket etter at en fleksibel dag ble valgt som løp.',
+      'auto-recovery-red':'Recovery- eller kroppssignal tilsier lavere belastning. Konservativ tolkning vinner.',
+      tired:'Du registrerte en sliten kropp. Arbeidsvolumet er redusert, mens intensitetskontrollen beholdes.',
+      time:'Du registrerte dårlig tid. Økten er forkortet uten å øke farten.',
+      achilles:'Du registrerte akilles- eller hælfestesignal. Løpsstøt er erstattet med lav belastning.',
+      skip:'Du registrerte at økten ikke kan gjennomføres. Den tas ut uten treningsgjeld.'
+    };
+    const before=moved&&!adjustment
+      ?`${raw.title} · ${formatDate(p.baseDs,{weekday:'long',day:'numeric',month:'short'})}`
+      :`${raw.title}${Number(raw.km||0)?` · ${roundHalf(raw.km)} km`:''}`;
+    const after=adjustment
+      ?`${p.title}${Number(p.km||0)?` · ${roundHalf(p.km)} km`:''}`
+      :`${p.title} · ${formatDate(p.ds,{weekday:'long',day:'numeric',month:'short'})}`;
+    return{
+      kind:adjustment?'adjustment':'move',before,after,
+      automatic:/^auto-/.test(String(adjustment?.reason||'')),
+      why:adjustment?(reasons[adjustment.reason]||'Belastningen er justert innenfor volumtak, låser og Bakken-reglene.'):'Økten er flyttet innenfor samme uke med kontroll på avstand mellom kvalitetsøktene.'
+    };
+  }
+  function changeNoticeHtml(p,context='today'){
+    const change=planChange(p);if(!change)return'';
+    return `<article class="rb107-card rb117-change ${context==='plan'?'compact':''}"><header><span class="rb117-change-mark">${icon('swap')}</span><div><span class="rb107-overline">${change.automatic?'Coachen har justert':'Planen er endret'}</span><h3>${esc(change.after)}</h3></div><strong>Endret</strong></header><div class="rb117-change-route"><span>${esc(change.before)}</span><i>→</i><b>${esc(change.after)}</b></div><details><summary>Hvorfor?</summary><p>${esc(change.why)}</p></details><button class="rb117-undo" data-rb117-undo-change="${esc(p.baseDs)}" data-rb117-change-kind="${change.kind}">Angre endringen</button></article>`;
   }
   function planFor(ds){return effectiveSchedule().find(p=>p.ds===ds)||null}
   function basePlan(baseDs){return effectiveSchedule().find(p=>p.baseDs===baseDs)||null}
@@ -465,7 +494,7 @@
   }
   function plannedWorkoutHtml(base,d,suggest){
     const p=prescription(base),target=targetFor(base);
-    return `<article class="rb107-card rb107-workout"><div class="rb107-workout-top"><div><span class="rb107-type ${p.type}">${typeLabel(p.type)}</span><h2>${esc(p.title)}</h2><p class="rb107-workout-lead">${esc(p.desc||'')}</p></div></div>
+    return `<article class="rb107-card rb107-workout"><div class="rb107-workout-top"><div><span class="rb107-overline rb117-state">Dagens plan · før økten</span><span class="rb107-type ${p.type}">${typeLabel(p.type)}</span><h2>${esc(p.title)}</h2><p class="rb107-workout-lead">${esc(p.desc||'')}</p></div></div>
       <div class="rb107-metrics"><div class="rb107-metric"><span>${esc(target.label)}</span><b>${esc(target.main)}</b></div><div class="rb107-metric"><span>Styring</span><b>${esc(target.pace)}</b></div><div class="rb107-metric"><span>Puls</span><b>${esc(target.hr)}</b></div></div>
       <div class="rb107-workout-body"><div class="rb107-purpose"><span>Hensikt</span><p>${esc(purposeFor(p))}</p></div>${flexHtml(base)}${!flexible(base)?matchPickerHtml(base):''}
         <div class="rb107-workout-actions"><button class="rb107-button secondary" data-rb107-toggle-details>Vis øktstruktur</button><button class="rb107-button ghost" data-rb107-toggle-adapt>Tilpass dagen</button></div>
@@ -478,31 +507,26 @@
     return `<article class="rb107-card rb109-pending"><div class="rb109-pending-mark">${icon('sync')}</div><div><span class="rb107-overline">Aktivitet registrert · analyse pågår</span><h2>Økten er hentet fra Garmin</h2><p>RunnerBear trenger bare å bekrefte koblingen før resultatet overtar denne siden.</p>${matchPickerHtml(base)}<details><summary>Vis opprinnelig plan <span>↓</span></summary>${plannedDetailsHtml(base)}</details></div></article>`;
   }
   function greeting(){const hour=new Date().getHours();return hour<10?'God morgen, Torbjørn':hour<17?'God dag, Torbjørn':'God kveld, Torbjørn'}
-  function nextWorkoutHtml(base){
-    const next=effectiveSchedule().find(p=>p.ds>base.ds&&!isDone(p));if(!next)return'';const x=prescription(next);
-    return `<section class="rb107-card rb113-next"><span>Neste</span><div><b>${esc(x.title)}</b><small>${esc(formatDate(next.ds,{weekday:'long'}))} · ${esc(typeLabel(x.type))}</small></div><button data-rb113-open-next="${esc(next.ds)}" aria-label="Åpne ${esc(x.title)}">›</button></section>`;
-  }
   function todayHtml(){
     const base=planFor(today())||effectiveSchedule().find(p=>p.ds>=today())||effectiveSchedule().at(-1),d=decision(),sync=syncState(),done=isDone(base),suggest=control()==='suggest'&&d.level==='red',pending=!done&&manualCandidates(base).length>0;
     return `<div id="rb107Today" class="rb107-surface"><div class="rb107-shell">
       <header class="rb107-today-head"><div><span class="rb107-overline">${esc(formatDate(base.ds,{weekday:'long',day:'numeric',month:'long'}))}</span><h1>${done?'Godt jobbet':greeting()}</h1><p>${done?'Resultatet er analysert og tatt med videre.':pending?'Økten er registrert. RunnerBear fullfører koblingen.':'Én tydelig beslutning. Data ved behov.'}</p></div><div class="rb107-sync ${sync.stale?'stale':''}"><i></i><span>Garmin ${esc(sync.label)}</span></div></header>
-      ${done?`${resultCardHtml(base,'today')}${nextWorkoutHtml(base)}`:`${pending?pendingResultHtml(base):`<section class="rb107-card rb107-decision ${d.level}"><div class="rb107-decision-mark">${icon(d.level==='green'?'check':'info')}</div><div><span class="rb107-overline">Coachens beslutning</span><h2>${esc(d.headline)}</h2><p>${esc(suggest?'RunnerBear anbefaler å ta dagens kvalitet ut, men venter på deg.':d.message)}</p></div>${suggest?`<button class="rb107-decision-link" data-rb107-apply-suggestion>Bruk anbefalingen</button>`:`<button class="rb107-decision-link" data-rb107-open-why>Hvorfor?</button>`}</section>`}${pending?'':plannedWorkoutHtml(base,d,suggest)}`}
+      ${done?`${resultCardHtml(base,'today')}${changeNoticeHtml(base)}`:`${pending?pendingResultHtml(base):`<section class="rb107-card rb107-decision ${d.level}"><div class="rb107-decision-mark">${icon(d.level==='green'?'check':'info')}</div><div><span class="rb107-overline">Coachens beslutning</span><h2>${esc(d.headline)}</h2><p>${esc(suggest?'RunnerBear anbefaler å ta dagens kvalitet ut, men venter på deg.':d.message)}</p></div>${suggest?`<button class="rb107-decision-link" data-rb107-apply-suggestion>Bruk anbefalingen</button>`:`<button class="rb107-decision-link" data-rb107-open-why>Hvorfor?</button>`}</section>${changeNoticeHtml(base)}${plannedWorkoutHtml(base,d,suggest)}`}`}
       ${todaySignalsHtml()}
-      ${done||d.level==='green'?'':`<section class="rb107-card rb107-silent alert"><div><span class="rb107-overline">Coachsignal</span><b>Ett signal fortjener oppmerksomhet</b><p>${esc(d.message)}</p></div><span>${icon('info')}</span></section>`}
     </div></div>`;
   }
 
   function weekStripHtml(week){
     const rows=weekRows(week),stats=weekStats(week),selected=selectedPlan();
-    return `<section class="rb107-card rb107-week-strip"><div class="rb107-week-strip-head"><button data-rb113-week-step="-1" aria-label="Forrige uke">‹</button><div><span class="rb107-overline">Uke ${week}</span><b>${esc(rows[0]&&rows.at(-1)?`${formatDate(rows[0].ds,{day:'numeric',month:'short'})} – ${formatDate(rows.at(-1).ds,{day:'numeric',month:'short'})}`:'')}</b></div><button data-rb113-week-step="1" aria-label="Neste uke">›</button></div><div class="rb107-days">${rows.map(p=>`<button class="rb107-day-chip ${p.ds===today()?'today':''} ${p.ds===selected?.ds?'active':''} ${isDone(p)?'done':''}" data-rb107-day="${p.ds}"><span>${formatDate(p.ds,{weekday:'short'}).replace('.','')}</span><b>${dateFrom(p.ds).getDate()}</b><i class="${p.type}"></i></button>`).join('')}</div></section>`;
+    return `<section class="rb107-card rb107-week-strip"><div class="rb107-week-strip-head"><button data-rb113-week-step="-1" aria-label="Forrige uke">‹</button><div><span class="rb107-overline">Uke ${week}</span><b>${esc(rows[0]&&rows.at(-1)?`${formatDate(rows[0].ds,{day:'numeric',month:'short'})} – ${formatDate(rows.at(-1).ds,{day:'numeric',month:'short'})}`:'')}</b></div><button data-rb113-week-step="1" aria-label="Neste uke">›</button></div><div class="rb107-days">${rows.map(p=>`<button class="rb107-day-chip ${p.ds===today()?'today':''} ${p.ds===selected?.ds?'active':''} ${isDone(p)?'done':''} ${planChange(p)?'adjusted':''}" data-rb107-day="${p.ds}" aria-label="${esc(`${formatDate(p.ds)}${planChange(p)?' · planen er endret':''}`)}"><span>${formatDate(p.ds,{weekday:'short'}).replace('.','')}</span><b>${dateFrom(p.ds).getDate()}</b><i class="${p.type}"></i></button>`).join('')}</div></section>`;
   }
   function compactResultLabel(p){const a=activityFor(p);if(!a)return'';return`✓ ${verdictFor(p,a).badge}`}
   function dayDetailHtml(p){
     const x=prescription(p),t=targetFor(p),done=isDone(p),locked=isLocked(p);
-    if(done)return resultCardHtml(p,'plan');
+    if(done)return `${resultCardHtml(p,'plan')}${changeNoticeHtml(p,'plan')}`;
     return `<article class="rb107-card rb107-day-detail"><div class="rb107-day-detail-head"><div><span class="rb107-type ${x.type}">${typeLabel(x.type)} · ${esc(formatDate(p.ds,{weekday:'long',day:'numeric',month:'long'}))}</span><h2>${esc(x.title)}</h2><p>${esc(x.desc||'')}</p></div>${locked?'<span class="rb107-complete">Låst</span>':''}</div>
       <div class="rb107-metrics"><div class="rb107-metric"><span>${esc(t.label)}</span><b>${esc(t.main)}</b></div><div class="rb107-metric"><span>Styring</span><b>${esc(t.pace)}</b></div><div class="rb107-metric"><span>Puls</span><b>${esc(t.hr)}</b></div></div>
-      <details class="rb113-plan-details"><summary>Åpne økten <span>↓</span></summary><div><div class="rb107-note"><b>Hensikt:</b> ${esc(purposeFor(x))}<br>${esc(x.detail||'')}</div>${workoutStructureHtml(p)}${flexHtml(p)}${!flexible(p)?matchPickerHtml(p):''}<div class="rb107-action-grid"><button class="rb107-action ${locked?'active':''}" data-rb107-lock="${p.baseDs}">${icon('lock')}${locked?'Låst':'Lås økten'}</button><button class="rb107-action" data-rb107-move-toggle="${p.baseDs}">${icon('move')}Flytt</button></div>${state.moveOpen?`<div class="rb107-move-panel"><button class="rb107-button secondary" data-rb107-move="-1" data-base-ds="${p.baseDs}">Dagen før</button><button class="rb107-button secondary" data-rb107-move="1" data-base-ds="${p.baseDs}">Dagen etter</button><button class="rb107-button ghost" data-rb107-restore="${p.baseDs}">Gjenopprett</button></div>`:''}</div></details></article>`;
+      ${changeNoticeHtml(p,'plan')}<details class="rb113-plan-details"><summary>Åpne økten <span>↓</span></summary><div><div class="rb107-note"><b>Hensikt:</b> ${esc(purposeFor(x))}<br>${esc(x.detail||'')}</div>${workoutStructureHtml(p)}${flexHtml(p)}${!flexible(p)?matchPickerHtml(p):''}<div class="rb107-action-grid"><button class="rb107-action ${locked?'active':''}" data-rb107-lock="${p.baseDs}">${icon('lock')}${locked?'Låst':'Lås økten'}</button><button class="rb107-action" data-rb107-move-toggle="${p.baseDs}">${icon('move')}Flytt</button></div>${state.moveOpen?`<div class="rb107-move-panel"><button class="rb107-button secondary" data-rb107-move="-1" data-base-ds="${p.baseDs}">Dagen før</button><button class="rb107-button secondary" data-rb107-move="1" data-base-ds="${p.baseDs}">Dagen etter</button><button class="rb107-button ghost" data-rb107-restore="${p.baseDs}">Gjenopprett</button></div>`:''}</div></details></article>`;
   }
   function weeksHtml(current){
     const weeks=[...new Set(effectiveSchedule().map(p=>p.week))];
@@ -623,7 +647,6 @@
     const shoes=shoesState(),activeShoes=shoes.filter(x=>x.active!==false).length,outbound=window.RunnerBearCloud?.cachedOutbound?.()||read('runnerbear_tredict_outbound_v1',{}),planQueue=tredictPlanQueue(),weekQueue=garminQueue(),qualityWeek=weekQueue.filter(x=>x.type==='quality'||x.type==='race').length;
     let currentSignature='';try{currentSignature=window.RunnerBearTredictOutbound?.signature?.(planQueue)||''}catch{}
     const published=['published','calendar-active'].includes(outbound.status)&&outbound.planId,active=outbound.status==='calendar-active',current=published&&outbound.clientSignature===currentSignature,outStatus=active&&current?'Kalender aktiv':current?'Publisert':published?'Plan endret':outbound.status==='review-required'?'Kontroller':'Klar',outCopy=active&&current?`Alle ${outbound.calendarCount||planQueue.length} RunnerBear-øktene er bekreftet i Tredict-kalenderen. Tredict sender dem videre gjennom den aktiverte Garmin-integrasjonen.`:current?`${planQueue.length} kommende løpeøkter ligger i Tredict-planen. ${qualityWeek} kvalitetsøkter er strukturerte neste sju dager. Aktiver planen én gang i Tredict-kalenderen, og kontroller deretter statusen her.`:published?`RunnerBear-planen er endret siden siste publisering. For å unngå duplikater opprettes ingen ny versjon før du velger «Publiser oppdatert plan».`:`${planQueue.length} kommende løpeøkter er klare for en kontrollert Tredict-plan. ${qualityWeek} kvalitetsøkter er strukturerte neste sju dager.`;
-    const goal=activeGoal();
     return `<div id="rb107More" class="rb107-surface rb116-more"><div class="rb107-shell"><header class="rb107-section-head"><div><span class="rb107-overline">Innstillinger og sporbarhet</span><h1>Mer</h1><p>Alt som styrer coachen, samlet uten dashboardstøy.</p></div></header><section class="rb116-coach-identity"><span class="rb116-coach-mark">M</span><div><span>Din Bakken-coach</span><h2>Raskere. Skadefri. Med kontroll.</h2><p><i class="${mode==='autopilot'?'active':''}"></i>${mode==='autopilot'?'Autopilot aktiv':'Manuell kontroll'}</p></div></section>
       <section class="rb116-settings-group"><h2>Trening</h2>
         <details class="rb116-setting"><summary><span class="rb116-setting-icon">${icon('profile')}</span><div><b>Treningsprofil</b><small>${roundHalf(policy().anchorKm||prof.baseKm||50)} km/uke · minst ${prof.minRunDays||5} løpedager</small></div><strong>›</strong></summary><div class="rb116-setting-body"><div class="rb107-setting-row"><div><b>Volumvern</b><span>Normaluke ${roundHalf(policy().anchorKm||prof.baseKm||50)} km · maks ${prof.maxKm||55} km</span></div><strong>På</strong></div><div class="rb107-setting-row"><div><b>Fleksible alternativer</b><span>Maks ${prof.flexibleSessions||2} alternative økter. Ingen treningsgjeld.</span></div><strong>Låst</strong></div></div></details>
@@ -635,10 +658,9 @@
         <details class="rb116-setting"><summary><span class="rb116-setting-icon">${icon('plan')}</span><div><b>Plan og autopilot</b><small>Tilpasser uka etter respons</small></div><strong>›</strong></summary><div class="rb116-setting-body"><div class="rb107-control"><button class="${mode==='observer'?'active':''}" data-rb107-control="observer">Observer</button><button class="${mode==='suggest'?'active':''}" data-rb107-control="suggest">Foreslå</button><button class="${mode==='autopilot'?'active':''}" data-rb107-control="autopilot">Autopilot</button></div><p class="rb107-control-copy">${esc(copy)}</p></div></details>
         <details class="rb116-setting"><summary><span class="rb116-setting-icon">${icon('shoe')}</span><div><b>Løpesko</b><small>${activeShoes} aktive · ${shoes.length-activeShoes} pensjonerte</small></div><strong>›</strong></summary><div class="rb116-setting-body">${shoesHtml()}</div></details>
       </section>
-      <section class="rb116-settings-group"><h2>Konto</h2>
-        <details class="rb116-setting"><summary><span class="rb116-setting-icon">${icon('goal')}</span><div><b>Profil og mål</b><small>${goal?`${esc(goal.name)} · ${goalDays(goal)} dager`:'Formbygging uten løpsdato'}</small></div><strong>›</strong></summary><div class="rb116-setting-body rb116-goal-link"><p>Velg hovedmål, B-løp eller formbygging uten løpsdato. Bare aktive mål påvirker planen.</p><button class="rb107-button secondary" data-rb109-goal-open>Administrer mål</button></div></details>
+      <section class="rb116-settings-group"><h2>Sporbarhet</h2>
         <details class="rb116-setting"><summary><span class="rb116-setting-icon">${icon('log')}</span><div><b>Coachlogg</b><small>Automatiske og manuelle endringer</small></div><strong>›</strong></summary><div class="rb116-setting-body">${logHtml()}</div></details>
-        <details class="rb116-setting"><summary><span class="rb116-setting-icon">${icon('info')}</span><div><b>Om RunnerBear</b><small>Versjon 10.16 · privat coachmiljø</small></div><strong>›</strong></summary><div class="rb116-setting-body rb116-about"><b>RunnerBear 10.16</b><p>Garmin registrerer. RunnerBear tolker, planlegger og veileder etter den Bakken-inspirerte kjernen.</p></div></details>
+        <details class="rb116-setting"><summary><span class="rb116-setting-icon">${icon('info')}</span><div><b>Om RunnerBear</b><small>Versjon 10.17 · privat coachmiljø</small></div><strong>›</strong></summary><div class="rb116-setting-body rb116-about"><b>RunnerBear 10.17</b><p>Garmin registrerer. RunnerBear tolker, planlegger og veileder etter den Bakken-inspirerte kjernen.</p></div></details>
       </section>
     </div></div>`;
   }
@@ -667,7 +689,7 @@
     brand.innerHTML=`<div class="rb"><img src="runnerbear-brand-mark-flat.svg?v=1013" alt=""></div><div><b>RunnerBear</b><span>Bakken-coach</span></div>`;
   }
   function ensureCoachStyles(){
-    ['runnerbear-v1013-coach-ui.css','runnerbear-v1014-premium-polish.css','runnerbear-v1016-goals-more.css'].forEach(name=>{const link=qs(`link[href*="${name}"]`);if(link)document.head.appendChild(link)});
+    ['runnerbear-v1013-coach-ui.css','runnerbear-v1014-premium-polish.css','runnerbear-v1016-goals-more.css','runnerbear-v1017-ux.css'].forEach(name=>{const link=qs(`link[href*="${name}"]`);if(link)document.head.appendChild(link)});
   }
 
   function mount(id,html){const section=$(id);if(!section)return;const surface=id==='race'||id==='goals'?'Goals':id[0].toUpperCase()+id.slice(1),old=qs(`#rb107${surface}`,section);if(old)old.outerHTML=html;else section.insertAdjacentHTML('beforeend',html)}
@@ -680,6 +702,13 @@
   }
   function toast(message){let el=$('rb107Toast');if(!el){el=document.createElement('div');el.id='rb107Toast';el.className='rb107-toast';document.body.appendChild(el)}el.textContent=message;el.classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.classList.remove('show'),2400)}
   function restoreMove(p){const before=snapshot(K.moves),moves=read(K.moves,{});delete moves[p.baseDs];write(K.moves,moves);state.selectedDs=p.baseDs;addLog(`${p.title} er gjenopprettet til opprinnelig dag.`,'manual',before);renderAll()}
+  function undoVisibleChange(p,kind){
+    if(!p)return;
+    if(kind==='adjustment'){
+      const all=read(K.adjustments,{});delete all[p.sourceLabel];write(K.adjustments,all);addLog(`${p.title}: synlig planendring er angret.`,'manual');toast('Planendringen er angret');renderAll();return;
+    }
+    const before=snapshot(K.moves),moves=read(K.moves,{}),partner=Object.keys(moves).find(key=>moves[key]===p.baseDs);delete moves[p.baseDs];if(partner)delete moves[partner];write(K.moves,moves);state.selectedDs=p.baseDs;addLog(`${p.title} er flyttet tilbake til opprinnelig dag.`,'manual',before);toast('Flyttingen er angret');renderAll();
+  }
   function applySuggestion(){const p=planFor(today());if(!p)return;adapt(p,'skip')}
   function bind(){
     qsa('[data-rb107-plan-view]').forEach(b=>b.onclick=()=>{state.planView=b.dataset.rb107PlanView;state.completedId='';sessionStorage.setItem(K.planView,state.planView);renderAll()});
@@ -717,6 +746,7 @@
     qsa('[data-rb109-complete-form]').forEach(form=>form.onsubmit=e=>{e.preventDefault();completePrimary(form)});
     qsa('[data-rb109-remove-secondary]').forEach(b=>b.onclick=()=>{const g=goalState(),race=g.secondary.find(x=>x.id===b.dataset.rb109RemoveSecondary);g.secondary=g.secondary.filter(x=>x.id!==b.dataset.rb109RemoveSecondary);saveGoalState(g);if(race)addLog(`B-løp fjernet: ${race.name}.`,'manual');toast('B-løpet er fjernet');renderAll()});
     qsa('[data-rb107-undo]').forEach(b=>b.onclick=()=>undoEntry(b.dataset.rb107Undo));
+    qsa('[data-rb117-undo-change]').forEach(b=>b.onclick=()=>undoVisibleChange(basePlan(b.dataset.rb117UndoChange),b.dataset.rb117ChangeKind));
     qsa('[data-rb108-publish-plan]').forEach(b=>b.onclick=async()=>{const queue=tredictPlanQueue();if(!queue.length)return toast('Ingen kommende løpeøkter å publisere');const saved=window.RunnerBearCloud?.cachedOutbound?.()||{},signature=window.RunnerBearTredictOutbound?.signature?.(queue)||'',samePlan=saved.clientSignature===signature,isCurrent=['published','calendar-active'].includes(saved.status)&&samePlan,repairable=saved.status==='review-required'&&samePlan,shouldVerify=isCurrent||repairable;b.disabled=true;b.textContent=shouldVerify?'Kontrollerer kalenderen…':'Kontrollerer planen…';try{if(shouldVerify){const result=await window.RunnerBearCloud?.verifyOutbound?.();toast(result?.active?'Tredict-kalenderen er komplett':'Planen må fortsatt aktiveres i Tredict-kalenderen')}else{await window.RunnerBearCloud?.previewOutbound?.(queue);b.textContent='Publiserer til Tredict…';const result=await window.RunnerBearCloud?.publishOutbound?.(queue);toast(result?.idempotent?'Planen finnes allerede i Tredict':'RunnerBear-planen er opprettet i Tredict')}renderAll()}catch(error){toast(error?.message||'Tredict-kontrollen feilet')}finally{b.disabled=false}});
     qsa('[data-rb107-sync]').forEach(b=>b.onclick=async()=>{b.disabled=true;b.textContent='Synkroniserer…';try{await window.RunnerBearBridge?.sync?.(true);toast('Garmin-data er oppdatert')}catch{toast('Synkronisering feilet – prøv igjen')}finally{setTimeout(renderAll,120)}});
   }
@@ -734,6 +764,6 @@
     const boot=qs('#rb108Boot div');
     if(boot)boot.innerHTML='<b>RunnerBear bruker lengre tid enn ventet</b><span>Last siden på nytt. Den gamle visningen vises ikke mens dataene er uavklarte.</span>';
   },10000);
-  window.RunnerBearCoachOS={version:'10.16',effectiveSchedule,planFor,forecast,thresholdEvidence,matches:allMatches,analysisFor,sessionAssessment,workoutStructure,garminQueue,tredictPlanQueue,goalState,render:renderAll,moveWorkout,toggleLock,setChoice,adapt};
+  window.RunnerBearCoachOS={version:'10.17',effectiveSchedule,planFor,forecast,thresholdEvidence,matches:allMatches,analysisFor,sessionAssessment,workoutStructure,garminQueue,tredictPlanQueue,goalState,render:renderAll,moveWorkout,toggleLock,setChoice,adapt};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();

@@ -1,0 +1,46 @@
+/* RunnerBear v10.17 · explicit state, traceable changes and clear ownership */
+
+.rb117-state{display:block;margin-bottom:8px;color:#557063}
+.rb117-state+.rb107-type{margin-top:0}
+
+.rb117-change{position:relative;padding:16px 18px;border-color:#e7d7bd;background:#fffaf2;box-shadow:none}
+.rb117-change>header{display:grid;grid-template-columns:auto 1fr auto;gap:11px;align-items:center}
+.rb117-change-mark{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#f3e4cb;color:#98652e}
+.rb117-change-mark .rb107-icon{width:17px;height:17px}
+.rb117-change header>div{display:grid;gap:2px;min-width:0}
+.rb117-change h3{margin:0;font-size:14px;line-height:1.3;letter-spacing:-.015em}
+.rb117-change header>strong{padding:5px 8px;border-radius:999px;background:#f3e4cb;color:#8e5d29;font-size:8px;text-transform:uppercase;letter-spacing:.08em}
+.rb117-change-route{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:9px;align-items:center;margin-top:12px;padding:11px 12px;border:1px solid #eadfcf;border-radius:12px;background:rgba(255,255,255,.72)}
+.rb117-change-route span,.rb117-change-route b{font-size:9.5px;line-height:1.4}
+.rb117-change-route span{color:#74766f;text-decoration:line-through}
+.rb117-change-route i{font-size:13px;font-style:normal;color:#aa7c46}
+.rb117-change-route b{color:#28382f}
+.rb117-change details{margin-top:10px}
+.rb117-change summary{list-style:none;cursor:pointer;color:#73512e;font-size:9px;font-weight:850}
+.rb117-change summary::-webkit-details-marker{display:none}
+.rb117-change details p{margin:7px 0 0;font-size:9.5px;line-height:1.5;color:#64685f}
+.rb117-undo{appearance:none;margin-top:10px;padding:0;border:0;background:transparent;color:#73512e;font:inherit;font-size:9px;font-weight:850;cursor:pointer}
+.rb117-undo:focus-visible,.rb117-change summary:focus-visible{outline:2px solid rgba(152,101,46,.28);outline-offset:3px;border-radius:4px}
+.rb117-change.compact{margin-top:10px;padding:13px 15px}
+.rb117-change.compact .rb117-change-route{margin-top:9px}
+
+.rb107-day-chip.adjusted:before{content:'';position:absolute;left:5px;top:4px;width:7px;height:7px;border:2px solid #fff;border-radius:50%;background:#d17b3f;box-shadow:0 0 0 1px rgba(152,82,35,.15)}
+.rb107-day-chip.adjusted.active:before{border-color:#173126}
+
+/* One primary state must fit before secondary body signals on normal phones. */
+@media(max-width:820px){
+  .rb107-today-head{padding-top:1px}
+  .rb107-today-head p{margin-top:3px}
+  .rb107-decision{padding-block:12px}
+  .rb107-workout-top{padding-top:17px!important}
+  .rb117-change{padding:14px 15px}
+}
+
+@media(max-width:390px){
+  .rb117-change>header{grid-template-columns:auto 1fr}
+  .rb117-change header>strong{grid-column:2;justify-self:start}
+  .rb117-change-route{grid-template-columns:1fr}
+  .rb117-change-route i{transform:rotate(90deg);justify-self:start}
+}
+
+@media(prefers-reduced-motion:reduce){.rb117-change *{scroll-behavior:auto!important}}
