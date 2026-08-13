@@ -1,0 +1,65 @@
+/* RunnerBear v10.18 · rolling plan, preferences and semantic status colors */
+:root{
+  --rb118-approved:#2f7d4b;
+  --rb118-approved-soft:#e9f5ed;
+  --rb118-workout:#c85b17;
+  --rb118-workout-soft:#fff0e5;
+  --rb118-attention:#9a6800;
+  --rb118-attention-soft:#fff5cf;
+  --rb118-action:#b7352f;
+  --rb118-action-soft:#fdebea;
+  --rb118-uncertain:#69746d;
+  --rb118-uncertain-soft:#f0f3f1;
+}
+.rb118-plan-head{align-items:flex-end;gap:20px}
+.rb118-plan-head p{max-width:640px}
+.rb118-plan-mode{display:inline-flex;align-items:center;min-height:34px;padding:7px 12px;border:1px solid #cfe0d4;border-radius:999px;background:var(--rb118-approved-soft);color:var(--rb118-approved);font-size:12px;font-weight:800;white-space:nowrap}
+.rb118-rolling-plan{display:grid;gap:14px;margin-top:18px}
+.rb118-plan-week{overflow:hidden;padding:0!important}
+.rb118-plan-week>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 18px;border-bottom:1px solid #e5ebe7}
+.rb118-plan-week>header div{display:grid;gap:3px}
+.rb118-plan-week>header span{color:#2f6c44;font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.rb118-plan-week>header b{font-size:16px}
+.rb118-plan-week>header strong{font-size:13px;color:#45524a}
+.rb118-plan-week.provisional>header{background:var(--rb118-uncertain-soft)}
+.rb118-plan-week.provisional>header span{color:var(--rb118-uncertain)}
+.rb118-week-days{display:grid}
+.rb118-plan-row{display:grid;grid-template-columns:48px minmax(0,1fr) auto;align-items:center;gap:14px;width:100%;padding:12px 18px;border:0;border-bottom:1px solid #edf1ee;background:#fff;color:#172019;text-align:left;cursor:pointer}
+.rb118-plan-row:last-child{border-bottom:0}
+.rb118-plan-row:hover,.rb118-plan-row.active{background:#f7faf8}
+.rb118-plan-row.active{box-shadow:inset 3px 0 #1f5a38}
+.rb118-plan-row time{display:grid;justify-items:center;gap:2px;color:#66716a;text-transform:uppercase}
+.rb118-plan-row time b{font-size:10px;letter-spacing:.06em}
+.rb118-plan-row time span{font-size:18px;font-weight:850}
+.rb118-plan-row>span{display:grid;min-width:0;gap:3px}
+.rb118-plan-row>span b{overflow:hidden;font-size:14px;text-overflow:ellipsis;white-space:nowrap}
+.rb118-plan-row>span small{overflow:hidden;color:#6b756e;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.rb118-plan-row>i{padding:5px 8px;border-radius:999px;background:#f2f4f2;color:#647069;font-size:10px;font-style:normal;font-weight:800}
+.rb118-plan-row.approved>i{background:var(--rb118-approved-soft);color:var(--rb118-approved)}
+.rb118-plan-row.workout>i{background:var(--rb118-workout-soft);color:var(--rb118-workout)}
+.rb118-plan-row.attention>i{background:var(--rb118-attention-soft);color:var(--rb118-attention)}
+.rb118-plan-row.action>i{background:var(--rb118-action-soft);color:var(--rb118-action)}
+.rb118-plan-row.uncertain>i{background:var(--rb118-uncertain-soft);color:var(--rb118-uncertain)}
+.rb118-one-off>small{display:block;margin:3px 0 12px;color:#69736d;font-size:12px}
+.rb118-one-off .rb107-flex-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.rb118-preferences{display:grid;gap:18px}
+.rb118-preferences>p{margin:0;color:#56625a;line-height:1.55}
+.rb118-preferences fieldset{display:grid;gap:8px;margin:0;padding:0;border:0}
+.rb118-preferences legend{margin-bottom:7px;font-size:13px;font-weight:800}
+.rb118-preferences fieldset>small{margin-top:-5px;color:#6a756d;font-size:11px}
+.rb118-volume-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rb118-volume-grid label{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px;padding:10px 12px;border:1px solid #dfe6e1;border-radius:12px;color:#556159;font-size:11px;font-weight:750}
+.rb118-volume-grid input{grid-column:1;width:100%;border:0;background:transparent;color:#142119;font:800 18px/1.2 inherit;outline:0}
+.rb118-volume-grid label>span{grid-column:2;grid-row:2;color:#748078;font-size:11px}
+.rb118-day-choices{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.rb118-day-choices label{cursor:pointer}
+.rb118-day-choices input{position:absolute;opacity:0;pointer-events:none}
+.rb118-day-choices span{display:grid;place-items:center;min-height:38px;border:1px solid #dbe3dd;border-radius:10px;background:#fff;color:#59645d;font-size:11px;font-weight:800}
+.rb118-day-choices input:checked+span{border-color:#39714c;background:#edf6f0;color:#245d39;box-shadow:inset 0 0 0 1px #39714c}
+.rb118-day-choices input:focus-visible+span{outline:2px solid #245d39;outline-offset:2px}
+@media(max-width:700px){
+  .rb118-plan-head{align-items:flex-start}.rb118-plan-mode{white-space:normal}
+  .rb118-plan-week>header{padding:14px}.rb118-plan-row{grid-template-columns:42px minmax(0,1fr);gap:10px;padding:11px 14px}.rb118-plan-row>i{grid-column:2;justify-self:start}.rb118-plan-row>span small{display:none}
+  .rb118-one-off .rb107-flex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rb118-volume-grid{grid-template-columns:1fr}.rb118-day-choices{gap:4px}.rb118-day-choices span{min-height:34px;font-size:10px}
+}
