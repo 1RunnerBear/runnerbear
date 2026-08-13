@@ -4,7 +4,7 @@
 */
 (function(){
   'use strict';
-  const BUILD='10.13';
+  const BUILD='10.19b';
   const $=id=>document.getElementById(id),qs=(s,r=document)=>r.querySelector(s),qsa=(s,r=document)=>[...r.querySelectorAll(s)];
   const CACHE='runnerbear_tredict_cache_v1',LAST='runnerbear_tredict_last_sync',MATCH='runnerbear_tredict_match_';
   const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k)||'')??f}catch{return f}};
