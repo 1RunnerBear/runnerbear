@@ -73,7 +73,7 @@ jobs:
           node --check src/index-v982.js
           node --check scripts/configure-access.mjs
           node --test ../../tests/tredict-outbound.test.cjs
-          node --test ../../tests/v1011-trust.test.cjs ../../tests/v1012-analysis.test.cjs ../../tests/v1013-coach-ui.test.cjs
+          node --test ../../tests/v1011-trust.test.cjs ../../tests/v1012-analysis.test.cjs ../../tests/v1013-coach-ui.test.cjs ../../tests/v1020-coaching-clarity.test.cjs
 
       - name: Build private RunnerBear static app
         id: assets

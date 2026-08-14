@@ -1,0 +1,293 @@
+/* RunnerBear UX v10.20 — Coaching & Interaction Clarity
+   Extends Design Direction 1.0 / Concept 1 / Premium rolig. */
+
+:root{
+  --rb120-forest:#083f2c;
+  --rb120-forest-soft:#e0e6d8;
+  --rb120-paper:#fffdf8;
+  --rb120-paper-soft:#f7f4ec;
+  --rb120-line:#e5dfd4;
+  --rb120-muted:#747970;
+  --rb120-amber:#9a672f;
+}
+
+/* I dag — one primary entry: the workout itself. */
+.rb1020-workout-hero{
+  width:100%;
+  margin:0;
+  border:0;
+  color:#fff;
+  font:inherit;
+  text-align:left;
+  cursor:pointer;
+  appearance:none;
+}
+.rb1020-workout-hero:focus-visible,
+.rb1020-day-link:focus-visible,
+.rb1020-back-plan:focus-visible,
+.rb1020-intensity button:focus-visible,
+.rb1020-sheet button:focus-visible{
+  outline:3px solid rgba(8,63,44,.25);
+  outline-offset:3px;
+}
+.rb1020-workout-hero:focus-visible{outline-color:rgba(255,255,255,.88);outline-offset:-5px}
+.rb1020-workout-hero:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:rgba(255,255,255,0);
+  pointer-events:none;
+  transition:background .18s ease;
+}
+.rb1020-workout-hero:hover:after{background:rgba(255,255,255,.045)}
+.rb1020-hero-status{
+  position:absolute;
+  top:19px;
+  right:20px;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:3px;
+  min-height:30px;
+  padding:5px 9px;
+  border:1px solid rgba(255,255,255,.25);
+  border-radius:99px;
+  background:rgba(3,40,28,.32);
+  color:#fff;
+  font-size:.6rem;
+  font-weight:700;
+  backdrop-filter:blur(7px);
+}
+.rb1020-hero-status .rb107-icon{width:13px;height:13px}
+.rb1020-secondary-actions{display:flex;justify-content:flex-start}
+.rb1020-secondary-actions .rb119b-secondary-action{
+  width:auto;
+  min-height:44px;
+  padding:0 2px;
+  color:var(--rb120-forest);
+}
+
+/* Signals stay useful, but visibly secondary to the coach decision. */
+.rb1020-coach-watch{padding:15px 18px 12px}
+.rb1020-coach-watch>header p{max-width:none;margin-top:4px;font-size:.61rem}
+.rb1020-coach-watch .rb119c-health-grid{gap:6px;margin-top:10px}
+.rb1020-coach-watch .rb119c-health-grid>div{min-height:66px;padding:8px 7px 7px}
+.rb1020-coach-watch .rb119c-health-grid>div>span{width:25px;height:25px}
+.rb1020-coach-watch .rb119c-health-grid>div>span .rb107-icon{width:14px;height:14px}
+.rb1020-coach-watch .rb119c-health-grid b{font-size:.94rem}
+.rb1020-coach-watch .rb119c-health-grid em{margin-top:4px}
+.rb1020-coach-watch>footer{margin-top:8px;padding-top:8px}
+
+/* Reusable bottom-sheet/modal surface. */
+body.rb109-modal-open{overflow:hidden}
+.rb1020-modal{
+  position:fixed;
+  z-index:12000;
+  inset:0;
+  display:grid;
+  align-items:end;
+  padding:18px;
+  background:rgba(13,28,21,.45);
+  backdrop-filter:blur(5px);
+  animation:rb120Fade .16s ease-out both;
+}
+.rb1020-sheet{
+  width:min(680px,100%);
+  max-height:min(88vh,850px);
+  margin:0 auto;
+  overflow:auto;
+  border:1px solid rgba(255,255,255,.55);
+  border-radius:25px 25px 18px 18px;
+  background:var(--rb120-paper);
+  box-shadow:0 28px 70px rgba(5,32,22,.28);
+  animation:rb120Sheet .22s cubic-bezier(.2,.8,.2,1) both;
+}
+.rb1020-sheet>header{
+  position:sticky;
+  z-index:2;
+  top:0;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+  padding:22px 23px 17px;
+  border-bottom:1px solid var(--rb120-line);
+  background:rgba(255,253,248,.95);
+  backdrop-filter:blur(12px);
+}
+.rb1020-sheet>header>div{display:grid;gap:4px}
+.rb1020-sheet>header span{
+  color:var(--rb120-muted);
+  font-size:.58rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.rb1020-sheet>header h2{
+  margin:0;
+  color:#18261f;
+  font-family:var(--rb19b-display);
+  font-size:1.55rem;
+  font-weight:500;
+  line-height:1.1;
+}
+.rb1020-sheet>header p{margin:1px 0 0;color:var(--rb120-muted);font-size:.68rem}
+.rb1020-sheet>header>button{
+  display:grid;
+  flex:0 0 auto;
+  width:40px;
+  height:40px;
+  padding:0;
+  border:1px solid var(--rb120-line);
+  border-radius:50%;
+  background:var(--rb120-paper-soft);
+  color:#24362d;
+  place-items:center;
+}
+.rb1020-sheet>header>button .rb107-icon{width:18px;height:18px}
+.rb1020-sheet-body{display:grid;gap:17px;padding:19px 23px 25px}
+.rb1020-detail-section{display:grid;gap:9px}
+.rb1020-detail-section>span,
+.rb1020-coach-key>span{
+  color:var(--rb120-muted);
+  font-size:.58rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+.rb1020-simple-structure{display:grid;overflow:hidden;border:1px solid var(--rb120-line);border-radius:15px;background:var(--rb120-paper-soft)}
+.rb1020-simple-structure>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:13px;padding:12px 14px;border-top:1px solid var(--rb120-line)}
+.rb1020-simple-structure>div:first-child{border-top:0}
+.rb1020-simple-structure b{color:#24342c;font-family:var(--rb19b-display);font-size:.84rem;font-weight:500}
+.rb1020-simple-structure span{color:var(--rb120-muted);font-size:.68rem;line-height:1.45}
+.rb1020-target-grid,.rb1020-result-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.rb1020-target-grid>div,.rb1020-result-grid>div{
+  display:grid;
+  gap:4px;
+  min-height:67px;
+  padding:11px 12px;
+  border:1px solid var(--rb120-line);
+  border-radius:13px;
+  background:var(--rb120-paper-soft);
+}
+.rb1020-target-grid small,.rb1020-result-grid small{color:var(--rb120-muted);font-size:.55rem}
+.rb1020-target-grid b,.rb1020-result-grid b{color:var(--rb120-forest);font-family:var(--rb19b-display);font-size:.9rem;font-weight:500;line-height:1.2}
+.rb1020-coach-key{padding:15px 16px;border-radius:15px;background:#e5eadb}
+.rb1020-coach-key p{margin:6px 0 0;color:#25372d;font-family:var(--rb19b-display);font-size:1rem;line-height:1.48}
+.rb1020-practical{padding-top:3px;border-top:1px solid var(--rb120-line)}
+.rb1020-practical p{display:grid;grid-template-columns:70px minmax(0,1fr);gap:10px;margin:0;color:var(--rb120-muted);font-size:.67rem}
+.rb1020-practical p b{color:#28382f}
+
+.rb1020-reason-lead{margin:0;color:#2a3a31;font-family:var(--rb19b-display);font-size:1.02rem;line-height:1.5}
+.rb1020-reason-sheet section,.rb1020-intensity-sheet section{display:grid;gap:8px}
+.rb1020-reason-sheet h3,.rb1020-intensity-sheet h3{margin:0;color:#1e2d25;font-family:var(--rb19b-display);font-size:1rem;font-weight:500}
+.rb1020-reason-sheet ul,.rb1020-intensity-sheet ul{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.rb1020-reason-sheet li,.rb1020-intensity-sheet li{position:relative;padding-left:20px;color:#4f5c54;font-size:.72rem;line-height:1.45}
+.rb1020-reason-sheet li:before,.rb1020-intensity-sheet li:before{content:"";position:absolute;top:.5em;left:2px;width:7px;height:7px;border-radius:50%;background:#73856d}
+.rb1020-reason-sheet footer{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;padding-top:13px;border-top:1px solid var(--rb120-line);font-size:.58rem}
+.rb1020-reason-sheet footer span{color:var(--rb120-muted)}
+.rb1020-reason-sheet footer b{color:#4f5c54;text-align:right}
+.rb1020-method-note{margin:0;padding:13px 14px;border-radius:13px;background:var(--rb120-paper-soft);color:var(--rb120-muted);font-size:.68rem;line-height:1.45}
+
+/* Plan — selected date becomes the only content below the calendar. */
+.rb1020-back-plan{justify-self:start;margin-top:0}
+.rb1020-day-view{display:grid;gap:16px;padding:20px 21px;scroll-margin-top:12px}
+.rb1020-day-view>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.rb1020-day-view>header>div{display:grid;gap:4px}
+.rb1020-day-view>header span{color:var(--rb120-muted);font-size:.58rem;text-transform:capitalize}
+.rb1020-day-view>header h2{margin:0;color:#1d2c24;font-family:var(--rb19b-display);font-size:1.45rem;font-weight:500;line-height:1.1}
+.rb1020-day-view>header strong{flex:0 0 auto;padding:5px 8px;border-radius:99px;background:#e3e8da;color:var(--rb120-forest);font-size:.56rem}
+.rb1020-day-view.missed>header strong,.rb1020-day-view.completed_deviation>header strong{background:#eee4d5;color:#795427}
+.rb1020-day-plan,.rb1020-day-actual{display:grid;gap:3px;padding:14px 15px;border:1px solid var(--rb120-line);border-radius:14px;background:var(--rb120-paper-soft)}
+.rb1020-day-plan>span,.rb1020-day-actual>span{color:var(--rb120-muted);font-size:.54rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase}
+.rb1020-day-plan>b,.rb1020-day-actual>b{color:#22332a;font-family:var(--rb19b-display);font-size:.96rem;font-weight:500}
+.rb1020-day-plan>small,.rb1020-day-actual>small{color:var(--rb120-muted);font-size:.62rem;line-height:1.4}
+.rb1020-day-actual{border-color:#d5dfcf;background:#eef1e8}
+.rb1020-day-comparison{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rb1020-day-coach{margin:0;padding:13px 14px;border-radius:13px;background:#e5eadb;color:#33443a;font-size:.72rem;line-height:1.5}
+.rb1020-day-link{display:flex;align-items:center;align-self:start;justify-content:flex-start;gap:3px;min-height:44px;padding:0;border:0;background:transparent;color:var(--rb120-forest);font-size:.68rem;font-weight:700;text-align:left}
+.rb1020-day-link .rb107-icon{width:15px;height:15px}
+.rb1020-day-metrics{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.rb1020-day-metrics>div{display:grid;gap:3px;padding:12px 13px;border:1px solid var(--rb120-line);border-radius:13px}
+.rb1020-day-metrics span{color:var(--rb120-muted);font-size:.54rem}
+.rb1020-day-metrics b{color:#27382f;font-family:var(--rb19b-display);font-size:.88rem;font-weight:500}
+
+/* Mer innsikt — small typographic groups, not new dashboard sections. */
+.rb1020-insight-group{display:grid;gap:7px}
+.rb1020-insight-group>h2{margin:0 4px;color:#59625b;font-size:.57rem;font-weight:750;letter-spacing:.11em;text-transform:uppercase}
+.rb1020-threshold-empty>div,.rb1020-threshold-single>div{padding-top:17px}
+.rb1020-threshold-empty>div>b{color:#25352d;font-family:var(--rb19b-display);font-size:1.05rem;font-weight:500}
+.rb1020-threshold-empty p,.rb1020-threshold-single p{margin:5px 0 0;color:var(--rb120-muted);font-size:.68rem;line-height:1.45}
+.rb1020-threshold-single>div>span{color:var(--rb120-muted);font-size:.59rem}
+.rb1020-threshold-pair>div{display:grid;margin-top:10px;border-top:1px solid var(--rb120-line)}
+.rb1020-threshold-pair>div p{display:flex;justify-content:space-between;gap:15px;margin:0;padding:10px 0;border-bottom:1px solid var(--rb120-line);font-size:.63rem}
+.rb1020-threshold-pair>div p span{color:var(--rb120-muted)}
+.rb1020-threshold-pair>div p b{color:#34443b}
+.rb1020-threshold-pair footer{display:block!important;border:0!important;color:var(--rb120-muted);font-size:.59rem;line-height:1.4}
+
+.rb1020-intensity{overflow:hidden;padding:17px 19px 13px}
+.rb1020-intensity>header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.rb1020-intensity>header>div{display:grid;gap:4px}
+.rb1020-intensity>header h2{margin:0;color:#1f2e26;font-family:var(--rb19b-display);font-size:1.28rem;font-weight:500}
+.rb1020-intensity>header p{margin:0;color:var(--rb120-muted);font-size:.62rem}
+.rb1020-intensity>header>span{padding:4px 7px;border-radius:99px;background:#e3e8da;color:var(--rb120-forest);font-size:.52rem;font-weight:700}
+.rb1020-intensity-list{display:grid;margin-top:11px}
+.rb1020-intensity-list>div{display:grid;grid-template-columns:118px minmax(70px,1fr) 88px;align-items:center;gap:10px;min-height:49px;border-top:1px solid var(--rb120-line)}
+.rb1020-intensity-list>div:first-child{border-top:0}
+.rb1020-intensity-list>div>div{display:grid;gap:2px}
+.rb1020-intensity-list b{color:#26362e;font-family:var(--rb19b-display);font-size:.82rem;font-weight:500}
+.rb1020-intensity-list small{color:var(--rb120-muted);font-size:.52rem}
+.rb1020-intensity-list>div>span{height:7px;overflow:hidden;border-radius:99px;background:#e5e1d7}
+.rb1020-intensity-list>div>span i{display:block;height:100%;border-radius:inherit;background:#63735d}
+.rb1020-intensity-list .grey>span i{background:#9b8c69}
+.rb1020-intensity-list .threshold>span i{background:var(--rb120-forest)}
+.rb1020-intensity-list .above_threshold>span i{background:#6d5a4c}
+.rb1020-intensity-list strong{color:#4f5c54;font-size:.59rem;text-align:right}
+.rb1020-intensity>footer{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding-top:11px;border-top:1px solid var(--rb120-line)}
+.rb1020-intensity>footer p{max-width:360px;margin:0;color:var(--rb120-muted);font-size:.58rem;line-height:1.42}
+.rb1020-intensity>footer button{display:flex;align-items:center;gap:3px;min-height:34px;padding:0;border:0;background:transparent;color:var(--rb120-forest);font-size:.58rem;font-weight:700;white-space:nowrap}
+.rb1020-intensity>footer .rb107-icon{width:14px;height:14px}
+
+@keyframes rb120Fade{from{opacity:0}to{opacity:1}}
+@keyframes rb120Sheet{from{opacity:.6;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.rb1020-modal,.rb1020-sheet{animation:none}.rb1020-workout-hero:after{transition:none}}
+
+@media(min-width:821px){
+  .rb1020-modal{align-items:center;padding:28px}
+  .rb1020-sheet{border-radius:25px}
+  .rb119b-plan .rb1020-day-view{min-height:290px}
+}
+
+@media(max-width:430px){
+  .rb1020-hero-status{top:15px;right:15px;font-size:.54rem}
+  .rb1020-coach-watch{padding:14px 14px 11px}
+  .rb1020-coach-watch .rb119c-health-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .rb1020-coach-watch .rb119c-health-grid>div{min-height:72px;padding-inline:3px}
+  .rb1020-coach-watch .rb119c-health-grid small{font-size:.45rem}
+  .rb1020-coach-watch .rb119c-health-grid b{font-size:.8rem}
+  .rb1020-modal{padding:0;align-items:end}
+  .rb1020-sheet{width:100%;max-height:92vh;border-radius:25px 25px 0 0;border-bottom:0}
+  .rb1020-sheet>header{padding:19px 17px 14px}
+  .rb1020-sheet>header h2{font-size:1.35rem}
+  .rb1020-sheet-body{gap:15px;padding:17px 16px calc(25px + env(safe-area-inset-bottom))}
+  .rb1020-simple-structure>div{grid-template-columns:88px minmax(0,1fr);padding-inline:12px}
+  .rb1020-target-grid,.rb1020-result-grid{grid-template-columns:1fr 1fr}
+  .rb1020-target-grid>div:last-child:nth-child(odd){grid-column:1/-1}
+  .rb1020-day-view{padding:17px 15px}
+  .rb1020-day-view>header{display:grid;gap:9px}
+  .rb1020-day-view>header strong{justify-self:start}
+  .rb1020-day-comparison{grid-template-columns:1fr}
+  .rb1020-intensity{padding-inline:15px}
+  .rb1020-intensity-list>div{grid-template-columns:94px minmax(55px,1fr) 78px;gap:7px;min-height:50px}
+  .rb1020-intensity-list b{font-size:.76rem}
+  .rb1020-intensity-list small{font-size:.46rem}
+  .rb1020-intensity-list strong{font-size:.53rem}
+  .rb1020-intensity>footer{display:grid;gap:7px}
+  .rb1020-intensity>footer button{justify-self:start}
+}
+
+@media(max-width:360px){
+  .rb1020-intensity-list>div{grid-template-columns:84px minmax(42px,1fr) 70px}
+  .rb1020-coach-watch .rb119c-health-grid{grid-template-columns:1fr 1fr}
+}
