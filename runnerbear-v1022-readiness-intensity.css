@@ -1,0 +1,72 @@
+/* RunnerBear v10.22 · Daily Readiness & Intensity Distribution.
+   Extends Design Direction 1.0 / Concept 1 / Premium rolig. */
+.rb1022-coach-card{overflow:hidden}
+.rb1022-recommendation{display:grid;gap:13px;margin-top:16px;padding:15px;border:1px solid #dcd8cb;border-radius:16px;background:#f8f6ef}
+.rb1022-recommendation.yellow{border-color:#ddd1ad;background:#fbf8eb}
+.rb1022-recommendation.orange,.rb1022-recommendation.red{border-color:#dfc8bb;background:#fbf4ef}
+.rb1022-recommendation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}
+.rb1022-recommendation-grid>span{display:grid;gap:3px;min-width:0}
+.rb1022-recommendation-grid small,.rb1022-recommendation>p small{display:block;color:var(--rb19b-muted);font-size:.56rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
+.rb1022-recommendation-grid b{color:var(--rb19b-ink);font-size:.72rem;line-height:1.35}
+.rb1022-recommendation>p{margin:0!important;color:#4f5c54!important;font-size:.68rem!important;line-height:1.5!important}
+.rb1022-recommendation-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rb1022-recommendation-actions button{min-height:42px;padding:9px 12px;border:1px solid #c9d0c5;border-radius:12px;background:#fff;color:var(--rb19b-forest);font-size:.64rem;font-weight:700}
+.rb1022-recommendation-actions button.primary{border-color:var(--rb19b-forest);background:var(--rb19b-forest);color:#fff}
+.rb1022-recommendation-actions button:disabled{opacity:.7}
+.rb1022-caution{display:block;padding:9px 10px;border-radius:10px;background:#f1ead8;color:#695f45;font-size:.6rem;line-height:1.45}
+
+.rb1022-form-today{display:grid;gap:13px;padding:17px 19px}
+.rb1022-form-today>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rb1022-form-today>header h2{margin:0;color:var(--rb19b-ink);font-family:var(--rb19b-display);font-size:1.2rem;font-weight:500}
+.rb1022-form-today>header p{margin:3px 0 0;color:var(--rb19b-muted);font-size:.6rem}
+.rb1022-form-today>header>span{padding:4px 7px;border-radius:99px;background:var(--rb19b-sage);color:var(--rb19b-forest);font-size:.52rem;font-weight:700}
+.rb1022-form-states{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rb1022-form-states button{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:7px;min-height:48px;padding:8px 10px;border:1px solid var(--rb19b-line);border-radius:13px;background:var(--rb19b-paper-2);color:#4f5c54;font-size:.62rem;text-align:left}
+.rb1022-form-states button.active{border-color:#76907b;background:#e6eee5;color:var(--rb19b-forest);box-shadow:inset 0 0 0 1px #76907b}
+.rb1022-form-states .rb107-icon{width:20px;height:20px}
+.rb1022-form-reasons{display:grid;gap:8px;padding-top:2px}
+.rb1022-form-reasons>small{color:var(--rb19b-muted);font-size:.58rem;font-weight:700}
+.rb1022-form-reasons>div{display:flex;flex-wrap:wrap;gap:6px}
+.rb1022-form-reasons button{min-height:32px;padding:6px 10px;border:1px solid var(--rb19b-line);border-radius:99px;background:#fff;color:#59665e;font-size:.56rem}
+.rb1022-form-reasons button.active{border-color:#81927d;background:#e7ece1;color:var(--rb19b-forest);font-weight:700}
+.rb1022-form-today>footer{padding-top:2px;border-top:1px solid var(--rb19b-line)}
+.rb1022-form-today>footer button{display:flex;align-items:center;gap:6px;margin-top:9px;padding:0;border:0;background:transparent;color:var(--rb19b-muted);font-size:.58rem}
+.rb1022-form-today>footer .rb107-icon{width:15px;height:15px}
+
+.rb1022-areas .rb1020-intensity-list>div{grid-template-columns:minmax(0,1fr) auto}
+.rb1022-areas .rb1020-intensity-list>div>span{display:none}
+.rb1022-areas .rb1020-intensity-list strong{min-width:92px;color:#34463c;font-size:.66rem}
+.rb1022-distribution{overflow:hidden;padding:17px 19px 14px}
+.rb1022-distribution>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rb1022-distribution>header h2{margin:0;color:var(--rb19b-ink);font-family:var(--rb19b-display);font-size:1.28rem;font-weight:500}
+.rb1022-distribution>header p{margin:4px 0 0;color:var(--rb19b-muted);font-size:.62rem}
+.rb1022-distribution>header>span{padding:4px 7px;border-radius:99px;background:#e3e8da;color:var(--rb19b-forest);font-size:.52rem;font-weight:700;white-space:nowrap}
+.rb1022-distribution-list{display:grid;margin-top:11px}
+.rb1022-distribution-list>div{display:grid;grid-template-columns:96px minmax(80px,1fr) 44px;align-items:center;gap:10px;min-height:42px;border-top:1px solid var(--rb19b-line)}
+.rb1022-distribution-list>div:first-child{border-top:0}
+.rb1022-distribution-list b{color:#314139;font-family:var(--rb19b-display);font-size:.74rem;font-weight:500}
+.rb1022-distribution-list span{height:8px;overflow:hidden;border-radius:99px;background:#e5e1d7}
+.rb1022-distribution-list span i{display:block;height:100%;min-width:0;border-radius:inherit;background:#7f9381}
+.rb1022-distribution-list .grey span i{background:#9b8c69}
+.rb1022-distribution-list .threshold span i{background:var(--rb19b-forest)}
+.rb1022-distribution-list .above_threshold span i{background:#6d5a4c}
+.rb1022-distribution-list strong{color:#4f5c54;font-size:.62rem;text-align:right}
+.rb1022-distribution>footer{display:grid;gap:5px;padding-top:11px;border-top:1px solid var(--rb19b-line)}
+.rb1022-distribution>footer p{margin:0;color:#3e4d44;font-size:.65rem;line-height:1.45}
+.rb1022-distribution>footer small{color:var(--rb19b-muted);font-size:.54rem;line-height:1.4}
+.rb1022-distribution-empty{display:grid;gap:6px;margin-top:14px;padding:14px;border-radius:14px;background:var(--rb19b-paper-2)}
+.rb1022-distribution-empty b{color:var(--rb19b-ink);font-family:var(--rb19b-display);font-size:.92rem;font-weight:500}
+.rb1022-distribution-empty p{margin:0;color:#56635b;font-size:.64rem;line-height:1.45}
+.rb1022-distribution-empty small{color:var(--rb19b-muted);font-size:.56rem}
+
+@media(max-width:640px){
+  .rb1022-recommendation-grid{grid-template-columns:1fr}
+  .rb1022-recommendation-actions{grid-template-columns:1fr}
+  .rb1022-form-today{padding-inline:15px}
+  .rb1022-form-states{grid-template-columns:1fr}
+  .rb1022-form-states button{min-height:43px}
+  .rb1022-distribution{padding-inline:15px}
+  .rb1022-distribution-list>div{grid-template-columns:82px minmax(54px,1fr) 40px;gap:7px}
+  .rb1022-distribution>header{display:grid}
+  .rb1022-distribution>header>span{justify-self:start}
+}

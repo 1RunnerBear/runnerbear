@@ -28,6 +28,9 @@ jobs:
       - name: Test Tredict plan response parser
         run: node --test tests/tredict-plan-response.test.cjs
 
+      - name: Test readiness and intensity processing
+        run: node --test tests/v1022-readiness-intensity.test.cjs
+
       - name: Deploy Cloudflare Worker
         id: deploy
         continue-on-error: true
