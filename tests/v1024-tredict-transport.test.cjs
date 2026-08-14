@@ -48,7 +48,17 @@ test('calendar helpers identify RunnerBear markers and preserve scheduled time',
 test('v10.24 app names the real Tredict transport and removes the Garmin API placeholder',()=>{
   const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8'),data=fs.readFileSync(path.join(root,'runnerbear-data-v1024.js'),'utf8'),cloud=fs.readFileSync(path.join(root,'cloud/runnerbear-cloud/src/index-v982.js'),'utf8'),bridge=fs.readFileSync(path.join(root,'cloudflare/runnerbear-tredict-worker.mjs'),'utf8');
   assert.match(ui,/RunnerBear → Tredict → Garmin/);assert.match(ui,/Klar i Tredict – aktiver planen/);assert.match(ui,/Tredict-kalender/);
+  assert.match(ui,/TREDICT_HORIZON_DAYS=10/);assert.match(ui,/addDays\(today\(\),horizon-1\)/);assert.match(ui,/rullerende 10-dagersperioden/);
   assert.doesNotMatch(ui,/Training API/);assert.doesNotMatch(ui,/Tredict-fallback/);assert.match(data,/RunnerBearTredictTransport/);
   assert.match(cloud,/\/api\/outbound\/tredict\/reconcile/);assert.match(cloud,/changePlannedWorkoutDate/);assert.match(bridge,/plannedTraining\/changeDate/);
   assert.match(cloud,/structuralChange/);
+});
+
+test('Mer render reuses parsed data, schedule and match calculations within one render',()=>{
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  assert.match(ui,/const readCache=new Map\(\)/);
+  assert.match(ui,/if\(renderCache\?\.schedule\)return renderCache\.schedule/);
+  assert.match(ui,/if\(renderCache\?\.activities\)return renderCache\.activities/);
+  assert.match(ui,/if\(renderCache\?\.matches\)return renderCache\.matches/);
+  assert.match(ui,/finally\{renderCache=previous\}/);
 });
