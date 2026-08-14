@@ -36,13 +36,13 @@
 
   <section class="card">
     <h2>How Tredict access is used</h2>
-    <p>RunnerBear requests read access only for the Tredict data needed to display completed activities and recovery information. The intended initial scopes are <code>activityRead</code> and <code>bodyvaluesRead</code>.</p>
-    <p class="note">RunnerBear does not require write access to Tredict for the initial integration. Good recovery data is not used to add bonus training; it normally means the planned session remains unchanged.</p>
+    <p>RunnerBear uses Tredict Personal API access to read completed activities and recovery information, and to create and reschedule RunnerBear workouts in Tredict. The relevant permissions are <code>activityRead</code>, <code>bodyvaluesRead</code> and <code>activityWrite</code>.</p>
+    <p class="note">Tredict is the transport to Garmin. RunnerBear does not receive Garmin developer credentials. A new RunnerBear plan must be activated once in the Tredict calendar; supported date changes can then be reconciled automatically.</p>
   </section>
 
   <section class="card">
     <h2>Where data is stored</h2>
-    <p>RunnerBear is currently a static web app hosted on GitHub Pages. Personal training and health data are not committed to the public GitHub repository. App data and cached Tredict data are stored locally in the user’s browser on the device unless a future sync feature is explicitly enabled.</p>
+    <p>RunnerBear is served as a private Cloudflare application. Personal training, health data and app state are stored in the private RunnerBear Cloud database and may also be cached locally in the user’s browser. They are never committed to the public GitHub repository.</p>
     <p>Authentication credentials or access tokens must never be stored in the public repository. RunnerBear backup files are designed not to include Tredict authentication tokens.</p>
   </section>
 
@@ -58,7 +58,7 @@
 
   <section class="card">
     <h2>Security</h2>
-    <p>RunnerBear follows data-minimisation principles: request the smallest practical set of permissions, prefer read-only access, keep credentials out of source control and avoid collecting data that is not needed for coaching decisions.</p>
+    <p>RunnerBear follows data-minimisation principles: request the smallest practical permissions for reading coaching data and transporting planned workouts, keep credentials out of source control and avoid collecting data that is not needed for coaching decisions.</p>
   </section>
 
   <section class="card">
@@ -66,7 +66,7 @@
     <p>RunnerBear is currently a personal, non-commercial project. Questions about this privacy notice or the use of Tredict data can be directed to the RunnerBear project owner through the project’s GitHub account.</p>
   </section>
 
-  <div class="footer">Last updated: 10 August 2026 · RunnerBear privacy notice v1.0</div>
+  <div class="footer">Last updated: 14 August 2026 · RunnerBear privacy notice v1.1</div>
 </main>
 </body>
 </html>
