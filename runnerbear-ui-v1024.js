@@ -13,8 +13,9 @@
   };
   let eventScope=null;
   const $=id=>document.getElementById(id),qs=(s,r=document)=>r?.querySelector?.(s)||null,qsa=(s,r=eventScope||document)=>[...(r?.querySelectorAll?.(s)||[])];
-  const read=(k,f)=>{try{return JSON.parse(localStorage.getItem(k)||'')??f}catch{return f}};
-  const write=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));try{window.dispatchEvent(new CustomEvent('runnerbear:state-dirty',{detail:{key:k}}))}catch{}};
+  const readCache=new Map();
+  const read=(k,f)=>{const raw=localStorage.getItem(k)||'';try{const cached=readCache.get(k);if(cached?.raw===raw)return cached.value;const value=JSON.parse(raw)??f;readCache.set(k,{raw,value});return value}catch{return f}};
+  const write=(k,v)=>{const raw=JSON.stringify(v);localStorage.setItem(k,raw);readCache.set(k,{raw,value:v});try{window.dispatchEvent(new CustomEvent('runnerbear:state-dirty',{detail:{key:k}}))}catch{}};
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const roundHalf=v=>Math.round(Number(v||0)*2)/2;
@@ -33,6 +34,7 @@
   const clarityModel=()=>window.RunnerBearV1022||window.RunnerBearV1020||null;
   const planIntegrity=()=>window.RunnerBearV1024||window.RunnerBearV1023||null;
   const runtimeStats={startupAt:performance.now(),renders:{today:0,plan:0,goals:0,more:0},fullRenders:0};
+  let renderCache=null;
   const mark=name=>{try{performance.mark(name)}catch{}};
   const measure=(name,start)=>{try{performance.measure(name,start)}catch{}};
   const policy=()=>engine()?.policy?.()||{profile:{baseKm:50,maxKm:55,minRunDays:5,flexibleSessions:2,thresholdHr:173,maxHr:188},anchorKm:50,normalRange:[48,52]};
@@ -175,12 +177,15 @@
     return out;
   }
   function effectiveSchedule(){
+    if(renderCache?.schedule)return renderCache.schedule;
     const moves=read(K.moves,{}),adjustments=read(K.adjustments,{});
     const rows=rawSchedule().map(p=>{
       const a=adjustments[p.label]||{},ds=moves[p.ds]||p.ds;
       return {...p,...a,baseDs:p.ds,sourceLabel:p.label,ds,date:dateFrom(ds),label:formatDate(ds,{weekday:'short',day:'numeric',month:'short'}).replace('.','')};
     });
-    return applyGoalRaces(rows).sort((a,b)=>a.ds.localeCompare(b.ds));
+    const schedule=applyGoalRaces(rows).sort((a,b)=>a.ds.localeCompare(b.ds));
+    if(renderCache)renderCache.schedule=schedule;
+    return schedule;
   }
   function planChange(p){
     if(!p)return null;
@@ -268,8 +273,9 @@
     const x=prescription(p);if(!x||!['easy','quality','race'].includes(x.type)||Number(x.km||0)<=0)return null;const target=targetFor(p);
     return{workoutId:p.baseDs,externalId:planIntegrity()?.stableExternalId?.(p)||`rb-workout-${p.baseDs}`,originalDate:p.baseDs,date:p.ds,title:x.title,type:x.type,km:Number(x.km||p.km||0),desc:x.desc||'',detail:x.detail||'',purpose:purposeFor(x),target:`${target.pace||''} ${target.hr||''}`.trim(),structure:workoutStructure(p)};
   }
+  const TREDICT_HORIZON_DAYS=10;
   function garminQueue(days=7){return effectiveSchedule().filter(p=>p.ds>=today()&&p.ds<=addDays(today(),days)&&!isTerminal(p)).map(garminWorkout).filter(Boolean)}
-  function tredictPlanQueue(){return effectiveSchedule().filter(p=>p.ds>=today()&&!isTerminal(p)).map(garminWorkout).filter(Boolean)}
+  function tredictPlanQueue(days=TREDICT_HORIZON_DAYS){const horizon=Math.max(1,Math.min(31,Math.round(Number(days)||TREDICT_HORIZON_DAYS))),end=addDays(today(),horizon-1);return effectiveSchedule().filter(p=>p.ds>=today()&&p.ds<=end&&!isTerminal(p)).map(garminWorkout).filter(Boolean)}
   function feedbackKey(p){return`runfest26_fb_${String(p?.sourceLabel||p?.label||'').toLowerCase().replace(/[.]/g,'').replace(/\s+/g,'_').replace(/[^a-z0-9æøå_]/g,'')}`}
   function feedbackFor(p){return read(feedbackKey(p),{})}
   function normalizeActivity(a){
@@ -277,8 +283,11 @@
     return{id:String(a?.id||a?._id||''),date:a?.date||'',ds:a?.ds||localIso(a?.date),sportType:String(a?.sportType||'').toLowerCase(),subSportType:String(a?.subSportType||'').toLowerCase(),title:a?.title||s.title||'',duration:Number(a?.duration??s.duration??s.durationTotal)||0,distance:Number(a?.distance??s.distance)||0,pace:Number(a?.pace??s.pace)||0,heartrate:Number(a?.heartrate??s.heartrate)||0,heartrateMax:Number(a?.heartrateMax??s.heartrateMax)||0,power:Number(a?.power??s.power)||0,cadence:Number(a?.cadence??s.cadence)||0,ascent:Number(a?.ascent??s.ascent??s?.altitude?.ascent)||0,temperature:Number(a?.temperature??s.temperature)||0,detail:a?.detail||null,raw:a};
   }
   function activities(){
+    if(renderCache?.activities)return renderCache.activities;
     const rows=read(K.cache,{}).activities;
-    return(Array.isArray(rows)&&rows.length?rows:(engine()?.activities?.()||[])).map(normalizeActivity).filter(a=>a.id&&a.ds);
+    const normalized=(Array.isArray(rows)&&rows.length?rows:(engine()?.activities?.()||[])).map(normalizeActivity).filter(a=>a.id&&a.ds);
+    if(renderCache)renderCache.activities=normalized;
+    return normalized;
   }
   function sportKind(a,p=null){
     const text=`${a?.title||''} ${a?.subSportType||''}`.toLowerCase();
@@ -319,15 +328,16 @@
   }
   let matchCache={signature:'',map:new Map(),replacements:new Map(),used:new Set()};
   function allMatches(){
+    if(renderCache?.matches)return renderCache.matches;
     const acts=activities(),plans=effectiveSchedule(),signature=`${acts.map(a=>`${a.id}:${a.ds}:${a.distance}:${a.duration}:${a.heartrate}:${a.detail?.analysis?.confidence||''}:${a.detail?.analysis?.workBlocks?.length||0}:${a.detail?.analysis?.workHr||0}:${a.detail?.analysis?.workPace||0}:${a.detail?.analysis?.hrDrift||0}`).join('|')}#${plans.map(p=>`${p.baseDs}:${p.ds}:${p.type}:${p.title}:${p.km}:${p.bRace?.id||''}:${oneOffChoiceFor(p)}`).join('|')}`;
-    if(matchCache.signature===signature)return matchCache;
+    if(matchCache.signature===signature){if(renderCache)renderCache.matches=matchCache;return matchCache}
     const map=new Map(),replacements=new Map(),used=new Set(),excluded=read(K.exclusions,{}),integrity=planIntegrity();
     const allowed=(p,a)=>analysisEngine()?.matchAllowed?.({activityId:a?.id,usedIds:[...used],excludedId:excluded[p.baseDs]})??(!!a&&!used.has(a.id)&&excluded[p.baseDs]!==a.id);
     plans.forEach(p=>{for(const ds of [p.ds,p.baseDs]){const saved=read(K.match+ds,null),id=String(saved?.activityId||saved?.activity?.id||''),a=acts.find(x=>x.id===id),scheduleCompatible=a?.ds===p.ds||saved?.automatic===false;if(!scheduleCompatible||!allowed(p,a))continue;const assessment=sessionAssessment(p,a,'high'),classification=integrity?.classifySession?.({plan:prescription(p),activity:a,assessment,matchConfidence:'high',today:today(),maxHr:Number(policy().profile.maxHr||188)});if(classification?.code==='replaced')replacements.set(p.baseDs,{activity:a,score:100,confidence:'high',classification,automatic:!!saved?.automatic,saved:true});else{const status=matchStatus(p,a);map.set(p.baseDs,{activity:a,score:100,confidence:'high',status,classification,automatic:!!saved?.automatic,saved:true})}used.add(a.id);break}});
     plans.forEach(p=>{if(map.has(p.baseDs)||replacements.has(p.baseDs))return;const ranked=acts.filter(a=>allowed(p,a)&&(p.ds===p.baseDs||a.ds===p.ds)).map(a=>({a,score:activityScore(p,a)})).filter(x=>x.score>=58).sort((a,b)=>b.score-a.score);if(!ranked.length)return;const best=ranked[0],margin=best.score-(ranked[1]?.score??0),confidence=best.score>=82&&margin>=8?'high':best.score>=68&&margin>=5?'likely':'unclear';if(confidence==='unclear')return;const assessment=sessionAssessment(p,best.a,confidence),classification=integrity?.classifySession?.({plan:prescription(p),activity:best.a,assessment,matchConfidence:confidence,today:today(),maxHr:Number(policy().profile.maxHr||188)});if(classification?.code==='replaced')replacements.set(p.baseDs,{activity:best.a,score:best.score,confidence,classification,automatic:true,saved:false});else{const status=matchStatus(p,best.a);map.set(p.baseDs,{activity:best.a,score:best.score,confidence,status,classification,automatic:true,saved:false})}used.add(best.a.id);if(classification?.code!=='replaced'&&confidence==='high'&&best.a.ds===p.ds){write(K.match+p.ds,{activityId:best.a.id,activity:best.a,planned:{date:p.ds,type:p.type,title:p.title,km:Number(p.km||0),label:p.sourceLabel,source:'runnerbear-v10.24'},automatic:true,matchedAt:new Date().toISOString(),matcher:'runnerbear-v10.24-intent'})}});
     plans.forEach(p=>{if(map.has(p.baseDs)||replacements.has(p.baseDs)||p.ds>today())return;const candidates=acts.filter(a=>allowed(p,a)&&a.ds===p.ds).map(a=>{const assessment=sessionAssessment(p,a,'likely'),classification=integrity?.classifySession?.({plan:prescription(p),activity:a,assessment,matchConfidence:'likely',today:today(),maxHr:Number(policy().profile.maxHr||188)});return{a,assessment,classification}}).filter(x=>x.classification?.code==='replaced').sort((a,b)=>Number(b.a.duration||0)-Number(a.a.duration||0));if(!candidates.length)return;const best=candidates[0];replacements.set(p.baseDs,{activity:best.a,score:50,confidence:'likely',classification:best.classification,automatic:true,saved:false});used.add(best.a.id)});
     replacements.forEach((replacement,baseDs)=>{const p=plans.find(row=>row.baseDs===baseDs),id=`workout_replaced:${baseDs}:${replacement.activity.id}`,first=!read(K.seen,{})[id];addLog(`Planlagt ${p?.title||'økt'} er erstattet av ${sportLabel(replacement.activity,p)}. Planen videre står.`,'activity',null,id);if(first){queueTredictMutation('plan:workout-replaced',[p],{previousDate:p?.ds,reason:'activity-sync'});trackEvent('workout_replaced',{planType:p?.type||'',activityKind:sportKind(replacement.activity,p)})}});
-    matchCache={signature,map,replacements,used};return matchCache;
+    matchCache={signature,map,replacements,used};if(renderCache)renderCache.matches=matchCache;return matchCache;
   }
   function matchFor(p){return p?allMatches().map.get(p.baseDs)||null:null}
   function replacementFor(p){return p?allMatches().replacements.get(p.baseDs)||null:null}
@@ -1019,9 +1029,9 @@
   }
   function moreHtml(){
     const sync=syncState(),prefs=trainingPreferences(),mode=control(),copy={observer:'Analyserer alt, men endrer aldri planen.',suggest:'Foreslår endringer og venter på godkjenning.',autopilot:'Kan justere innenfor låser, volumtak og Bakken-reglene. Alle endringer kan angres.'}[mode];
-    const shoes=shoesState(),activeShoes=shoes.filter(x=>x.active!==false).length,outbound=window.RunnerBearCloud?.cachedOutbound?.()||read('runnerbear_tredict_outbound_v1',{}),planQueue=tredictPlanQueue(),weekQueue=garminQueue(),qualityWeek=weekQueue.filter(x=>x.type==='quality'||x.type==='race').length;
+    const shoes=shoesState(),activeShoes=shoes.filter(x=>x.active!==false).length,outbound=window.RunnerBearCloud?.cachedOutbound?.()||read('runnerbear_tredict_outbound_v1',{}),planQueue=tredictPlanQueue(),weekEnd=addDays(today(),6),weekQueue=planQueue.filter(x=>x.date<=weekEnd),qualityWeek=weekQueue.filter(x=>x.type==='quality'||x.type==='race').length;
     let currentSignature='';try{currentSignature=window.RunnerBearTredictOutbound?.signature?.(planQueue)||''}catch{}
-    const published=['published','awaiting-calendar-activation','calendar-active','review-required'].includes(outbound.status)&&outbound.planId,active=outbound.status==='calendar-active',review=outbound.status==='review-required',current=published&&outbound.clientSignature===currentSignature,outStatus=active&&current?'Kalender aktiv':review?'Kontroller':current?'Klar i Tredict':published?'Plan endret':'Klar',outCopy=active&&current?`Alle ${outbound.calendarCount||planQueue.length} RunnerBear-øktene er bekreftet i Tredict-kalenderen. Tredict sender dem videre gjennom Garmin-integrasjonen.`:review?(outbound.message||'Tredict-kalenderen må kontrolleres før neste automatiske endring.') : current?`${planQueue.length} kommende løpeøkter ligger i Tredict-planen. Aktiver planen én gang i Tredict-kalenderen; deretter flyttes økter automatisk via Tredict.`:published?`RunnerBear-planen er endret siden siste synkronisering. Publiser den oppdaterte planen til Tredict.`:`${planQueue.length} kommende løpeøkter er klare for Tredict. ${qualityWeek} kvalitetsøkter er strukturerte neste sju dager.`;
+    const published=['published','awaiting-calendar-activation','calendar-active','review-required'].includes(outbound.status)&&outbound.planId,active=outbound.status==='calendar-active',review=outbound.status==='review-required',current=published&&outbound.clientSignature===currentSignature,outStatus=active&&current?'Kalender aktiv':review?'Kontroller':current?'Klar i Tredict':published?'Plan endret':'Klar',outCopy=active&&current?`Alle ${outbound.calendarCount||planQueue.length} RunnerBear-øktene de neste 10 dagene er bekreftet i Tredict-kalenderen. Tredict sender dem videre gjennom Garmin-integrasjonen.`:review?(outbound.message||'Tredict-kalenderen må kontrolleres før neste automatiske endring.') : current?`${planQueue.length} løpeøkter i den rullerende 10-dagersperioden ligger i Tredict-planen. Aktiver planen i Tredict-kalenderen; deretter kan eksisterende økter flyttes automatisk via Tredict.`:published?`10-dagersplanen er endret siden siste synkronisering. Publiser den oppdaterte planen til Tredict.`:`${planQueue.length} løpeøkter de neste 10 dagene er klare for Tredict. ${qualityWeek} kvalitetsøkter er strukturerte neste sju dager.`;
     const service=tredictSync(),transportState=service?.all?.()||{items:{},queue:[]},transportItems=Object.values(transportState.items||{}),transportError=transportItems.some(x=>x.status==='error'),transportBusy=transportItems.some(x=>['pending','syncing'].includes(x.status)),transportReview=transportItems.some(x=>x.status==='review_required'),transportAction=transportItems.some(x=>x.status==='awaiting_activation')||outbound.status==='awaiting-calendar-activation',transportAvailable=service?.available?.()===true,transportLabel=transportError?'Synkfeil':transportReview?'Kontroller':transportBusy?'Synkroniserer':active?'Automatisk':transportAction?'Aktiver én gang':transportAvailable?'Klar':'Ikke tilgjengelig',transportCopy=transportError?'Tredict-synk feilet. RunnerBear-planen er fortsatt lagret og riktig.':transportReview?'Kontroller Tredict-kalenderen. RunnerBear gjør ingen risikabel overskriving.':transportBusy?'Planendringer er lagret og sendes til Tredict i bakgrunnen.':active?'Planendringer flyttes automatisk via Tredict og videre til Garmin.':transportAction?'Planen er klar i Tredict. Aktiver den én gang i kalenderen for sømløs videre synkronisering.':transportAvailable?'RunnerBear sender planendringer til Tredict, som synkroniserer dem videre til Garmin.':'Tredict-transporten er midlertidig utilgjengelig. Endringer beholdes trygt i køen.';
     const setting=(iconName,title,sub,body)=>`<details class="rb119b-setting"><summary><span>${icon(iconName)}</span><div><b>${esc(title)}</b><small>${esc(sub)}</small></div>${icon('chevronRight')}</summary><div class="rb119b-setting-body">${body}</div></details>`;
     const group=(title,body)=>`<section class="rb1020-insight-group"><h2>${esc(title)}</h2>${body}</section>`;
@@ -1072,10 +1082,13 @@
   function renderMore(){const start='runnerbear:more:render:start';mark(start);mount('more',moreHtml());finishRender('more',start)}
   function renderView(id=activeView()){
     if(!engine()||!clarityModel())return;
-    if(id==='today')return renderToday();
-    if(id==='plan')return renderPlan();
-    if(id==='race'||id==='goals')return renderGoals();
-    if(id==='more')return renderMore();
+    const previous=renderCache;renderCache={};
+    try{
+      if(id==='today')return renderToday();
+      if(id==='plan')return renderPlan();
+      if(id==='race'||id==='goals')return renderGoals();
+      if(id==='more')return renderMore();
+    }finally{renderCache=previous}
   }
   function renderAll(){return renderView(activeView())}
   function switchView(tab,{scroll=true}={}){
@@ -1212,7 +1225,7 @@
     document.addEventListener('click',e=>{const nav=e.target.closest('.navbtn[data-tab]');if(nav){e.preventDefault();switchView(nav.dataset.tab)}},true);
     document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(state.goalManagerOpen||state.workoutDetailOpen||state.coachReasonOpen||state.intensityExplanationOpen){state.goalManagerOpen=false;state.goalEditor='';state.workoutDetailOpen=false;state.coachReasonOpen=false;state.intensityExplanationOpen=false;renderAll()}});
     let storageFrame=0;
-    window.addEventListener('storage',e=>{if(e.key&&!/^(runnerbear_|runfest26_|rb)/i.test(e.key))return;cancelAnimationFrame(storageFrame);storageFrame=requestAnimationFrame(renderAll)});
+    window.addEventListener('storage',e=>{if(e.key&&!/^(runnerbear_|runfest26_|rb)/i.test(e.key))return;if(e.key)readCache.delete(e.key);cancelAnimationFrame(storageFrame);storageFrame=requestAnimationFrame(renderAll)});
     mark('runnerbear:first-render');measure('runnerbear:startup','runnerbear:init:start');
   }
   setTimeout(()=>{

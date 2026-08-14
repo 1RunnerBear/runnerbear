@@ -17,14 +17,12 @@ test('summarizes rejected responses without serializing arbitrary bodies',async(
   assert.match(describeTredictPlanResponse({success:true}),/success=true/);
 });
 
-test('creates plan metadata first and appends relative-day trainings separately',async()=>{
+test('creates one atomic and idempotent plan request with all trainings',async()=>{
   const {splitTredictPlanPayload}=await import('../cloudflare/tredict-plan-response.mjs');
   const payload={plan:{title:'RunnerBear plan'},planTrainings:[{day:1,structuredWorkout:{title:'Easy'}},{day:3,structuredWorkout:{title:'Quality'}}]};
   const split=splitTredictPlanPayload(payload);
-  assert.deepEqual(split.create.plan,payload.plan);
-  assert.match(split.create.llmDescription,/RunnerBear/);
-  assert.equal('planTrainings' in split.create,false);
-  assert.deepEqual(split.additions,[{planTraining:payload.planTrainings[0]},{planTraining:payload.planTrainings[1]}]);
+  assert.deepEqual(split.create,payload);
+  assert.deepEqual(split.additions,[]);
 });
 
 test('retries transient plan-training propagation failures only',async()=>{

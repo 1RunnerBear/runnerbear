@@ -47,11 +47,10 @@ export function splitTredictPlanPayload(payload){
   if(!plan)throw new Error('Tredict plan metadata is missing');
   if(!trainings.length)throw new Error('Tredict plan requires trainings');
   return{
-    create:{
-      plan,
-      llmDescription:'OpenAI Codex · RunnerBear v10.8.1'
-    },
-    additions:trainings.map(planTraining=>({planTraining}))
+    // Plan Create is atomic. Tredict requires planTrainings in this request;
+    // appending later both loses idempotency and leaves partial plans behind.
+    create:{plan,planTrainings:trainings},
+    additions:[]
   };
 }
 
