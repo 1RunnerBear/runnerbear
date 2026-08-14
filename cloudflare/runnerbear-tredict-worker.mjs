@@ -118,7 +118,9 @@ async function createPlanViaMcp(env,payload){
   const listed=await mcpPost(env,{jsonrpc:'2.0',id:'rb-tools',method:'tools/list',params:{}},sessionId),tools=listed.envelope?.result?.tools||[],tool=tools.find(x=>x?.name==='plan-creation');
   if(!tool)throw new Error('Tredict MCP plan-creation tool is unavailable');
   const properties=tool?.inputSchema?.properties||{};
-  const args=properties.plan?payload:{...payload.plan,planTrainings:payload.planTrainings};
+  const args=properties.plan
+    ?{...payload,...(properties.llmDescription?{llmDescription:'RunnerBear v10.24 deterministic 10-day training calendar sync'}:{})}
+    :{...payload.plan,planTrainings:payload.planTrainings,...(properties.llmDescription?{llmDescription:'RunnerBear v10.24 deterministic 10-day training calendar sync'}:{})};
   const called=await mcpPost(env,{jsonrpc:'2.0',id:'rb-plan',method:'tools/call',params:{name:'plan-creation',arguments:args}},sessionId),envelope=called.envelope;
   if(envelope?.error)throw new Error(`Tredict MCP plan-creation failed · ${String(envelope.error?.message||'unknown error').slice(0,300)}`);
   const result=envelope?.result||{};

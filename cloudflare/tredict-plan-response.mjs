@@ -50,8 +50,11 @@ export function describeTredictPlanResponse(result){
   if(typeof result!=='object')return`value=${compact(result)}`;
   const keys=Object.keys(result).slice(0,20).join(',')||'(none)';
   const detail=[result.error,result.message,result.detail,result.reason].map(compact).find(Boolean);
+  const content=Array.isArray(result.content)
+    ?result.content.filter(row=>row?.type==='text'&&typeof row.text==='string').map(row=>compact(row.text)).filter(Boolean).slice(0,3).join(' | ')
+    :'';
   const success=Object.prototype.hasOwnProperty.call(result,'success')?compact(result.success):'';
-  return`${detail?`detail=${detail}; `:''}keys=${keys}${success?`; success=${success}`:''}`.slice(0,420);
+  return`${detail?`detail=${detail}; `:''}${content?`content=${content}; `:''}keys=${keys}${success?`; success=${success}`:''}`.slice(0,700);
 }
 
 export function splitTredictPlanPayload(payload){
