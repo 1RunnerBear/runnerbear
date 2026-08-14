@@ -38,6 +38,14 @@ test('legacy Garmin queue migrates and resumes through Tredict',async()=>{
   assert.equal(calls.length,1);assert.equal(service.status(id).status,'synced');assert.equal(service.all().queue.length,0);assert.ok(storage.getItem('runnerbear_v1024_tredict_sync'));
 });
 
+test('successful whole-plan reconcile clears only matching stale queue errors',()=>{
+  const storage=transportRules.memoryStorage(),included=workout(),other=workout({workoutId:'cancelled-old',baseDs:'2026-08-11',externalId:'rb-cancelled-old'}),includedId=transportRules.stableExternalId(included),otherId=transportRules.stableExternalId(other),key='runnerbear_v1024_tredict_sync';
+  storage.setItem(key,JSON.stringify({version:2,items:{[includedId]:{externalId:includedId,status:'error',lastError:'old failure'},[otherId]:{externalId:otherId,status:'error',lastError:'keep'}},queue:[{externalId:includedId,workout:included,event:event('plan:workout-adjusted',included),hash:'h1'},{externalId:otherId,workout:other,event:event('plan:workout-cancelled',other),hash:'h2'}]}));
+  const service=transportRules.createTredictSyncService({storage,stateKey:key,transport:{available:true,syncWorkout:async()=>({})},setTimer:()=>1,clearTimer:()=>{}});
+  assert.equal(service.acceptRemote({ok:true,status:'awaiting-calendar-activation',planId:'plan-10'},[includedId]),1);
+  assert.equal(service.status(includedId).status,'awaiting_activation');assert.equal(service.status(includedId).lastError,'');assert.equal(service.status(otherId).status,'error');assert.equal(service.all().queue.length,1);
+});
+
 test('calendar helpers identify RunnerBear markers and preserve scheduled time',async()=>{
   const helpers=await import('../cloudflare/tredict-calendar-sync.mjs');
   const rows=helpers.plannedRows({_embedded:{plannedTrainingList:[{id:'11',date:'2026-08-17T06:30:00.000Z',structuredWorkout:{title:'Rolig',notes:'[RB:rb-workout-1]'}}]}});
@@ -51,7 +59,7 @@ test('v10.24 app names the real Tredict transport and removes the Garmin API pla
   assert.match(ui,/TREDICT_HORIZON_DAYS=10/);assert.match(ui,/addDays\(today\(\),horizon-1\)/);assert.match(ui,/rullerende 10-dagersperioden/);
   assert.doesNotMatch(ui,/Training API/);assert.doesNotMatch(ui,/Tredict-fallback/);assert.match(data,/RunnerBearTredictTransport/);
   assert.match(cloud,/\/api\/outbound\/tredict\/reconcile/);assert.match(cloud,/changePlannedWorkoutDate/);assert.match(bridge,/plannedTraining\/changeDate/);
-  assert.match(cloud,/structuralChange/);assert.match(bridge,/TREDICT_MCP/);assert.match(bridge,/plan-creation/);assert.match(bridge,/MCP fallback/);assert.match(bridge,/llmDescription/);
+  assert.match(cloud,/structuralChange/);assert.match(bridge,/TREDICT_MCP/);assert.match(bridge,/plan-creation/);assert.match(bridge,/MCP fallback/);assert.match(bridge,/llmDescription/);assert.match(data,/acceptRemote/);
 });
 
 test('Mer render reuses parsed data, schedule and match calculations within one render',()=>{

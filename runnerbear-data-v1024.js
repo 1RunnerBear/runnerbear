@@ -334,7 +334,7 @@
   let reconcileTimer=0;
   function schedulePlanReconcile(){
     if(!IS_CLOUD)return;clearTimeout(reconcileTimer);
-    reconcileTimer=setTimeout(()=>{const queue=currentPlanQueue();if(!queue.length)return;reconcileOutbound(queue,{operation:'reconcile'}).then(()=>refreshUi(document.querySelector('.view.active')?.id||'today')).catch(error=>console.warn(JSON.stringify({event:'runnerbear_tredict_reconcile_failed',build:BUILD,message:error?.message||String(error)})))},1200);
+    reconcileTimer=setTimeout(()=>{const queue=currentPlanQueue();if(!queue.length)return;reconcileOutbound(queue,{operation:'reconcile'}).then(result=>{window.RunnerBearCoachOS?.tredictSync?.()?.acceptRemote?.(result,queue.map(x=>x.externalId));refreshUi(document.querySelector('.view.active')?.id||'today')}).catch(error=>console.warn(JSON.stringify({event:'runnerbear_tredict_reconcile_failed',build:BUILD,message:error?.message||String(error)})))},1200);
   }
 
   function installBridgeAdapter(){
