@@ -85,3 +85,8 @@ test('an exact server-side plan signature outranks an older local queue error',(
   const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
   assert.match(ui,/remoteCurrentAction=current&&!active&&published/);assert.match(ui,/transportLabel=active\?'Automatisk':remoteCurrentAction\?'Aktiver én gang':transportError/);
 });
+
+test('background reconcile acknowledges the exported sync service object',()=>{
+  const data=fs.readFileSync(path.join(root,'runnerbear-data-v1024.js'),'utf8');
+  assert.match(data,/RunnerBearCoachOS\?\.tredictSync\?\.acceptRemote/);assert.doesNotMatch(data,/tredictSync\?\.\(\)\?\.acceptRemote/);
+});
