@@ -13,8 +13,9 @@
   let eventScope=null;
   const $=id=>document.getElementById(id),qs=(s,r=document)=>r?.querySelector?.(s)||null,qsa=(s,r=eventScope||document)=>[...(r?.querySelectorAll?.(s)||[])];
   const readCache=new Map();
+  let moreRenderDirty=true;
   const read=(k,f)=>{const raw=localStorage.getItem(k)||'';try{const cached=readCache.get(k);if(cached?.raw===raw)return cached.value;const value=JSON.parse(raw)??f;readCache.set(k,{raw,value});return value}catch{return f}};
-  const write=(k,v)=>{const raw=JSON.stringify(v);localStorage.setItem(k,raw);readCache.set(k,{raw,value:v});try{window.dispatchEvent(new CustomEvent('runnerbear:state-dirty',{detail:{key:k}}))}catch{}};
+  const write=(k,v)=>{const raw=JSON.stringify(v);localStorage.setItem(k,raw);readCache.set(k,{raw,value:v});moreRenderDirty=true;try{window.dispatchEvent(new CustomEvent('runnerbear:state-dirty',{detail:{key:k}}))}catch{}};
   const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const roundHalf=v=>Math.round(Number(v||0)*2)/2;
@@ -1078,7 +1079,22 @@
   function renderToday(){const start='runnerbear:today:render:start';mark(start);logAutomaticAdjustments();mount('today',todayHtml());finishRender('today',start)}
   function renderPlan(){const start='runnerbear:plan:render:start';mark(start);mount('plan',planHtml());finishRender('plan',start)}
   function renderGoals(){const id=$('goals')?'goals':'race',start='runnerbear:goals:render:start';mark(start);mount(id,goalsHtml());finishRender(id,start)}
-  function renderMore(){const start='runnerbear:more:render:start';mark(start);mount('more',moreHtml());finishRender('more',start)}
+  let moreRenderReady=false,moreRenderVersion=0;
+  function moreShellHtml(){return `<div id="rb107More" class="rb107-surface rb119b rb119b-more"><div class="rb107-shell">${appBarHtml()}${viewTitleHtml('Mer innsikt','Utvikling, utstyr og treningsstyring')}<section class="rb1020-insight-group"><h2>Oppdaterer innsikten</h2><article class="rb119b-card"><p>Treningsdata, utstyr og innstillinger gjøres klare.</p></article></section></div></div>`}
+  function renderMore(){
+    const existing=qs('#rb107More',$('more'));
+    if(moreRenderReady&&!moreRenderDirty&&existing)return;
+    const start='runnerbear:more:render:start';mark(start);
+    if(!existing)mount('more',moreShellHtml());
+    finishRender('more',start);
+    const version=++moreRenderVersion;
+    const hydrate=()=>{
+      if(version!==moreRenderVersion||activeView()!=='more')return;
+      const previous=renderCache;renderCache={};const fullStart='runnerbear:more:hydrate:start';mark(fullStart);
+      try{mount('more',moreHtml());moreRenderReady=true;moreRenderDirty=false;finishRender('more',fullStart)}finally{renderCache=previous}
+    };
+    if(typeof requestIdleCallback==='function')requestIdleCallback(hydrate,{timeout:650});else setTimeout(hydrate,80);
+  }
   function renderView(id=activeView()){
     if(!engine()||!clarityModel())return;
     const previous=renderCache;renderCache={};
@@ -1224,7 +1240,8 @@
     document.addEventListener('click',e=>{const nav=e.target.closest('.navbtn[data-tab]');if(nav){e.preventDefault();switchView(nav.dataset.tab)}},true);
     document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(state.goalManagerOpen||state.workoutDetailOpen||state.coachReasonOpen||state.intensityExplanationOpen){state.goalManagerOpen=false;state.goalEditor='';state.workoutDetailOpen=false;state.coachReasonOpen=false;state.intensityExplanationOpen=false;renderAll()}});
     let storageFrame=0;
-    window.addEventListener('storage',e=>{if(e.key&&!/^(runnerbear_|runfest26_|rb)/i.test(e.key))return;if(e.key)readCache.delete(e.key);cancelAnimationFrame(storageFrame);storageFrame=requestAnimationFrame(renderAll)});
+    window.addEventListener('storage',e=>{if(e.key&&!/^(runnerbear_|runfest26_|rb)/i.test(e.key))return;if(e.key)readCache.delete(e.key);moreRenderDirty=true;cancelAnimationFrame(storageFrame);storageFrame=requestAnimationFrame(renderAll)});
+    window.addEventListener('runnerbear:state-dirty',()=>{moreRenderDirty=true});
     mark('runnerbear:first-render');measure('runnerbear:startup','runnerbear:init:start');
   }
   setTimeout(()=>{
