@@ -11,13 +11,26 @@ function objectIds(value){
     value.plan?.planId,value.plan?.id,value.plan?._id,
     value.data?.planId,value.data?.id,value.data?._id,
     value.result?.planId,value.result?.id,value.result?._id,
-    value.meta?.planId,value.meta?.id,value.meta?._id
+    value.meta?.planId,value.meta?.id,value.meta?._id,
+    value.structuredContent?.planId,value.structuredContent?.id,value.structuredContent?._id
   ];
+}
+
+function contentIds(value){
+  const rows=Array.isArray(value?.content)?value.content:[];
+  const ids=[];
+  for(const row of rows){
+    if(row?.type!=='text'||typeof row.text!=='string')continue;
+    try{ids.push(...objectIds(JSON.parse(row.text)))}catch{}
+    const match=row.text.match(/\bplanId\b[\s"':=]+([A-Za-z0-9_-]{5,160})/i);
+    if(match)ids.push(match[1]);
+  }
+  return ids;
 }
 
 export function extractTredictPlanId(result){
   const direct=scalarId(result);if(direct)return direct;
-  const candidates=[...objectIds(result)];
+  const candidates=[...objectIds(result),...contentIds(result),...contentIds(result?.result)];
   const success=result&&typeof result==='object'?result.success:null;
   if(Array.isArray(success))success.forEach(item=>candidates.push(...objectIds(item),item));
   else candidates.push(...objectIds(success),success);

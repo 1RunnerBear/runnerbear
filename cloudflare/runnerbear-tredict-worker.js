@@ -7,6 +7,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import { describeTredictPlanResponse,extractTredictPlanId,splitTredictPlanPayload,tredictPlanTrainingRetryDelay } from './tredict-plan-response.mjs';
 
 const TREDICT='https://www.tredict.com/api/oauth/v2/';
+const TREDICT_MCP='https://www.tredict.com/api/mcp/v2';
 const DEFAULT_ORIGIN='https://1runnerbear.github.io';
 
 function cors(origin,allowed){
@@ -94,6 +95,38 @@ async function tdPost(env,path,body){
   if(!r.ok){let msg='';try{msg=await boundedText(r)}catch{};const e=new Error(`Tredict ${path}: HTTP ${r.status}${msg?` · ${msg}`:''}`);e.status=r.status;throw e}
   return r.json();
 }
+function parseMcpEnvelope(raw){
+  const text=String(raw||'').trim();if(!text)return{};
+  if(!text.startsWith('event:')&&!text.startsWith('data:'))return JSON.parse(text);
+  const messages=text.split(/\r?\n\r?\n/).flatMap(block=>block.split(/\r?\n/).filter(line=>line.startsWith('data:')).map(line=>line.slice(5).trim())).filter(Boolean);
+  if(!messages.length)return{};return JSON.parse(messages.at(-1));
+}
+async function mcpPost(env,body,sessionId=''){
+  const headers={Authorization:`Bearer ${env.TREDICT_TOKEN}`,'Content-Type':'application/json',Accept:'application/json, text/event-stream','MCP-Protocol-Version':'2025-06-18'};
+  if(sessionId)headers['Mcp-Session-Id']=sessionId;
+  const response=await fetch(TREDICT_MCP,{method:'POST',headers,body:JSON.stringify(body)});
+  const nextSession=response.headers.get('Mcp-Session-Id')||sessionId;
+  if(response.status===202||response.status===204)return{envelope:{},sessionId:nextSession};
+  const raw=await boundedText(response,120000);
+  if(!response.ok){const error=new Error(`Tredict MCP: HTTP ${response.status}${raw?` · ${raw.slice(0,300)}`:''}`);error.status=response.status;throw error}
+  return{envelope:parseMcpEnvelope(raw),sessionId:nextSession};
+}
+async function createPlanViaMcp(env,payload){
+  const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'10.24'}}});
+  const sessionId=initialized.sessionId;
+  await mcpPost(env,{jsonrpc:'2.0',method:'notifications/initialized'},sessionId);
+  const listed=await mcpPost(env,{jsonrpc:'2.0',id:'rb-tools',method:'tools/list',params:{}},sessionId),tools=listed.envelope?.result?.tools||[],tool=tools.find(x=>x?.name==='plan-creation');
+  if(!tool)throw new Error('Tredict MCP plan-creation tool is unavailable');
+  const properties=tool?.inputSchema?.properties||{};
+  const args=properties.plan?payload:{...payload.plan,planTrainings:payload.planTrainings};
+  const called=await mcpPost(env,{jsonrpc:'2.0',id:'rb-plan',method:'tools/call',params:{name:'plan-creation',arguments:args}},sessionId),envelope=called.envelope;
+  if(envelope?.error)throw new Error(`Tredict MCP plan-creation failed · ${String(envelope.error?.message||'unknown error').slice(0,300)}`);
+  const result=envelope?.result||{};
+  if(result?.isError)throw new Error(`Tredict MCP rejected plan · ${describeTredictPlanResponse(result)}`);
+  const planId=extractTredictPlanId(result);
+  if(!planId)throw new Error(`Tredict MCP response did not include planId · ${describeTredictPlanResponse(result)}`);
+  return{planId,trainingCount:payload.planTrainings.length,transport:'mcp'};
+}
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function addPlanTraining(env,body){
   for(let attempt=0;;attempt++){
@@ -150,9 +183,14 @@ export class TredictService extends WorkerEntrypoint {
   }
   async createPlan(payload){
     if(!this.env.TREDICT_TOKEN)throw new Error('TREDICT_NOT_CONFIGURED');
-    const split=splitTredictPlanPayload(payload),result=await tdPost(this.env,'plan',split.create);
+    const split=splitTredictPlanPayload(payload);let result=null,restError=null;
+    try{result=await tdPost(this.env,'plan',split.create)}catch(error){if(Number(error?.status)!==400)throw error;restError=error}
     const planId=extractTredictPlanId(result);
-    if(!planId)throw new Error(`Tredict plan response did not include planId · ${describeTredictPlanResponse(result)}`);
+    if(!planId){
+      const rejected=restError||result?.error?new Error(restError?.message||`Tredict plan rejected · ${describeTredictPlanResponse(result)}`):null;
+      if(!rejected)throw new Error(`Tredict plan response did not include planId · ${describeTredictPlanResponse(result)}`);
+      try{return await createPlanViaMcp(this.env,payload)}catch(mcpError){throw new Error(`${rejected.message}; MCP fallback: ${mcpError instanceof Error?mcpError.message:String(mcpError)}`)}
+    }
     let added=0;
     for(const addition of split.additions){
       const response=await addPlanTraining(this.env,{planId,...addition});
