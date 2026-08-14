@@ -1,0 +1,12 @@
+/* RunnerBear v10.21 · stable shell, canonical asset loading and no legacy flash. */
+html.rb108-booting main{visibility:visible}
+html.rb108-booting .desktop-nav{display:flex!important}
+html.rb108-booting .bottom-nav{display:none!important}
+html.rb108-booting .view{min-height:1px}
+html.rb108-booting .rb108-boot{margin-bottom:10px}
+html.rb107-ready .view:not(.active){display:none!important}
+html.rb107-ready .view.active{display:block!important}
+@media(max-width:720px){
+  html.rb108-booting .desktop-nav{display:none!important}
+  html.rb108-booting .bottom-nav{display:flex!important}
+}

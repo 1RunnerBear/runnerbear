@@ -2,7 +2,7 @@
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "app",
   "main": "src/index-v983.js",
-  "compatibility_date": "2026-08-11",
+  "compatibility_date": "2026-08-14",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": true,
   "observability": {

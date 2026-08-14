@@ -1,6 +1,6 @@
 import legacy from './index.js';
 
-const BUILD='10.8.1';
+const BUILD='10.21';
 const USER_ID='primary';
 const TREDICT_SOURCE='tredict';
 const TREDICT_STATE='tredict';
@@ -118,7 +118,7 @@ function cacheFromSnapshot(s){
   return{
     activities:Array.isArray(s?.activities)?s.activities:[],
     hrv:s?.hrv||{},sleep:s?.sleep||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
-    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.8.1'
+    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.21'
   };
 }
 
@@ -166,7 +166,7 @@ function sanitizeOutbound(input={}){
   if(!startDate||!endDate||endDate<startDate)throw new Error('Plan requires a valid date range');
   if(externalIds.length!==cleanRows.length||externalIds.some(x=>!x))throw new Error('Plan requires one stable external ID per workout');
   return{
-    source:{version:'10.8.1',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
+    source:{version:'10.21',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
     payload:{plan:{title:text(plan.title,255,'plan title',true),description:text(plan.description,10240,'plan description',true),categories:['building','intensity','race_specific'],targetgroups:['intermediate'],zonetypes:['heartrate','pace'],language:'en'},planTrainings:cleanRows}
   };
 }
@@ -203,6 +203,7 @@ async function outboundPlan(request,env,publish=false){
 }
 
 async function syncTredict(env,{force=false,days=365}={}){
+  const started=performance.now();
   if(!env.DB)throw new Error('D1 binding missing');
   if(!env.TREDICT)throw new Error('Tredict service binding missing');
   const existing=await env.DB.prepare('SELECT last_synced_at,status FROM rb_sync_sources WHERE user_id=?1 AND source=?2')
@@ -215,10 +216,13 @@ async function syncTredict(env,{force=false,days=365}={}){
     const [activities,capacity,health]=await Promise.all([storeActivities(env,cache.activities),storeCapacity(env,cache.capacity),storeHealth(env,cache)]);
     await upsertState(env,TREDICT_STATE,cache);
     await upsertSync(env,'ok',{version:snapshot?.version||'',parts:cache.bridgeParts,activities,capacity,health},cache.syncedAt);
-    return{ok:true,skipped:false,syncedAt:cache.syncedAt,activities,capacity,health,parts:cache.bridgeParts};
+    const result={ok:true,skipped:false,syncedAt:cache.syncedAt,activities,capacity,health,parts:cache.bridgeParts};
+    console.log(JSON.stringify({event:'runnerbear_tredict_sync',build:BUILD,durationMs:Math.round(performance.now()-started),activities,capacity,health}));
+    return result;
   }catch(error){
     const message=error instanceof Error?error.message:String(error);
     await upsertSync(env,'error',{message},existing?.last_synced_at||now());
+    console.error(JSON.stringify({event:'runnerbear_tredict_sync_error',build:BUILD,durationMs:Math.round(performance.now()-started),message}));
     throw error;
   }
 }
@@ -314,12 +318,12 @@ export default {
       catch(error){return json({ok:false,error:'Migration failed',detail:error instanceof Error?error.message:String(error)},400)}
     }
 
-    if(request.method==='GET'&&path==='/api/bootstrap'){
-      const auth=await session(request,env,ctx);if(!auth)return json({ok:false,error:'Unauthorized'},401);
-      let sync=null;
-      try{sync=await syncTredict(env,{force:false,days:365})}catch(error){sync={ok:false,error:error instanceof Error?error.message:String(error)}}
+    if(request.method==='GET'&&(path==='/api/bootstrap/home'||path==='/api/bootstrap')){
+      const started=performance.now();
       const response=await legacy.fetch(request,env,ctx);
-      return decorateBootstrap(response,sync);
+      const decorated=await decorateBootstrap(response,null);
+      console.log(JSON.stringify({event:'runnerbear_bootstrap_response',build:BUILD,kind:path.endsWith('/home')?'home':'full',durationMs:Math.round(performance.now()-started),status:decorated.status}));
+      return decorated;
     }
 
     if(request.method==='GET'&&path==='/health')return health(request,env,ctx);
