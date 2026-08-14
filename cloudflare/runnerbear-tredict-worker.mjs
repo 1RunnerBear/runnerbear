@@ -25,6 +25,11 @@ function daysAgo(n){const d=new Date();d.setUTCDate(d.getUTCDate()-n);return d}
 function finiteValues(values){return(values||[]).map(Number).filter(Number.isFinite)}
 function mean(values){const xs=finiteValues(values);return xs.length?xs.reduce((sum,x)=>sum+x,0)/xs.length:0}
 function quantile(values,q){const xs=finiteValues(values).sort((a,b)=>a-b);if(!xs.length)return 0;return xs[Math.min(xs.length-1,Math.max(0,Math.round((xs.length-1)*q)))]}
+function heartRateBins(values,sampleSize=1){
+  const seconds=Math.max(1,Number(sampleSize)||1),bins=new Map();
+  for(const value of values||[]){const bpm=Math.round(Number(value));if(!Number.isFinite(bpm)||bpm<35||bpm>240)continue;bins.set(bpm,(bins.get(bpm)||0)+seconds)}
+  return[...bins].sort((a,b)=>a[0]-b[0]);
+}
 function compactActivityDetail(raw){
   const a=raw?.activity||raw||{},summary=a?.summary||{},series=a?.seriesSampled||{},data=series?.data||{};
   const sampleSize=Math.max(1,Number(series.sampleSize)||1),speed=(data.speed||[]).map(x=>Number.isFinite(Number(x))?Number(x):0),heartrate=(data.heartrate||[]).map(x=>Number.isFinite(Number(x))?Number(x):NaN);
@@ -48,10 +53,11 @@ function compactActivityDetail(raw){
       analysis.confidence=analysis.workBlocks.length>=3?'high':'medium';
     }
   }
+  const bins=heartRateBins(data.heartrate,sampleSize);
   return{
     summary:{intensityDistribution:summary.intensityDistribution||null,zonesDistribution:summary.zonesDistribution||null,effort:summary.effort||null,vo2max:Number(summary.vo2max)||null,speedAerobicFactor:Number(summary.speedAerobicFactor)||null},
     weather:a?.weather?{temperature:Number(a.weather.temperature)||null,windSpeed:Number(a.weather.windSpeed)||null}:null,
-    capacities:a?.currentCapacities||null,analysis
+    capacities:a?.currentCapacities||null,heartRateBins:bins,validHeartRateSeconds:bins.reduce((sum,row)=>sum+row[1],0),analysis
   };
 }
 function pickSummary(a){
@@ -115,7 +121,7 @@ async function buildSnapshot(env,requestedDays=365){
   const by=Object.fromEntries(calls.map(x=>[x.name,x]));
   if(!by.activities.ok)return{ok:false,error:'TREDICT_ACTIVITY_READ_FAILED',detail:by.activities.error,status:by.activities.status||502,parts:calls.map(({name,ok,status})=>({name,ok,status}))};
   const activityRows=by.activities.data?._embedded?.activityList||by.activities.data?.activityList||[],summaries=activityRows.map(pickSummary);
-  const detailCandidates=summaries.filter((a,index)=>index<8||a.sportType==='running'&&Number(a.summary?.heartrate)>=145||/rowing|indoor_rowing/i.test(a.subSportType||'')).slice(0,9);
+  const detailCutoff=daysAgo(28),detailCandidates=summaries.filter((a,index)=>index<8||a.sportType==='running'&&new Date(a.date)>=detailCutoff).filter((a,index,rows)=>rows.findIndex(x=>x.id===a.id)===index).slice(0,40);
   const detailRows=await Promise.all(detailCandidates.map(a=>safe(a.id,()=>td(env,`activity/${encodeURIComponent(a.id)}`))));
   const details=new Map(detailRows.filter(x=>x.ok).map(x=>[x.name,compactActivityDetail(x.data)]));
   summaries.forEach(a=>{if(details.has(a.id))a.detail=details.get(a.id)});

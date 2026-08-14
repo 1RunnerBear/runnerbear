@@ -1,7 +1,7 @@
-/* RunnerBear v10.21 · tiny cached-data adapter and fatal-init observability. */
+/* RunnerBear v10.22 · tiny cached-data adapter and fatal-init observability. */
 (function(){
   'use strict';
-  const BUILD='10.21',CACHE='runnerbear_tredict_cache_v1';
+  const BUILD='10.22',CACHE='runnerbear_tredict_cache_v1';
   const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'')??fallback}catch{return fallback}};
   const latestTuple=(obj={})=>{const keys=Object.keys(obj).sort(),today=new Date().toISOString().slice(0,10).replaceAll('-',''),valid=keys.filter(key=>key<=today),key=(valid.length?valid:keys).at(-1);return key?{key,value:obj[key]}:null};
   function latestRhr(rows=[]){

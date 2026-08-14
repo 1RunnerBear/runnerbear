@@ -1,6 +1,6 @@
 import legacy from './index.js';
 
-const BUILD='10.21';
+const BUILD='10.22';
 const USER_ID='primary';
 const TREDICT_SOURCE='tredict';
 const TREDICT_STATE='tredict';
@@ -118,7 +118,7 @@ function cacheFromSnapshot(s){
   return{
     activities:Array.isArray(s?.activities)?s.activities:[],
     hrv:s?.hrv||{},sleep:s?.sleep||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
-    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.21'
+    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.22'
   };
 }
 
@@ -166,7 +166,7 @@ function sanitizeOutbound(input={}){
   if(!startDate||!endDate||endDate<startDate)throw new Error('Plan requires a valid date range');
   if(externalIds.length!==cleanRows.length||externalIds.some(x=>!x))throw new Error('Plan requires one stable external ID per workout');
   return{
-    source:{version:'10.21',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
+    source:{version:'10.22',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
     payload:{plan:{title:text(plan.title,255,'plan title',true),description:text(plan.description,10240,'plan description',true),categories:['building','intensity','race_specific'],targetgroups:['intermediate'],zonetypes:['heartrate','pace'],language:'en'},planTrainings:cleanRows}
   };
 }
