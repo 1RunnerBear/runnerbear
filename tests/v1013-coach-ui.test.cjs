@@ -13,6 +13,7 @@ const ux=fs.readFileSync(path.join(root,'runnerbear-v1017-ux.css'),'utf8');
 const planPreferences=fs.readFileSync(path.join(root,'runnerbear-v1018-plan-preferences.css'),'utf8');
 const designSystem=fs.readFileSync(path.join(root,'runnerbear-v1019-design-system.css'),'utf8');
 const screenFidelity=fs.readFileSync(path.join(root,'runnerbear-v1019b-screen-fidelity.css'),'utf8');
+const finalFidelity=fs.readFileSync(path.join(root,'runnerbear-v1019c-final-fidelity.css'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'site.webmanifest'),'utf8'));
 const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json'),'utf8'));
 
@@ -20,7 +21,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assert.match(html,/runnerbear-v1013-coach-ui\.css\?v=1013/);
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens vurdering/);
-  assert.match(app,/version:'10\.19b'/);
+  assert.match(app,/version:'10\.19c'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -47,8 +48,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v1019b');
-  assert.equal(version.build,'10.19b');
+  assert.equal(manifest.start_url,'/?app=v1019c');
+  assert.equal(version.build,'10.19c');
   assert.equal(version.channel,'live');
 });
 
@@ -158,4 +159,45 @@ test('v10.19b builds source-of-truth screen structures instead of another token 
   assert.match(screenFidelity,/\/\* Mer \*\//);
   assert.doesNotMatch(html,/[●▤◎]/);
   assert.doesNotMatch(html,/[😴🦶⏱📅]/u);
+});
+
+test('v10.19c uses a contextual premium hero bank instead of one forest image',()=>{
+  assert.match(html,/runnerbear-v1019c-final-fidelity\.css\?v=1019c/);
+  assert.match(app,/const HERO_BANK=/);
+  for(const name of ['tempo','intervals','race','urban','recovery','strength']){
+    assert.match(app,new RegExp(`runnerbear-hero-${name}-v1019c\\.webp`));
+    assert.ok(fs.existsSync(path.join(root,`runnerbear-hero-${name}-v1019c.webp`)));
+  }
+  assert.match(app,/heroNameForWorkout/);
+  assert.match(app,/heroNameForGoal/);
+  assert.match(finalFidelity,/var\(--rb119c-hero\)/);
+});
+
+test('v10.19c makes Today coach-led with interpreted health and load signals',()=>{
+  assert.match(app,/Coachen følger med/);
+  assert.match(app,/function coachWatchHtml/);
+  assert.match(app,/Søvn/);
+  assert.match(app,/HRV/);
+  assert.match(app,/Restitusjon/);
+  assert.match(app,/Belastning/);
+  assert.match(app,/Kroppssjekk/);
+  assert.match(finalFidelity,/\.rb119c-health-grid/);
+});
+
+test('v10.19c gives Plan a useful month, focus and long-term hierarchy',()=>{
+  assert.match(app,/function monthCalendarHtml/);
+  assert.match(app,/data-rb119c-month-focus/);
+  assert.match(app,/data-rb119c-calendar-day/);
+  assert.match(app,/function focusHtml/);
+  assert.match(app,/function longTermHtml/);
+  assert.match(app,/state\.planDetailOpen&&selected/);
+  assert.match(finalFidelity,/\.rb119c-month-grid/);
+  assert.match(finalFidelity,/\.rb119c-focus/);
+  assert.match(finalFidelity,/\.rb119c-long/);
+});
+
+test('v10.19c ships the final outline icons in initial navigation markup',()=>{
+  const nav=html.slice(html.indexOf('<nav class="bottom-nav"'),html.indexOf('</nav></div>'));
+  assert.equal((nav.match(/class="rb107-icon"/g)||[]).length,4);
+  assert.doesNotMatch(nav,/[●▤◎]/);
 });
