@@ -102,12 +102,23 @@
       for(const id of ids){const item=state.items[id],entry=state.queue.find(row=>row.externalId===id);if(!item||!entry)continue;item.status='pending';item.lastError='';entry.nextAttemptAt=clock();entry.attempt=0}
       save(state);if(timer)cancelTimer(timer);timer=schedule(()=>{timer=0;void flush()},0);return ids.length;
     }
+    function acceptRemote(result,externalIds=[]){
+      if(result?.ok!==true)return 0;
+      const ids=new Set((Array.isArray(externalIds)?externalIds:[]).map(String).filter(Boolean));if(!ids.size)return 0;
+      const state=read(),nextStatus=resultStatus(result),at=nowIso();let changed=0;
+      for(const id of ids){
+        const item=state.items[id];if(!item||!['error','pending','syncing','not_synced'].includes(item.status))continue;
+        state.items[id]={...item,transport:'tredict',status:nextStatus,lastError:'',lastSyncedAt:at,tredictPlanId:String(result?.planId||item.tredictPlanId||''),message:clean(result?.message||item.message||''),retryCount:0,updatedAt:at};changed++;
+      }
+      if(changed){state.queue=state.queue.filter(entry=>!ids.has(String(entry.externalId||'')));save(state);emit(nextStatus==='synced'?'tredict_sync_success':'tredict_sync_action_required',{source:'plan-reconcile',status:nextStatus,count:changed})}
+      return changed;
+    }
     function init(){
       const state=read();
       if(state.queue.length){const transport=transportFor();if(capable(transport)){if(timer)cancelTimer(timer);timer=schedule(()=>{timer=0;void flush()},0)}else{for(const entry of state.queue)state.items[entry.externalId]={...(state.items[entry.externalId]||{}),externalId:entry.externalId,transport:'tredict',status:'not_synced',lastError:'tredict_transport_unavailable'};save(state)}}
       return state;
     }
-    return{BUILD,stateKey,queue,flush,retry,status,all,init,available:()=>capable(transportFor())};
+    return{BUILD,stateKey,queue,flush,retry,acceptRemote,status,all,init,available:()=>capable(transportFor())};
   }
 
   return{...base,BUILD,createTredictSyncService,memoryStorage};
