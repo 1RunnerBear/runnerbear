@@ -75,3 +75,8 @@ test('Mer opens progressively and hydrates heavy insight work while the browser 
   const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
   assert.match(ui,/moreShellHtml/);assert.match(ui,/requestIdleCallback\(hydrate/);assert.match(ui,/moreRenderReady&&!moreRenderDirty/);
 });
+
+test('Mer sync health ignores stale queue items outside the current ten-day plan',()=>{
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  assert.match(ui,/currentTransportIds=new Set\(planQueue/);assert.match(ui,/filter\(x=>currentTransportIds\.has/);
+});
