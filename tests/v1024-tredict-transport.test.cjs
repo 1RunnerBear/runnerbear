@@ -51,7 +51,7 @@ test('v10.24 app names the real Tredict transport and removes the Garmin API pla
   assert.match(ui,/TREDICT_HORIZON_DAYS=10/);assert.match(ui,/addDays\(today\(\),horizon-1\)/);assert.match(ui,/rullerende 10-dagersperioden/);
   assert.doesNotMatch(ui,/Training API/);assert.doesNotMatch(ui,/Tredict-fallback/);assert.match(data,/RunnerBearTredictTransport/);
   assert.match(cloud,/\/api\/outbound\/tredict\/reconcile/);assert.match(cloud,/changePlannedWorkoutDate/);assert.match(bridge,/plannedTraining\/changeDate/);
-  assert.match(cloud,/structuralChange/);
+  assert.match(cloud,/structuralChange/);assert.match(bridge,/TREDICT_MCP/);assert.match(bridge,/plan-creation/);assert.match(bridge,/MCP fallback/);
 });
 
 test('Mer render reuses parsed data, schedule and match calculations within one render',()=>{
