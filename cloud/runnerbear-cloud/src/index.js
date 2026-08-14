@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-const BUILD = '9.8.1';
+const BUILD = '10.21';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
@@ -156,7 +156,67 @@ async function ensureUser(env) {
   ).bind(id, new Date().toISOString()).run();
 }
 
+function homeLocalState(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
+  const exact = new Set([
+    'runnerbear_v107_plan_moves', 'runnerbear_v107_plan_locks', 'runnerbear_v107_coach_control',
+    'runnerbear_v107_coach_log', 'runnerbear_v107_seen_actions', 'runnerbear_v108_match_exclusions',
+    'runnerbear_v108_shoes', 'runnerbear_v109_goals', 'runnerbear_v7_profile', 'runnerbear_v118_day_modes',
+  ]);
+  return Object.fromEntries(Object.entries(input).filter(([key]) => exact.has(key) || key.startsWith('runnerbear_tredict_match_') || key.startsWith('runfest26_')));
+}
+
+async function getHomeBootstrap(request, env) {
+  const started = performance.now();
+  const id = owner(env);
+  const activityCutoff = new Date(Date.now() - 35 * 86400000).toISOString().slice(0, 10);
+  const healthCutoff = new Date(Date.now() - 21 * 86400000).toISOString().slice(0, 10);
+  const [states, activities, health, capacity, sync] = await Promise.all([
+    env.DB.prepare("SELECT namespace, payload_json, updated_at FROM rb_state WHERE user_id = ?1 AND namespace = 'localStorage'").bind(id).all(),
+    env.DB.prepare('SELECT payload_json FROM rb_activities WHERE user_id = ?1 AND date >= ?2 ORDER BY date DESC, updated_at DESC').bind(id, activityCutoff).all(),
+    env.DB.prepare('SELECT date, hrv_ms, sleep_seconds, rhr_bpm, payload_json FROM rb_health_daily WHERE user_id = ?1 AND date >= ?2 ORDER BY date DESC').bind(id, healthCutoff).all(),
+    env.DB.prepare('SELECT payload_json FROM rb_capacity WHERE user_id = ?1 ORDER BY timestamp DESC LIMIT 30').bind(id).all(),
+    env.DB.prepare('SELECT source, last_synced_at, status, detail_json, updated_at FROM rb_sync_sources WHERE user_id = ?1 ORDER BY source').bind(id).all(),
+  ]);
+  const d1Ms = Math.round(performance.now() - started);
+  const state = {};
+  for (const row of states.results || []) state[row.namespace] = parseJson(row.payload_json, {});
+  state.localStorage = homeLocalState(state.localStorage);
+
+  const hrv = {}, sleep = {}, body = [];
+  for (const row of health.results || []) {
+    const detail = parseJson(row.payload_json, {});
+    const key = String(row.date || '').replaceAll('-', '');
+    if (row.hrv_ms != null) hrv[key] = [Number(row.hrv_ms), num(detail.hrvBaseline)];
+    if (row.sleep_seconds != null) sleep[key] = [Number(row.sleep_seconds), num(detail.sleepBaseline)];
+    if (row.rhr_bpm != null) body.push({ timestamp: row.date, hrRestDynamic: Number(row.rhr_bpm) });
+  }
+  const syncRows = (sync.results || []).map((row) => ({ ...row, detail: parseJson(row.detail_json, {}) }));
+  const syncedAt = syncRows.map((row) => row.last_synced_at).filter(Boolean).sort().at(-1) || '';
+  state.tredict = {
+    activities: (activities.results || []).map((row) => parseJson(row.payload_json, {})),
+    hrv,
+    sleep,
+    body,
+    capacity: { running: (capacity.results || []).map((row) => parseJson(row.payload_json, {})).reverse() },
+    syncedAt,
+    source: 'runnerbear-cloud-v10.21-home',
+  };
+  console.log(JSON.stringify({ event: 'runnerbear_bootstrap_home', build: BUILD, d1Ms, activities: state.tredict.activities.length, healthDays: (health.results || []).length }));
+  return {
+    ok: true,
+    build: BUILD,
+    owner: id,
+    generatedAt: new Date().toISOString(),
+    windowDays: 35,
+    state,
+    sync: syncRows,
+    metrics: { d1Ms },
+  };
+}
+
 async function getBootstrap(request, env) {
+  const started = performance.now();
   const id = owner(env);
   const url = new URL(request.url);
   const days = Math.min(MAX_DAYS, Math.max(7, Number(url.searchParams.get('days') || 120)));
@@ -176,10 +236,11 @@ async function getBootstrap(request, env) {
     env.DB.prepare('SELECT source, last_synced_at, status, detail_json, updated_at FROM rb_sync_sources WHERE user_id = ?1 ORDER BY source').bind(id).all(),
   ]);
 
+  const d1Ms = Math.round(performance.now() - started);
   const state = {};
   for (const row of states.results || []) state[row.namespace] = parseJson(row.payload_json, {});
 
-  return {
+  const result = {
     ok: true,
     build: BUILD,
     owner: id,
@@ -193,6 +254,9 @@ async function getBootstrap(request, env) {
     shoes: (shoes.results || []).map((r) => ({ ...r, active: !!r.active, payload: parseJson(r.payload_json, {}) })),
     sync: (sync.results || []).map((r) => ({ ...r, detail: parseJson(r.detail_json, {}) })),
   };
+  console.log(JSON.stringify({ event: 'runnerbear_bootstrap_full', build: BUILD, d1Ms, windowDays: days, activities: result.activities.length }));
+  result.metrics = { d1Ms };
+  return result;
 }
 
 async function putState(request, env, namespace) {
@@ -350,8 +414,13 @@ export default {
     if (!identity) return json({ ok: false, error: 'Unauthorized' }, 401, cors(request, env));
 
     try {
-      await ensureUser(env);
+      if (!['GET', 'HEAD'].includes(request.method)) await ensureUser(env);
       if (request.method === 'GET' && path === '/api/session') return json({ ok: true, build: BUILD, owner: owner(env), identity }, 200, cors(request, env));
+      if (request.method === 'GET' && path === '/api/bootstrap/home') {
+        const data = await getHomeBootstrap(request, env);
+        data.identity = identity;
+        return json(data, 200, cors(request, env));
+      }
       if (request.method === 'GET' && path === '/api/bootstrap') {
         const data = await getBootstrap(request, env);
         data.identity = identity;

@@ -1,0 +1,30 @@
+{
+  "build": "10.21",
+  "core": [
+    "plan.js",
+    "runnerbear-v100-plan-bootstrap.js",
+    "runnerbear-v100-engine.js",
+    "runnerbear-v1012-analysis.js",
+    "runnerbear-v1020-coach-model.js",
+    "runnerbear-runtime-v1021.js"
+  ],
+  "data": [
+    "runnerbear-tredict-outbound.js",
+    "runnerbear-cloud-v1021.js"
+  ],
+  "ui": "runnerbear-ui-v1021.js",
+  "styles": [
+    "runnerbear-v5.css",
+    "runnerbear-v107-coach-os.css",
+    "runnerbear-v1013-coach-ui.css",
+    "runnerbear-v1014-premium-polish.css",
+    "runnerbear-v1016-goals-more.css",
+    "runnerbear-v1017-ux.css",
+    "runnerbear-v1018-plan-preferences.css",
+    "runnerbear-v1019-design-system.css",
+    "runnerbear-v1019b-screen-fidelity.css",
+    "runnerbear-v1019c-final-fidelity.css",
+    "runnerbear-v1020-coaching-clarity.css",
+    "runnerbear-v1021-foundation.css"
+  ]
+}

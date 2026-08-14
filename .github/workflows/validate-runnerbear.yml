@@ -7,6 +7,8 @@ on:
       - '*.css'
       - 'index.html'
       - 'site.webmanifest'
+      - '_headers'
+      - 'scripts/build-v1021.mjs'
       - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
   pull_request:
@@ -15,6 +17,8 @@ on:
       - '*.css'
       - 'index.html'
       - 'site.webmanifest'
+      - '_headers'
+      - 'scripts/build-v1021.mjs'
       - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
 
@@ -29,6 +33,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Build canonical v10.21 assets
+        run: |
+          node scripts/build-v1021.mjs
+          git diff --exit-code -- runnerbear-core-v1021.js runnerbear-data-v1021.js runnerbear-v1021.css
 
       - name: Check JavaScript loaded by index
         run: |
@@ -95,6 +104,9 @@ jobs:
 
       - name: Test v10.12 trust and analysis safeguards
         run: node --test tests/v1011-trust.test.cjs tests/v1012-analysis.test.cjs tests/v1020-coaching-clarity.test.cjs
+
+      - name: Test v10.21 performance foundation
+        run: node --test tests/*.test.cjs
 
       - name: Validate web manifest
         run: python -m json.tool site.webmanifest > /dev/null

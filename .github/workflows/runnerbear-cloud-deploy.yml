@@ -23,6 +23,8 @@ on:
       - '*.webp'
       - '*.ico'
       - '*.webmanifest'
+      - '_headers'
+      - 'scripts/build-v1021.mjs'
       - 'tests/**'
       # Cloud deploy inputs. Generated status files are intentionally excluded
       # so the deploy bot cannot trigger itself in a loop.
@@ -62,18 +64,20 @@ jobs:
       - name: Install dependencies
         id: install
         continue-on-error: true
-        run: npm install
+        run: npm ci
 
       - name: Validate Worker syntax
         id: validate
         if: steps.install.outcome == 'success'
         continue-on-error: true
         run: |
+          node ../../scripts/build-v1021.mjs
+          git diff --exit-code -- ../../runnerbear-core-v1021.js ../../runnerbear-data-v1021.js ../../runnerbear-v1021.css
           node --check src/index.js
           node --check src/index-v982.js
           node --check scripts/configure-access.mjs
           node --test ../../tests/tredict-outbound.test.cjs
-          node --test ../../tests/v1011-trust.test.cjs ../../tests/v1012-analysis.test.cjs ../../tests/v1013-coach-ui.test.cjs ../../tests/v1020-coaching-clarity.test.cjs
+          node --test ../../tests/v1011-trust.test.cjs ../../tests/v1012-analysis.test.cjs ../../tests/v1013-coach-ui.test.cjs ../../tests/v1020-coaching-clarity.test.cjs ../../tests/v1021-performance-foundation.test.cjs
 
       - name: Build private RunnerBear static app
         id: assets
@@ -88,6 +92,7 @@ jobs:
             -name '*.jpeg' -o -name '*.webp' -o -name '*.ico' -o \
             -name '*.webmanifest' \
           \) -exec cp '{}' public/ \;
+          cp ../../_headers public/_headers
           test -s public/index.html
           echo "RunnerBear assets: $(find public -maxdepth 1 -type f | wc -l)"
 
@@ -117,7 +122,7 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
-            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.8.1" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.8.1") process.exit(1)' "$BODY"; then
+            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.21" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.8.1") process.exit(1)' "$BODY"; then
               exit 0
             fi
             sleep 5
@@ -205,7 +210,7 @@ jobs:
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "10.8.1",
+            "build": "10.21",
             "status": "success" if outcomes["guard"] == "success" and outcomes["health"] == "success" else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
