@@ -62,3 +62,8 @@ test('Mer render reuses parsed data, schedule and match calculations within one 
   assert.match(ui,/if\(renderCache\?\.matches\)return renderCache\.matches/);
   assert.match(ui,/finally\{renderCache=previous\}/);
 });
+
+test('Mer opens progressively and hydrates heavy insight work while the browser is idle',()=>{
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  assert.match(ui,/moreShellHtml/);assert.match(ui,/requestIdleCallback\(hydrate/);assert.match(ui,/moreRenderReady&&!moreRenderDirty/);
+});
