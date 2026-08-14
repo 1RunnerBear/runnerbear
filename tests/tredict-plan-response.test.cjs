@@ -14,6 +14,11 @@ test('extracts documented and defensive Tredict plan response shapes',async()=>{
   assert.equal(extractTredictPlanId({error:'INVALID_PLAN'}),'');
 });
 
+test('describes MCP text errors without hiding the provider detail',async()=>{
+  const {describeTredictPlanResponse}=await import('../cloudflare/tredict-plan-response.mjs');
+  assert.match(describeTredictPlanResponse({content:[{type:'text',text:'llmDescription is required'}],isError:true}),/llmDescription is required/);
+});
+
 test('summarizes rejected responses without serializing arbitrary bodies',async()=>{
   const {describeTredictPlanResponse}=await import('../cloudflare/tredict-plan-response.mjs');
   assert.match(describeTredictPlanResponse({error:'INVALID_PLAN',meta:{field:'steps'}}),/INVALID_PLAN/);
