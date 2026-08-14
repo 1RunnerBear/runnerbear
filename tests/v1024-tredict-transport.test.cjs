@@ -80,3 +80,8 @@ test('Mer sync health ignores stale queue items outside the current ten-day plan
   const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
   assert.match(ui,/currentTransportIds=new Set\(planQueue/);assert.match(ui,/filter\(x=>currentTransportIds\.has/);
 });
+
+test('an exact server-side plan signature outranks an older local queue error',()=>{
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  assert.match(ui,/remoteCurrentAction=current&&!active&&published/);assert.match(ui,/transportLabel=active\?'Automatisk':remoteCurrentAction\?'Aktiver én gang':transportError/);
+});
