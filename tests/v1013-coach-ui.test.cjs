@@ -21,7 +21,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assert.match(html,/runnerbear-v1013-coach-ui\.css\?v=1013/);
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens vurdering/);
-  assert.match(app,/version:'10\.19c'/);
+  assert.match(app,/version:'10\.20'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -48,8 +48,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v1019c');
-  assert.equal(version.build,'10.19c');
+  assert.equal(manifest.start_url,'/?app=v1020');
+  assert.equal(version.build,'10.20');
   assert.equal(version.channel,'live');
 });
 
@@ -190,7 +190,8 @@ test('v10.19c gives Plan a useful month, focus and long-term hierarchy',()=>{
   assert.match(app,/data-rb119c-calendar-day/);
   assert.match(app,/function focusHtml/);
   assert.match(app,/function longTermHtml/);
-  assert.match(app,/state\.planDetailOpen&&selected/);
+  assert.match(app,/function dayViewHtml/);
+  assert.match(app,/state\.planDayViewOpen\?dayPlan:normalPlan/);
   assert.match(finalFidelity,/\.rb119c-month-grid/);
   assert.match(finalFidelity,/\.rb119c-focus/);
   assert.match(finalFidelity,/\.rb119c-long/);
