@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-const BUILD = '10.22';
+const BUILD = '10.23';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
@@ -163,6 +163,7 @@ function homeLocalState(input) {
     'runnerbear_v107_coach_log', 'runnerbear_v107_seen_actions', 'runnerbear_v108_match_exclusions',
     'runnerbear_v108_shoes', 'runnerbear_v109_goals', 'runnerbear_v7_profile', 'runnerbear_v118_day_modes',
     'runnerbear_v1022_daily_readiness',
+    'runnerbear_v1023_garmin_sync',
   ]);
   return Object.fromEntries(Object.entries(input).filter(([key]) => exact.has(key) || key.startsWith('runnerbear_tredict_match_') || key.startsWith('runfest26_')));
 }
@@ -201,7 +202,7 @@ async function getHomeBootstrap(request, env) {
     body,
     capacity: { running: (capacity.results || []).map((row) => parseJson(row.payload_json, {})).reverse() },
     syncedAt,
-    source: 'runnerbear-cloud-v10.22-home',
+    source: 'runnerbear-cloud-v10.23-home',
   };
   console.log(JSON.stringify({ event: 'runnerbear_bootstrap_home', build: BUILD, d1Ms, activities: state.tredict.activities.length, healthDays: (health.results || []).length }));
   return {

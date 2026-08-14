@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 
 const root=path.resolve(__dirname,'..');
-const app=fs.readFileSync(path.join(root,'runnerbear-ui-v1022.js'),'utf8');
+const app=fs.readFileSync(path.join(root,'runnerbear-ui-v1023.js'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const css=fs.readFileSync(path.join(root,'runnerbear-v1013-coach-ui.css'),'utf8');
 const polish=fs.readFileSync(path.join(root,'runnerbear-v1014-premium-polish.css'),'utf8');
@@ -16,10 +16,10 @@ const screenFidelity=fs.readFileSync(path.join(root,'runnerbear-v1019b-screen-fi
 const finalFidelity=fs.readFileSync(path.join(root,'runnerbear-v1019c-final-fidelity.css'),'utf8');
 const manifest=JSON.parse(fs.readFileSync(path.join(root,'site.webmanifest'),'utf8'));
 const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json'),'utf8'));
-const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v1022-assets.json'),'utf8'));
+const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v1023-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v1022\.css\?v=1022/);
+  assert.match(html,/runnerbear-v1023\.css\?v=1023/);
   assert.ok(assets.styles.includes(source),`${source} remains in the canonical stylesheet`);
 }
 
@@ -27,7 +27,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assertCanonicalStyle('runnerbear-v1013-coach-ui.css');
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens vurdering/);
-  assert.match(app,/version:'10\.22'/);
+  assert.match(app,/version:'10\.23'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -54,8 +54,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v1022');
-  assert.equal(version.build,'10.22');
+  assert.equal(manifest.start_url,'/?app=v1023');
+  assert.equal(version.build,'10.23');
   assert.equal(version.channel,'live');
 });
 

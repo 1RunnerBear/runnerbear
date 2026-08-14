@@ -1,0 +1,59 @@
+/* RunnerBear v10.23 · Plan Integrity & Garmin Sync. Premium rolig, mobile first. */
+.rb1023-form-states button{grid-template-columns:22px minmax(0,1fr)}
+.rb1023-form-states button span{display:grid;gap:2px}
+.rb1023-form-states button small{color:var(--rb19b-muted);font-size:.49rem;line-height:1.25}
+.rb1023-form-states button.active small{color:#526a59}
+.rb119b-plan-row.rb1023-draggable{grid-template-columns:48px 45px minmax(0,1fr) 60px 22px;cursor:grab;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease,opacity .16s ease}
+.rb119b-plan-row.rb1023-draggable:active{cursor:grabbing}
+.rb119b-plan-row.rb1023-dragging{z-index:3;transform:translateY(-3px) scale(1.01);box-shadow:0 14px 28px rgba(37,55,45,.14);opacity:.92}
+.rb119b-plan-row.rb1023-drop-valid{border-color:#9caf98;background:#f0f4ec}
+.rb119b-plan-row.rb1023-drop-target{border-color:#5f7d66;background:#e7eee4;box-shadow:inset 0 0 0 1px #5f7d66}
+.rb119b-plan-row.rb1023-drop-invalid{opacity:.56}
+.rb119b-plan-row.rb1023-locked{cursor:default;background:#f6f4ee}
+.rb1020-day-view.expired,.rb1020-day-view.cancelled{opacity:.82}
+.rb119b-plan-row.replaced .rb119b-plan-status small,.rb119b-plan-row.cancelled .rb119b-plan-status small{color:#7b5936}
+.rb119b-plan-row.moved .rb119b-plan-status small{color:#526a59}
+.rb1023-drag-handle{display:flex;align-items:center;justify-content:center;width:22px;height:32px;color:#879087;touch-action:pan-y}
+.rb1023-drag-handle:before{content:'⋮⋮';font-size:.78rem;letter-spacing:-3px;transform:rotate(90deg)}
+body.rb1023-drag-active{user-select:none;-webkit-user-select:none}
+body.rb1023-drag-active .rb119b-plan-list{touch-action:none}
+.rb1023-replacement{border-color:#ded4c3;background:#fbf8f1}
+.rb1023-replacement>header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.rb1023-replacement>header>div{display:grid;gap:5px}
+.rb1023-replacement h2{margin:0;color:var(--rb19b-ink);font-family:var(--rb19b-display);font-size:1.28rem;font-weight:500}
+.rb1023-replacement-badge{padding:5px 8px;border-radius:99px;background:#eee4d5;color:#795427;font-size:.56rem;font-weight:750}
+.rb1023-original{display:grid;gap:4px;margin-top:13px;padding:12px 13px;border-radius:13px;background:#f1ede4}
+.rb1023-original small{color:var(--rb19b-muted);font-size:.52rem;text-transform:uppercase}
+.rb1023-original del{color:#6e746f;font-size:.68rem}
+.rb1023-actual{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;margin-top:8px;padding:13px;border:1px solid #d5dfcf;border-radius:13px;background:#eef1e8}
+.rb1023-actual span{display:grid;gap:3px}
+.rb1023-actual small{color:var(--rb19b-muted);font-size:.52rem;text-transform:uppercase}
+.rb1023-actual b{color:#24362c;font-family:var(--rb19b-display);font-size:.95rem;font-weight:500}
+.rb1023-actual strong{color:#4d6453;font-size:.62rem}
+.rb1023-replacement>p{margin:12px 0 0;color:#3d4e44;font-size:.7rem;line-height:1.52}
+.rb1023-replacement>footer{margin-top:9px;color:#59685f;font-size:.6rem;font-weight:700}
+.rb1023-terminal{display:grid;gap:10px;padding:18px 19px}
+.rb1023-terminal h2{margin:0;color:var(--rb19b-ink);font-family:var(--rb19b-display);font-size:1.18rem;font-weight:500}
+.rb1023-terminal p{margin:0;color:var(--rb19b-muted);font-size:.68rem;line-height:1.5}
+.rb1023-move-fallback{display:grid;gap:9px;margin-top:12px;padding:12px;border:1px solid var(--rb19b-line);border-radius:14px;background:var(--rb19b-paper-2)}
+.rb1023-move-fallback>span{color:var(--rb19b-muted);font-size:.55rem;font-weight:700;text-transform:uppercase}
+.rb1023-move-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.rb1023-move-options button{display:grid;gap:2px;min-height:46px;padding:8px 10px;border:1px solid var(--rb19b-line);border-radius:11px;background:#fff;color:#34463b;text-align:left}
+.rb1023-move-options button b{font-size:.62rem}.rb1023-move-options button small{color:var(--rb19b-muted);font-size:.51rem}
+.rb1023-garmin-status{display:flex;align-items:center;gap:7px;margin-top:12px;padding:9px 11px;border-radius:11px;background:#f1f2ec;color:#526057;font-size:.58rem}
+.rb1023-garmin-status i{width:7px;height:7px;border-radius:50%;background:#a8afa6}
+.rb1023-garmin-status.synced i{background:#5c8063}.rb1023-garmin-status.pending i,.rb1023-garmin-status.syncing i{background:#a88a4a}.rb1023-garmin-status.error i{background:#a46356}
+.rb1023-garmin-status button{margin-left:auto;padding:0;border:0;background:transparent;color:var(--rb19b-forest);font-size:.56rem;font-weight:750}
+.rb1023-garmin-summary{display:grid;gap:9px;margin-top:10px}
+.rb1023-garmin-summary>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 13px;border-radius:13px;background:#f1f2ec}
+.rb1023-garmin-summary span{display:grid;gap:3px}.rb1023-garmin-summary b{color:#293a31;font-size:.7rem}.rb1023-garmin-summary small{color:var(--rb19b-muted);font-size:.56rem;line-height:1.4}.rb1023-garmin-summary strong{color:#53685a;font-size:.58rem;white-space:nowrap}
+.rb1023-calendar-diagnostic{margin-top:8px}.rb1023-calendar-diagnostic summary{color:var(--rb19b-muted);font-size:.58rem}.rb1023-calendar-diagnostic>div{display:grid;gap:9px;padding-top:10px}.rb1023-calendar-diagnostic p{margin:0;color:var(--rb19b-muted);font-size:.58rem;line-height:1.45}
+.rb107-toast{display:flex!important;align-items:center;gap:12px}.rb107-toast span{min-width:0}.rb107-toast button{padding:5px 0;border:0;background:transparent;color:#e4eedf;font-size:.66rem;font-weight:800;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+@media(max-width:640px){
+  .rb1023-form-states{grid-template-columns:1fr}
+  .rb119b-plan-row.rb1023-draggable{grid-template-columns:39px 38px minmax(0,1fr) 32px 28px;touch-action:pan-y}
+  .rb1023-drag-handle{width:28px}
+  .rb1023-move-options{grid-template-columns:1fr}
+  .rb1023-actual{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){.rb119b-plan-row.rb1023-draggable{transition:none}}

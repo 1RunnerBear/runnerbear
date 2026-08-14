@@ -123,8 +123,8 @@ test('Concept2, Zwift and strength are all excluded',()=>{
   assert.equal(result.available,false);
 });
 
-test('v10.22 UI keeps user control and removes fake intensity widths',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1022.js'),'utf8');
+test('v10.23 UI keeps user control and removes fake intensity widths',()=>{
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1023.js'),'utf8');
   assert.match(ui,/Form i dag/);
   assert.match(ui,/data-rb1022-accept/);
   assert.match(ui,/data-rb1022-keep/);
@@ -137,7 +137,7 @@ test('v10.22 UI keeps user control and removes fake intensity widths',()=>{
 });
 
 test('keeping the planned workout removes only the explicit readiness adjustment',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1022.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1023.js'),'utf8');
   const keep=ui.slice(ui.indexOf('function keepPlannedWorkout'),ui.indexOf('function bind('));
   assert.match(keep,/clearReadinessAdjustment\(p\)/);
   assert.match(keep,/choice:'keep'/);
@@ -145,7 +145,7 @@ test('keeping the planned workout removes only the explicit readiness adjustment
 });
 
 test('readiness never creates automatic quality debt',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1022.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1023.js'),'utf8');
   const autopilot=ui.slice(ui.indexOf('function runAutopilot'),ui.indexOf('function migrateDocumentedThreshold'));
   assert.match(autopilot,/user must explicitly accept/i);
   assert.match(autopilot,/return;/);
@@ -153,7 +153,7 @@ test('readiness never creates automatic quality debt',()=>{
 });
 
 test('intensity profile selects latest threshold history and profile max HR',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1022.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1023.js'),'utf8');
   const profile=ui.slice(ui.indexOf('function intensityProfile'),ui.indexOf('function rangeLabel'));
   assert.match(profile,/latest=history\.at\(-1\)/);
   assert.match(profile,/latest\?\.hr\|\|profile\.thresholdHr/);

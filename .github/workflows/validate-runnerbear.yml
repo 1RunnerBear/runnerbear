@@ -8,7 +8,7 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1022.mjs'
+      - 'scripts/build-v1023.mjs'
       - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
   pull_request:
@@ -18,7 +18,7 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1022.mjs'
+      - 'scripts/build-v1023.mjs'
       - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
 
@@ -34,10 +34,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build canonical v10.22 assets
+      - name: Build canonical v10.23 assets
         run: |
-          node scripts/build-v1022.mjs
-          git diff --exit-code -- runnerbear-core-v1022.js runnerbear-ui-v1022.js runnerbear-data-v1022.js runnerbear-v1022.css
+          node scripts/build-v1023.mjs
+          git diff --exit-code -- runnerbear-core-v1023.js runnerbear-ui-v1023.js runnerbear-data-v1023.js runnerbear-v1023.css
 
       - name: Check JavaScript loaded by index
         run: |
@@ -105,7 +105,7 @@ jobs:
       - name: Test v10.12 trust and analysis safeguards
         run: node --test tests/v1011-trust.test.cjs tests/v1012-analysis.test.cjs tests/v1020-coaching-clarity.test.cjs
 
-      - name: Test v10.22 readiness and performance foundation
+      - name: Test v10.23 plan integrity, readiness and sync
         run: node --test tests/*.test.cjs
 
       - name: Validate web manifest
