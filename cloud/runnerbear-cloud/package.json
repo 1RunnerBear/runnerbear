@@ -1,7 +1,7 @@
 {
   "name": "runnerbear-cloud",
   "private": true,
-  "version": "10.25.0",
+  "version": "10.25.1",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

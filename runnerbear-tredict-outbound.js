@@ -102,10 +102,10 @@
     const type=String(p?.type||'').toLowerCase(),id=sourceId({...p,date}),title=clean(p?.title||'RunnerBear workout',255);
     const steps=type==='quality'?qualitySteps(p):type==='race'?raceSteps(p):easySteps(p);
     return{
-      externalId:id,date,title,type,km:Number(p?.km)||0,
+      externalId:id,date,title,type,stimulus:String(p?.stimulus||type),planRevision:Math.max(0,Number(p?.planRevision||0)),km:Number(p?.km)||0,
       structuredWorkout:{
         title,
-        notes:clean(`[RB:${id}] ${p?.purpose||''} ${p?.desc||''} ${p?.detail||''}`,1024),
+        notes:clean(`[RB:${id}] [REV:${Math.max(0,Number(p?.planRevision||0))}] [STIMULUS:${p?.stimulus||type}] ${p?.purpose||''} ${p?.desc||''} ${p?.detail||''}`,1024),
         trainingType:'planned',sportType:'running',subSportType:'generic',steps
       }
     };
@@ -118,11 +118,11 @@
     if(!rows.length)throw new Error('No publishable running workouts');
     const start=rows[0].date,end=rows.at(-1).date;
     return{
-      source:{version:'10.8.1',startDate:start,endDate:end,workoutCount:rows.length,externalIds:rows.map(x=>x.externalId)},
+      source:{version:'10.25.1',startDate:start,endDate:end,workoutCount:rows.length,externalIds:rows.map(x=>x.externalId),planRevision:Math.max(0,...rows.map(x=>Number(x.planRevision||0)))},
       payload:{
         plan:{
           title:`RunnerBear · ${formatDate(start)}–${formatDate(end)}`,
-          description:'RunnerBear-generated running plan. Controlled threshold, repeatable training and conservative load management. Stable RunnerBear IDs are included in every workout note.',
+          description:'RunnerBear-generated running plan. Controlled threshold, explicit stimulus lock, repeatable training and conservative load management. Stable RunnerBear IDs and plan revisions are included in every workout note.',
           categories:['building','intensity','race_specific'],targetgroups:['intermediate'],zonetypes:['heartrate','pace'],language:'en'
         },
         planTrainings:rows.map(x=>({day:dayDiff(x.date,start)+1,time:1020,structuredWorkout:x.structuredWorkout}))
@@ -131,10 +131,10 @@
     };
   }
   function signature(queue){
-    const built=plan(queue),value=JSON.stringify(built.source.externalIds.map((id,i)=>[id,built.workouts[i].date,built.workouts[i].structuredWorkout]));let a=2166136261,b=2246822519;
+    const built=plan(queue),value=JSON.stringify({planRevision:built.source.planRevision,rows:built.source.externalIds.map((id,i)=>[id,built.workouts[i].date,built.workouts[i].structuredWorkout])});let a=2166136261,b=2246822519;
     for(let i=0;i<value.length;i++){const c=value.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b^c,3266489917)}
     return`${(a>>>0).toString(16).padStart(8,'0')}${(b>>>0).toString(16).padStart(8,'0')}`;
   }
 
-  return{version:'10.8.1',paceSeconds,paceTarget,recoverySeconds,workout,plan,signature};
+  return{version:'10.25.1',paceSeconds,paceTarget,recoverySeconds,workout,plan,signature};
 });

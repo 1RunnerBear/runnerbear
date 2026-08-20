@@ -111,11 +111,11 @@
     return value;
   }
   function workoutHash(workout={}){
-    const value=JSON.stringify(canonical({externalId:stableExternalId(workout),date:dateOnly(workout.date||workout.ds),type:workout.type,title:workout.title,km:Number(workout.km||0),structure:workout.structure||workout.structuredWorkout||null,targets:workout.targets||workout.target||'',cancelled:workout.cancelled===true}));
+    const value=JSON.stringify(canonical({externalId:stableExternalId(workout),date:dateOnly(workout.date||workout.ds),type:workout.type,stimulus:workout.stimulus||'',title:workout.title,km:Number(workout.km||0),structure:workout.structure||workout.structuredWorkout||null,targets:workout.targets||workout.target||'',cancelled:workout.cancelled===true,planRevision:Number(workout.planRevision||0)}));
     let a=2166136261,b=2246822519;for(let i=0;i<value.length;i++){const c=value.charCodeAt(i);a=Math.imul(a^c,16777619);b=Math.imul(b^c,3266489917)}
     return`${(a>>>0).toString(16).padStart(8,'0')}${(b>>>0).toString(16).padStart(8,'0')}`;
   }
-  function planEvent(type,workout={},detail={}){return{type,workoutId:workout.workoutId||workout.baseDs||'',externalId:stableExternalId(workout),previousDate:dateOnly(detail.previousDate),newDate:dateOnly(detail.newDate||workout.date||workout.ds),reason:clean(detail.reason||'plan-change'),updatedAt:detail.updatedAt||new Date().toISOString()}}
+  function planEvent(type,workout={},detail={}){return{type,workoutId:workout.workoutId||workout.baseDs||'',externalId:stableExternalId(workout),previousDate:dateOnly(detail.previousDate),newDate:dateOnly(detail.newDate||workout.date||workout.ds),reason:clean(detail.reason||'plan-change'),planRevision:Math.max(0,Number(detail.planRevision||workout.planRevision||0)),mutationId:clean(detail.mutationId||workout.mutationId||'',160),updatedAt:detail.updatedAt||new Date().toISOString()}}
 
   function memoryStorage(){const map=new Map();return{getItem:key=>map.has(key)?map.get(key):null,setItem:(key,value)=>map.set(key,String(value)),removeItem:key=>map.delete(key)}}
   function createGarminSyncService(options={}){

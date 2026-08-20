@@ -78,7 +78,7 @@ jobs:
           node --check src/index-v982.js
           node --check scripts/configure-access.mjs
           node --test ../../tests/tredict-outbound.test.cjs
-          node --test ../../tests/v1011-trust.test.cjs ../../tests/v1012-analysis.test.cjs ../../tests/v1013-coach-ui.test.cjs ../../tests/v1020-coaching-clarity.test.cjs ../../tests/v1021-performance-foundation.test.cjs ../../tests/v1022-readiness-intensity.test.cjs ../../tests/v1023-plan-integrity-garmin-sync.test.cjs ../../tests/v1024-tredict-transport.test.cjs ../../tests/v1025-calm-intelligence-evidence.test.cjs
+          node --test ../../tests/v1011-trust.test.cjs ../../tests/v1012-analysis.test.cjs ../../tests/v1013-coach-ui.test.cjs ../../tests/v1020-coaching-clarity.test.cjs ../../tests/v1021-performance-foundation.test.cjs ../../tests/v1022-readiness-intensity.test.cjs ../../tests/v1023-plan-integrity-garmin-sync.test.cjs ../../tests/v1024-tredict-transport.test.cjs ../../tests/v1025-calm-intelligence-evidence.test.cjs ../../tests/v10251-adaptive-plan-engine.test.cjs
 
       - name: Build private RunnerBear static app
         id: assets
@@ -123,7 +123,7 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
-            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.25" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.25") process.exit(1)' "$BODY"; then
+            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.25.1" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.25.1") process.exit(1)' "$BODY"; then
               exit 0
             fi
             sleep 5
@@ -211,7 +211,7 @@ jobs:
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "10.25",
+            "build": "10.25.1",
             "status": "success" if outcomes["guard"] == "success" and outcomes["health"] == "success" else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
