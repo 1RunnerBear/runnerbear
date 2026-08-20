@@ -1,4 +1,4 @@
-/* Pure Tredict calendar reconciliation helpers used by RunnerBear v10.24. */
+/* Pure Tredict calendar reconciliation helpers used by RunnerBear v10.25. */
 
 export function isoDate(value){
   const date=String(value||'').slice(0,10);

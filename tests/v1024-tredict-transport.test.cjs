@@ -53,8 +53,8 @@ test('calendar helpers identify RunnerBear markers and preserve scheduled time',
   assert.equal(row.id,'11');assert.equal(helpers.rowExternalId(row),'rb-workout-1');assert.equal(helpers.scheduledDateTime(row,'2026-08-20'),'2026-08-20T06:30:00.000Z');
 });
 
-test('v10.24 app names the real Tredict transport and removes the Garmin API placeholder',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8'),data=fs.readFileSync(path.join(root,'runnerbear-data-v1024.js'),'utf8'),cloud=fs.readFileSync(path.join(root,'cloud/runnerbear-cloud/src/index-v982.js'),'utf8'),bridge=fs.readFileSync(path.join(root,'cloudflare/runnerbear-tredict-worker.mjs'),'utf8');
+test('v10.25 app names the real Tredict transport and removes the Garmin API placeholder',()=>{
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1025.js'),'utf8'),data=fs.readFileSync(path.join(root,'runnerbear-data-v1025.js'),'utf8'),cloud=fs.readFileSync(path.join(root,'cloud/runnerbear-cloud/src/index-v982.js'),'utf8'),bridge=fs.readFileSync(path.join(root,'cloudflare/runnerbear-tredict-worker.mjs'),'utf8');
   assert.match(ui,/RunnerBear → Tredict → Garmin/);assert.match(ui,/Klar i Tredict – aktiver planen/);assert.match(ui,/Tredict-kalender/);
   assert.match(ui,/TREDICT_HORIZON_DAYS=10/);assert.match(ui,/addDays\(today\(\),horizon-1\)/);assert.match(ui,/rullerende 10-dagersperioden/);
   assert.doesNotMatch(ui,/Training API/);assert.doesNotMatch(ui,/Tredict-fallback/);assert.match(data,/RunnerBearTredictTransport/);
@@ -63,7 +63,7 @@ test('v10.24 app names the real Tredict transport and removes the Garmin API pla
 });
 
 test('Mer render reuses parsed data, schedule and match calculations within one render',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1025.js'),'utf8');
   assert.match(ui,/const readCache=new Map\(\)/);
   assert.match(ui,/if\(renderCache\?\.schedule\)return renderCache\.schedule/);
   assert.match(ui,/if\(renderCache\?\.activities\)return renderCache\.activities/);
@@ -72,21 +72,21 @@ test('Mer render reuses parsed data, schedule and match calculations within one 
 });
 
 test('Mer opens progressively and hydrates heavy insight work while the browser is idle',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1025.js'),'utf8');
   assert.match(ui,/moreShellHtml/);assert.match(ui,/requestIdleCallback\(hydrate/);assert.match(ui,/moreRenderReady&&!moreRenderDirty/);
 });
 
 test('Mer sync health ignores stale queue items outside the current ten-day plan',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1025.js'),'utf8');
   assert.match(ui,/currentTransportIds=new Set\(planQueue/);assert.match(ui,/filter\(x=>currentTransportIds\.has/);
 });
 
 test('an exact server-side plan signature outranks an older local queue error',()=>{
-  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1024.js'),'utf8');
+  const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1025.js'),'utf8');
   assert.match(ui,/remoteCurrentAction=current&&!active&&published/);assert.match(ui,/transportLabel=active\?'Automatisk':remoteCurrentAction\?'Aktiver én gang':transportError/);
 });
 
 test('background reconcile acknowledges the exported sync service object',()=>{
-  const data=fs.readFileSync(path.join(root,'runnerbear-data-v1024.js'),'utf8');
+  const data=fs.readFileSync(path.join(root,'runnerbear-data-v1025.js'),'utf8');
   assert.match(data,/RunnerBearCoachOS\?\.tredictSync\?\.acceptRemote/);assert.doesNotMatch(data,/tredictSync\?\.\(\)\?\.acceptRemote/);
 });

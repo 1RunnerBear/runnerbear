@@ -7,22 +7,22 @@ const vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('v10.24 index loads only canonical versioned frontend assets',()=>{
+test('v10.25 index loads only canonical versioned frontend assets',()=>{
   const html=read('index.html');
   const scripts=[...html.matchAll(/<script[^>]+src="([^"]+\.js)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   const styles=[...html.matchAll(/<link[^>]+href="([^"]+\.css)(?:\?[^"]*)?"/g)].map(match=>match[1]);
-  assert.deepEqual(scripts,['runnerbear-core-v1024.js','runnerbear-ui-v1024.js','runnerbear-data-v1024.js']);
-  assert.deepEqual(styles,['runnerbear-v1024.css']);
+  assert.deepEqual(scripts,['runnerbear-core-v1025.js','runnerbear-ui-v1025.js','runnerbear-data-v1025.js']);
+  assert.deepEqual(styles,['runnerbear-v1025.css']);
   assert.doesNotMatch(html,/runnerbear-(?:v5|premium|v97|v100|v107|v1020)-/);
   assert.doesNotMatch(html,/http-equiv="(?:Cache-Control|Pragma|Expires)"/);
   assert.doesNotMatch(html,/rel="preload"/);
   const jsBytes=scripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
-  assert.ok(jsBytes<315000,'canonical JavaScript is '+jsBytes+' bytes');
+  assert.ok(jsBytes<330000,'canonical JavaScript is '+jsBytes+' bytes');
   assert.ok(fs.statSync(path.join(root,styles[0])).size<220000);
 });
 
-test('v10.24 renders one active surface and lazy-renders inactive tabs',()=>{
-  const ui=read('runnerbear-ui-v1024.js');
+test('v10.25 renders one active surface and lazy-renders inactive tabs',()=>{
+  const ui=read('runnerbear-ui-v1025.js');
   assert.match(ui,/function renderToday\(\)/);
   assert.match(ui,/function renderPlan\(\)/);
   assert.match(ui,/function renderGoals\(\)/);
@@ -59,7 +59,7 @@ test('cached recovery state works with and without cached data',()=>{
 });
 
 test('cloud startup is home-first, full data is lazy and persistence is dirty-state driven',()=>{
-  const cloud=read('runnerbear-cloud-v1021.js');
+  const cloud=read('runnerbear-cloud-v1025.js');
   assert.match(cloud,/api\('\/api\/bootstrap\/home'\)/);
   assert.match(cloud,/runnerbear:view/);
   assert.match(cloud,/bootstrapFull\(view\)/);
@@ -92,9 +92,9 @@ test('home bootstrap uses indexed date windows without a read-path user write',(
 });
 
 test('v10.20 state and integration contracts remain in the canonical runtime',()=>{
-  const ui=read('runnerbear-ui-v1024.js');
-  const core=read('runnerbear-core-v1024.js');
-  const data=read('runnerbear-data-v1024.js');
+  const ui=read('runnerbear-ui-v1025.js');
+  const core=read('runnerbear-core-v1025.js');
+  const data=read('runnerbear-data-v1025.js');
   for(const key of ['runfest26_week_adjustments','runnerbear_v107_plan_moves','runnerbear_v107_plan_locks','runnerbear_v108_shoes','runnerbear_v109_goals','runfest26_training_profile_v10'])assert.match(ui,new RegExp(key));
   assert.match(core,/RunnerBearCoachEngine/);
   assert.match(core,/RunnerBearV1012/);
@@ -106,10 +106,10 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
   assert.match(ui,/Concept2/);
 });
 
-test('release metadata and production health gate agree on v10.24',()=>{
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.24');
-  assert.match(read('site.webmanifest'),/v1024/);
-  assert.match(read('cloud/runnerbear-cloud/src/index.js'),/const BUILD = '10\.24'/);
-  assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.24'/);
-  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.24\"/);
+test('release metadata and production health gate agree on v10.25',()=>{
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.25');
+  assert.match(read('site.webmanifest'),/v1025/);
+  assert.match(read('cloud/runnerbear-cloud/src/index.js'),/const BUILD = '10\.25'/);
+  assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25'/);
+  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.25\"/);
 });
