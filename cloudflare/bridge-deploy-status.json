@@ -1,9 +1,9 @@
 {
-  "build": "10.24",
+  "build": "10.25",
   "status": "success",
-  "checked_at": "2026-08-14T13:36:49.048135+00:00",
-  "run_id": "31805495956",
-  "source_sha": "bc0078677bb6af222f96d684e33482e2cd6224df",
+  "checked_at": "2026-08-20T11:32:07.040853+00:00",
+  "run_id": "32364220371",
+  "source_sha": "6b5fc5368ba34c5e4554eaf770390054b75920d5",
   "steps": {
     "deploy": "success",
     "bridge": "success",
