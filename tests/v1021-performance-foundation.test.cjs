@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
+const zlib=require('node:zlib');
 
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
@@ -17,7 +18,9 @@ test('v10.25 index loads only canonical versioned frontend assets',()=>{
   assert.doesNotMatch(html,/http-equiv="(?:Cache-Control|Pragma|Expires)"/);
   assert.doesNotMatch(html,/rel="preload"/);
   const jsBytes=scripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
-  assert.ok(jsBytes<330000,'canonical JavaScript is '+jsBytes+' bytes');
+  const compressedBytes=scripts.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file))).length,0);
+  assert.ok(jsBytes<365000,'canonical JavaScript is '+jsBytes+' bytes');
+  assert.ok(compressedBytes<105000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
   assert.ok(fs.statSync(path.join(root,styles[0])).size<220000);
 });
 
@@ -106,10 +109,10 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
   assert.match(ui,/Concept2/);
 });
 
-test('release metadata and production health gate agree on v10.25',()=>{
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.25');
-  assert.match(read('site.webmanifest'),/v1025/);
-  assert.match(read('cloud/runnerbear-cloud/src/index.js'),/const BUILD = '10\.25'/);
-  assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25'/);
-  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.25\"/);
+test('release metadata and production health gate agree on v10.25.1',()=>{
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.25.1');
+  assert.match(read('site.webmanifest'),/v10251/);
+  assert.match(read('cloud/runnerbear-cloud/src/index.js'),/const BUILD = '10\.25\.1'/);
+  assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
+  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.25\.1\"/);
 });

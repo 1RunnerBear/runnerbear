@@ -1,7 +1,7 @@
-/* RunnerBear v10.25 · non-blocking Cloud state and Tredict transport client */
+/* RunnerBear v10.25.1 · non-blocking Cloud state and Tredict transport client */
 (function(){
   'use strict';
-  const BUILD='10.25';
+  const BUILD='10.25.1';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
@@ -71,7 +71,7 @@
       zones:{...(previous.zones||{}),...(cache.zones||{})},
       syncedAt:cache.syncedAt||new Date().toISOString(),
       bridgeParts:Array.isArray(cache.bridgeParts)?cache.bridgeParts:[],
-      source:'runnerbear-cloud-v10.25'
+      source:'runnerbear-cloud-v10.25.1'
     };
     localStorage.setItem(CACHE,JSON.stringify(normalized));
     localStorage.setItem(LAST,normalized.syncedAt);

@@ -1,7 +1,7 @@
 import legacy from './index.js';
 import { expectedFromBundle, findPlannedWorkout, plannedRows, scheduledDateTime } from '../../../cloudflare/tredict-calendar-sync.mjs';
 
-const BUILD='10.25';
+const BUILD='10.25.1';
 const USER_ID='primary';
 const TREDICT_SOURCE='tredict';
 const TREDICT_STATE='tredict';
@@ -45,6 +45,18 @@ async function readState(env,namespace,fallback={}){
   const row=await env.DB.prepare('SELECT payload_json FROM rb_state WHERE user_id=?1 AND namespace=?2').bind(owner(env),namespace).first();
   if(!row?.payload_json)return fallback;
   try{return JSON.parse(row.payload_json)}catch{return fallback}
+}
+
+async function persistOutbound(env,data){
+  const t=now(),revision=Math.max(0,Math.round(Number(data?.planRevision||0))),result=await env.DB.prepare(`INSERT INTO rb_state (user_id, namespace, payload_json, updated_at) VALUES (?1,?2,?3,?4)
+    ON CONFLICT(user_id, namespace) DO UPDATE SET payload_json=excluded.payload_json, updated_at=excluded.updated_at
+    WHERE CAST(COALESCE(json_extract(rb_state.payload_json,'$.planRevision'),0) AS INTEGER) <= ?5`)
+    .bind(owner(env),OUTBOUND_STATE,JSON.stringify(data??{}),t,revision).run();
+  if(Number(result?.meta?.changes||0)>0)return{applied:true,state:data};
+  return{applied:false,state:await readState(env,OUTBOUND_STATE,{})};
+}
+async function savedOutboundResponse(env,next,meta={}){
+  const saved=await persistOutbound(env,next);return{ok:true,build:BUILD,...meta,staleRevision:!saved.applied,...publicOutbound(saved.state)};
 }
 
 async function upsertSync(env,status,detail,lastSyncedAt=now()){
@@ -119,7 +131,7 @@ function cacheFromSnapshot(s){
   return{
     activities:Array.isArray(s?.activities)?s.activities:[],
     hrv:s?.hrv||{},sleep:s?.sleep||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
-    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.25'
+    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.25.1'
   };
 }
 
@@ -167,14 +179,14 @@ function sanitizeOutbound(input={}){
   if(!startDate||!endDate||endDate<startDate)throw new Error('Plan requires a valid date range');
   if(externalIds.length!==cleanRows.length||externalIds.some(x=>!x))throw new Error('Plan requires one stable external ID per workout');
   return{
-    source:{version:'10.25',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
+    source:{version:'10.25.1',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature'),planRevision:Math.max(0,Math.round(Number(source.planRevision||0)))},
     payload:{plan:{title:text(plan.title,255,'plan title',true),description:text(plan.description,10240,'plan description',true),categories:['building','intensity','race_specific'],targetgroups:['intermediate'],zonetypes:['heartrate','pace'],language:'en'},planTrainings:cleanRows}
   };
 }
 function canonical(value){if(Array.isArray(value))return value.map(canonical);if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(k=>[k,canonical(value[k])]));return value}
 async function sha256(value){const bytes=new TextEncoder().encode(JSON.stringify(canonical(value))),hash=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('')}
 function addIsoDays(ds,days){const d=new Date(`${ds}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+Number(days||0));return d.toISOString().slice(0,10)}
-function publicOutbound(state={}){return{status:String(state.status||'not-published'),transport:'tredict-garmin',hash:String(state.hash||''),clientSignature:String(state.clientSignature||''),planId:String(state.planId||''),planTitle:String(state.planTitle||''),startDate:String(state.startDate||''),endDate:String(state.endDate||''),workoutCount:Number(state.workoutCount)||0,calendarCount:Number(state.calendarCount)||0,requiresAction:state.requiresAction===true,items:state.items&&typeof state.items==='object'?state.items:{},updatedAt:String(state.updatedAt||''),message:String(state.message||'')}}
+function publicOutbound(state={}){return{status:String(state.status||'not-published'),transport:'tredict-garmin',hash:String(state.hash||''),clientSignature:String(state.clientSignature||''),planRevision:Math.max(0,Number(state.planRevision||0)),mutationId:String(state.mutationId||''),planId:String(state.planId||''),planTitle:String(state.planTitle||''),startDate:String(state.startDate||''),endDate:String(state.endDate||''),workoutCount:Number(state.workoutCount)||0,calendarCount:Number(state.calendarCount)||0,requiresAction:state.requiresAction===true,items:state.items&&typeof state.items==='object'?state.items:{},updatedAt:String(state.updatedAt||''),message:String(state.message||'')}}
 async function outboundStatus(env){return publicOutbound(await readState(env,OUTBOUND_STATE,{}))}
 async function verifyOutbound(env){
   if(!env.TREDICT)throw new Error('Tredict service binding missing');const state=await readState(env,OUTBOUND_STATE,{});
@@ -184,33 +196,35 @@ async function verifyOutbound(env){
   const active=expected.length>0&&matched.length===expected.length,items={...(state.items||{})};
   for(const item of expected){const row=findPlannedWorkout(rows,item);if(row)items[item.externalId]={...(items[item.externalId]||{}),status:'synced',tredictWorkoutId:String(row.id||row.trainingId||''),date:item.date,updatedAt:now()}}
   const next={...state,items,requiresAction:!active,status:active?'calendar-active':state.planId?'awaiting-calendar-activation':'review-required',calendarCount:matched.length,updatedAt:now(),message:active?'Tredict-kalenderen inneholder alle RunnerBear-øktene. Tredict sender dem videre til Garmin.':`${matched.length} av ${expected.length} RunnerBear-økter finnes i Tredict-kalenderen. Aktiver den publiserte planen i Tredict.`};
-  await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,active,...publicOutbound(next)};
+  return savedOutboundResponse(env,next,{active});
 }
 async function outboundPlan(request,env,publish=false){
   if(!env.TREDICT)throw new Error('Tredict service binding missing');
-  const bundle=sanitizeOutbound(await bodyJson(request)),hash=await sha256(bundle.payload),previous=await readState(env,OUTBOUND_STATE,{});
+  const bundle=sanitizeOutbound(await bodyJson(request)),hash=await sha256(bundle.payload),previous=await readState(env,OUTBOUND_STATE,{}),incomingRevision=Math.max(0,Number(bundle.source.planRevision||0));
   const expected=bundle.payload.planTrainings.map((x,i)=>({date:addIsoDays(bundle.source.startDate,x.day-1),title:x.structuredWorkout.title,externalId:bundle.source.externalIds[i]||''}));
-  const base={hash,clientSignature:bundle.source.clientSignature,planTitle:bundle.payload.plan.title,startDate:bundle.source.startDate,endDate:bundle.source.endDate,workoutCount:bundle.source.workoutCount,expected,updatedAt:now()};
+  const base={hash,clientSignature:bundle.source.clientSignature,planRevision:incomingRevision,planTitle:bundle.payload.plan.title,startDate:bundle.source.startDate,endDate:bundle.source.endDate,workoutCount:bundle.source.workoutCount,expected,updatedAt:now()};
+  if(incomingRevision<Number(previous.planRevision||0))return{ok:true,build:BUILD,idempotent:true,staleRevision:true,...publicOutbound(previous)};
   if(!publish)return{ok:true,build:BUILD,preview:true,...base,workouts:bundle.payload.planTrainings.map((x,i)=>({externalId:bundle.source.externalIds[i]||'',day:x.day,title:x.structuredWorkout.title,steps:x.structuredWorkout.steps.length}))};
   if(previous.hash===hash&&['published','awaiting-calendar-activation','calendar-active','review-required'].includes(previous.status)&&previous.planId)return{ok:true,build:BUILD,idempotent:true,...publicOutbound(previous)};
   if(previous.hash===hash&&previous.status==='publishing')return{ok:false,build:BUILD,error:'Publication already in progress',...publicOutbound(previous)};
-  await upsertState(env,OUTBOUND_STATE,{...base,status:'publishing',message:'Publiserer strukturert plan til Tredict'});
+  const publishing=await persistOutbound(env,{...base,status:'publishing',message:'Publiserer strukturert plan til Tredict'});if(!publishing.applied)return{ok:true,build:BUILD,idempotent:true,staleRevision:true,...publicOutbound(publishing.state)};
   try{
     const result=await env.TREDICT.createPlan(bundle.payload),published={...base,transport:'tredict-garmin',status:'awaiting-calendar-activation',requiresAction:true,planId:String(result?.planId||''),message:'Planen er klar i Tredict. Aktiver den én gang i kalenderen; Tredict sender deretter øktene til Garmin.',publishedAt:now()};
     if(!published.planId)throw new Error('Tredict did not return planId');
-    await upsertState(env,OUTBOUND_STATE,published);return{ok:true,build:BUILD,idempotent:false,...publicOutbound(published)};
+    return savedOutboundResponse(env,published,{idempotent:false});
   }catch(error){
     const failed={...base,status:'review-required',message:'Tredict-svaret var ikke sikkert. Kontroller før ny publisering.',error:error instanceof Error?error.message:String(error)};
-    await upsertState(env,OUTBOUND_STATE,failed);throw error;
+    await persistOutbound(env,failed);throw error;
   }
 }
 
 async function reconcileOutbound(request,env){
   if(!env.TREDICT)throw new Error('Tredict service binding missing');
   const input=await bodyJson(request),bundle=sanitizeOutbound(input),mutation=input?.mutation&&typeof input.mutation==='object'?input.mutation:{};
-  const hash=await sha256(bundle.payload),previous=await readState(env,OUTBOUND_STATE,{}),expected=expectedFromBundle(bundle,addIsoDays),externalId=String(mutation.externalId||mutation?.event?.externalId||''),operation=String(mutation.operation||'reconcile'),changed=expected.find(x=>x.externalId===externalId)||(externalId?{externalId,date:isoDate(mutation?.event?.newDate||mutation?.workout?.date||mutation?.workout?.ds),title:String(mutation?.workout?.title||'')}:null);
+  const hash=await sha256(bundle.payload),previous=await readState(env,OUTBOUND_STATE,{}),incomingRevision=Math.max(0,Number(mutation.planRevision||mutation?.event?.planRevision||mutation?.workout?.planRevision||bundle.source.planRevision||0)),mutationId=text(mutation.mutationId||mutation?.event?.mutationId||mutation?.workout?.mutationId,160,'mutation id'),expected=expectedFromBundle(bundle,addIsoDays),externalId=String(mutation.externalId||mutation?.event?.externalId||''),operation=String(mutation.operation||'reconcile'),changed=expected.find(x=>x.externalId===externalId)||(externalId?{externalId,date:isoDate(mutation?.event?.newDate||mutation?.workout?.date||mutation?.workout?.ds),title:String(mutation?.workout?.title||'')}:null);
+  if(incomingRevision<Number(previous.planRevision||0))return{ok:true,build:BUILD,idempotent:true,staleRevision:true,...publicOutbound(previous)};
   const dates=[bundle.source.startDate,bundle.source.endDate,isoDate(mutation?.event?.previousDate),isoDate(mutation?.event?.newDate),changed?.date].filter(Boolean).sort(),startDate=dates[0]||bundle.source.startDate,endDate=dates.at(-1)||bundle.source.endDate;
-  const raw=await env.TREDICT.plannedWorkouts(`${startDate}T00:00:00.000Z`,`${endDate}T23:59:59.999Z`),rows=plannedRows(raw),matched=expected.filter(item=>findPlannedWorkout(rows,item)),items={...(previous.items||{})},base={transport:'tredict-garmin',hash,clientSignature:bundle.source.clientSignature,planTitle:bundle.payload.plan.title,startDate:bundle.source.startDate,endDate:bundle.source.endDate,workoutCount:bundle.source.workoutCount,expected,items,updatedAt:now()};
+  const raw=await env.TREDICT.plannedWorkouts(`${startDate}T00:00:00.000Z`,`${endDate}T23:59:59.999Z`),rows=plannedRows(raw),matched=expected.filter(item=>findPlannedWorkout(rows,item)),items={...(previous.items||{})},base={transport:'tredict-garmin',hash,clientSignature:bundle.source.clientSignature,planRevision:incomingRevision,mutationId,planTitle:bundle.payload.plan.title,startDate:bundle.source.startDate,endDate:bundle.source.endDate,workoutCount:bundle.source.workoutCount,expected,items,updatedAt:now()};
 
   if(operation==='reschedule'&&changed){
     const row=findPlannedWorkout(rows,changed,[mutation?.event?.previousDate,mutation?.event?.newDate]);
@@ -219,7 +233,7 @@ async function reconcileOutbound(request,env){
       await env.TREDICT.changePlannedWorkoutDate(trainingId,scheduledDateTime(row,changed.date));
       items[changed.externalId]={status:'synced',tredictWorkoutId:trainingId,date:changed.date,hash:String(mutation.hash||''),updatedAt:now()};
       const next={...previous,...base,items,status:previous.status==='calendar-active'?'calendar-active':'synced',requiresAction:false,calendarCount:Math.max(matched.length,Number(previous.calendarCount||0)),message:'Økten er flyttet i Tredict-kalenderen og sendes videre til Garmin.'};
-      await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,idempotent:false,tredictWorkoutId:trainingId,...publicOutbound(next)};
+      return savedOutboundResponse(env,next,{idempotent:false,tredictWorkoutId:trainingId});
     }
   }
 
@@ -229,11 +243,11 @@ async function reconcileOutbound(request,env){
     if(row&&future){
       items[changed.externalId]={status:'review_required',tredictWorkoutId:String(row.id||row.trainingId||''),date:changed.date,hash:String(mutation.hash||''),updatedAt:now()};
       const next={...previous,...base,items,status:'review-required',requiresAction:true,calendarCount:matched.length,message:'Tredict krever kontroll: fjern den utgåtte økten fra kalenderen. RunnerBear-planen er allerede riktig.'};
-      await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,requiresAction:true,...publicOutbound(next)};
+      return savedOutboundResponse(env,next,{requiresAction:true});
     }
     if(!row){
       const active=expected.length>0&&matched.length===expected.length,next={...previous,...base,items,status:active?'calendar-active':previous.status||'synced',requiresAction:false,calendarCount:matched.length,message:'Den utgåtte økten er fjernet fra RunnerBear- og Tredict-tilstanden.'};
-      await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,idempotent:true,...publicOutbound(next)};
+      return savedOutboundResponse(env,next,{idempotent:true});
     }
   }
 
@@ -241,12 +255,12 @@ async function reconcileOutbound(request,env){
   if(expected.length&&matched.length===expected.length&&!structuralChange){
     for(const item of expected){const row=findPlannedWorkout(rows,item);items[item.externalId]={...(items[item.externalId]||{}),status:'synced',tredictWorkoutId:String(row?.id||row?.trainingId||''),date:item.date,updatedAt:now()}}
     const next={...previous,...base,items,status:'calendar-active',requiresAction:false,calendarCount:matched.length,message:'Alle RunnerBear-øktene ligger i Tredict-kalenderen og sendes videre til Garmin.'};
-    await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,idempotent:true,...publicOutbound(next)};
+    return savedOutboundResponse(env,next,{idempotent:true});
   }
 
   if(previous.hash===hash&&previous.planId){
     const next={...previous,...base,status:previous.status||'awaiting-calendar-activation',requiresAction:previous.status!=='calendar-active',calendarCount:matched.length};
-    await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,idempotent:true,awaitingActivation:next.status==='awaiting-calendar-activation',...publicOutbound(next)};
+    return savedOutboundResponse(env,next,{idempotent:true,awaitingActivation:next.status==='awaiting-calendar-activation'});
   }
 
   const result=await env.TREDICT.createPlan(bundle.payload),planId=String(result?.planId||'');if(!planId)throw new Error('Tredict did not return planId');
@@ -254,7 +268,7 @@ async function reconcileOutbound(request,env){
   const message=replacingActive?'En oppdatert RunnerBear-plan er klar i Tredict. Erstatt den tidligere kalenderplanen for å unngå duplikater.':'RunnerBear-planen er klar i Tredict. Aktiver den én gang i kalenderen; Tredict sender deretter øktene til Garmin.';
   if(changed)items[changed.externalId]={status:replacingActive?'review_required':'awaiting_activation',tredictPlanId:planId,date:changed.date,hash:String(mutation.hash||''),updatedAt:now()};
   const next={...base,planId,status,requiresAction:true,calendarCount:matched.length,message,publishedAt:now()};
-  await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,idempotent:false,awaitingActivation:!replacingActive,...publicOutbound(next)};
+  return savedOutboundResponse(env,next,{idempotent:false,awaitingActivation:!replacingActive});
 }
 
 async function syncTredict(env,{force=false,days=365}={}){

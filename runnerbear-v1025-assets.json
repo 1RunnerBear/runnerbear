@@ -1,5 +1,5 @@
 {
-  "build": "10.25",
+  "build": "10.25.1",
   "core": [
     "plan.js",
     "runnerbear-v100-plan-bootstrap.js",
@@ -10,6 +10,7 @@
     "runnerbear-v1023-plan-integrity.js",
     "runnerbear-v1024-tredict-transport.js",
     "runnerbear-v1025-intelligence.js",
+    "runnerbear-v10251-adaptive-plan.js",
     "runnerbear-runtime-v1021.js"
   ],
   "data": [
@@ -32,6 +33,7 @@
     "runnerbear-v1021-foundation.css",
     "runnerbear-v1022-readiness-intensity.css",
     "runnerbear-v1023-plan-integrity.css",
-    "runnerbear-v1025-calm-intelligence.css"
+    "runnerbear-v1025-calm-intelligence.css",
+    "runnerbear-v10251-coach-first.css"
   ]
 }

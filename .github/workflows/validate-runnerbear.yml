@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build canonical v10.25 assets
+      - name: Build canonical v10.25.1 assets
         run: |
           node scripts/build-v1025.mjs
           git diff --exit-code -- runnerbear-core-v1025.js runnerbear-ui-v1025.js runnerbear-data-v1025.js runnerbear-v1025.css
@@ -105,7 +105,7 @@ jobs:
       - name: Test v10.12 trust and analysis safeguards
         run: node --test tests/v1011-trust.test.cjs tests/v1012-analysis.test.cjs tests/v1020-coaching-clarity.test.cjs
 
-      - name: Test v10.25 Tredict transport, plan integrity and readiness
+      - name: Test v10.25.1 coach-first adaptive plan and transport
         run: node --test tests/*.test.cjs
 
       - name: Validate web manifest

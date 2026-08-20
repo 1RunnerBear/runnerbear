@@ -1,4 +1,4 @@
-/* RunnerBear v10.25 · Tredict Transport Bridge · Cloudflare Worker
+/* RunnerBear v10.25.1 · Tredict Transport Bridge · Cloudflare Worker
    Secrets (Cloudflare): TREDICT_TOKEN, RUNNERBEAR_BRIDGE_KEY
    Browser fetch remains backwards-compatible. RunnerBear Cloud uses the named
    TredictService RPC entrypoint through a private Cloudflare Service Binding.
@@ -112,15 +112,15 @@ async function mcpPost(env,body,sessionId=''){
   return{envelope:parseMcpEnvelope(raw),sessionId:nextSession};
 }
 async function createPlanViaMcp(env,payload){
-  const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'10.25'}}});
+  const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'10.25.1'}}});
   const sessionId=initialized.sessionId;
   await mcpPost(env,{jsonrpc:'2.0',method:'notifications/initialized'},sessionId);
   const listed=await mcpPost(env,{jsonrpc:'2.0',id:'rb-tools',method:'tools/list',params:{}},sessionId),tools=listed.envelope?.result?.tools||[],tool=tools.find(x=>x?.name==='plan-creation');
   if(!tool)throw new Error('Tredict MCP plan-creation tool is unavailable');
   const properties=tool?.inputSchema?.properties||{};
   const args=properties.plan
-    ?{...payload,...(properties.llmDescription?{llmDescription:'RunnerBear v10.25 deterministic 10-day training calendar sync'}:{})}
-    :{...payload.plan,planTrainings:payload.planTrainings,...(properties.llmDescription?{llmDescription:'RunnerBear v10.25 deterministic 10-day training calendar sync'}:{})};
+    ?{...payload,...(properties.llmDescription?{llmDescription:'RunnerBear v10.25.1 deterministic 10-day training calendar sync'}:{})}
+    :{...payload.plan,planTrainings:payload.planTrainings,...(properties.llmDescription?{llmDescription:'RunnerBear v10.25.1 deterministic 10-day training calendar sync'}:{})};
   const called=await mcpPost(env,{jsonrpc:'2.0',id:'rb-plan',method:'tools/call',params:{name:'plan-creation',arguments:args}},sessionId),envelope=called.envelope;
   if(envelope?.error)throw new Error(`Tredict MCP plan-creation failed · ${String(envelope.error?.message||'unknown error').slice(0,300)}`);
   const result=envelope?.result||{};
@@ -162,7 +162,7 @@ async function buildSnapshot(env,requestedDays=365){
   summaries.forEach(a=>{if(details.has(a.id))a.detail=details.get(a.id)});
   const bodyRows=by.body.ok?(by.body.data?.bodyvalues||by.body.data?._embedded?.bodyvalues||[]):[];
   return{
-    ok:true,version:'10.25',syncedAt:new Date().toISOString(),windowDays:days,
+    ok:true,version:'10.25.1',syncedAt:new Date().toISOString(),windowDays:days,
     activities:summaries,
     hrv:by.hrv.ok?(by.hrv.data?.hrv||{}):{},
     sleep:by.sleep.ok?(by.sleep.data?.sleep||{}):{},
@@ -208,7 +208,7 @@ export class TredictService extends WorkerEntrypoint {
     const result=await tdPost(this.env,'plannedTraining/changeDate',{trainingId:id,date:target});
     return{ok:true,trainingId:id,date:target,result};
   }
-  async health(){return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'10.25',outbound:true,transport:'tredict-garmin',calendarWrite:true}}
+  async health(){return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'10.25.1',outbound:true,transport:'tredict-garmin',calendarWrite:true}}
 }
 
 export default {
@@ -223,7 +223,7 @@ export default {
     if(request.headers.get('X-RunnerBear-Key')!==env.RUNNERBEAR_BRIDGE_KEY)return json({ok:false,error:'BRIDGE_AUTH_FAILED'},401,origin,true);
 
     const url=new URL(request.url);
-    if(url.pathname==='/health')return json({ok:true,service:'RunnerBear Tredict Bridge',version:'10.25',outbound:true,transport:'tredict-garmin',calendarWrite:true},200,origin,true);
+    if(url.pathname==='/health')return json({ok:true,service:'RunnerBear Tredict Bridge',version:'10.25.1',outbound:true,transport:'tredict-garmin',calendarWrite:true},200,origin,true);
     if(url.pathname!=='/api/snapshot')return json({ok:false,error:'NOT_FOUND'},404,origin,true);
     const out=await buildSnapshot(env,url.searchParams.get('days')||365);
     return json(out,out.ok?200:(out.status||502),origin,true);

@@ -1,4 +1,4 @@
-/* RunnerBear v10.24 · persistent Tredict transport queue.
+/* RunnerBear v10.25.1 · persistent, revision-aware Tredict transport queue.
    RunnerBear owns the plan, Tredict transports scheduled workouts to Garmin. */
 (function(root,factory){
   const api=factory(root.RunnerBearV1023||(typeof module==='object'&&module.exports?require('./runnerbear-v1023-plan-integrity.js'):null));
@@ -8,7 +8,7 @@
   'use strict';
 
   if(!base)throw new Error('RunnerBear v10.23 plan integrity is required');
-  const BUILD='10.24';
+  const BUILD='10.25.1';
   const clean=(value,max=180)=>String(value??'').replace(/\s+/g,' ').trim().slice(0,max);
   const memoryStorage=base.memoryStorage;
 
@@ -25,8 +25,8 @@
     const retryDelays=options.retryDelays||[0,1500,6000,20000];
     let timer=0,flushing=null;
 
-    const empty=()=>({version:2,transport:'tredict',items:{},queue:[]});
-    const parse=raw=>{try{const value=JSON.parse(raw||'{}');return{version:2,transport:'tredict',items:value.items&&typeof value.items==='object'?value.items:{},queue:Array.isArray(value.queue)?value.queue:[]}}catch{return empty()}};
+    const empty=()=>({version:3,transport:'tredict',latestRevision:0,items:{},queue:[]});
+    const parse=raw=>{try{const value=JSON.parse(raw||'{}'),queue=Array.isArray(value.queue)?value.queue:[],latest=Math.max(Number(value.latestRevision||0),...queue.map(row=>Number(row.planRevision||row.workout?.planRevision||row.event?.planRevision||0)));return{version:3,transport:'tredict',latestRevision:latest,items:value.items&&typeof value.items==='object'?value.items:{},queue}}catch{return empty()}};
     function read(){
       const current=storage.getItem(stateKey);
       if(current)return parse(current);
@@ -46,12 +46,14 @@
     function status(externalId){const state=read();return state.items[String(externalId||'')]||{status:'not_synced',externalId:String(externalId||''),retryCount:0,transport:'tredict'}}
     function all(){return read()}
     function queue(event,workout){
-      const state=read(),externalId=base.stableExternalId(workout),hash=base.workoutHash(workout),previous=state.items[externalId]||{},transport=transportFor();
-      if(['synced','awaiting_activation','review_required'].includes(previous.status)&&previous.lastSyncedHash===hash)return{queued:false,idempotent:true,state:previous};
-      const entry={externalId,event:{...event,externalId},workout:{...workout,externalId},hash,queuedAt:nowIso(),attempt:0,nextAttemptAt:clock()};
+      const state=read(),externalId=base.stableExternalId(workout),hash=base.workoutHash(workout),previous=state.items[externalId]||{},transport=transportFor(),planRevision=Math.max(0,Number(workout?.planRevision||event?.planRevision||0));
+      if(planRevision<Number(state.latestRevision||0))return{queued:false,idempotent:false,staleRevision:true,state:previous};
+      if(['synced','awaiting_activation','review_required'].includes(previous.status)&&previous.lastSyncedHash===hash&&Number(previous.planRevision||0)>=planRevision)return{queued:false,idempotent:true,state:previous};
+      const entry={externalId,event:{...event,externalId,planRevision},workout:{...workout,externalId,planRevision},hash,planRevision,mutationId:String(workout?.mutationId||event?.mutationId||''),queuedAt:nowIso(),attempt:0,nextAttemptAt:clock()};
+      if(planRevision>Number(state.latestRevision||0)){const superseded=state.queue.filter(row=>Number(row.planRevision||0)<planRevision);state.latestRevision=planRevision;state.queue=state.queue.filter(row=>Number(row.planRevision||0)>=planRevision);for(const row of superseded)emit('tredict_sync_superseded',{externalId:row.externalId,planRevision:row.planRevision,mutationId:row.mutationId})}
       state.queue=state.queue.filter(row=>row.externalId!==externalId);state.queue.push(entry);
-      state.items[externalId]={...previous,externalId,transport:'tredict',status:capable(transport)?'pending':'not_synced',lastError:capable(transport)?'':'tredict_transport_unavailable',retryCount:Number(previous.retryCount||0),updatedAt:entry.queuedAt};
-      save(state);emit('tredict_sync_queued',{externalId,eventType:event.type});
+      state.items[externalId]={...previous,externalId,transport:'tredict',planRevision,status:capable(transport)?'pending':'not_synced',lastError:capable(transport)?'':'tredict_transport_unavailable',retryCount:Number(previous.retryCount||0),updatedAt:entry.queuedAt};
+      save(state);emit('tredict_sync_queued',{externalId,eventType:event.type,planRevision,mutationId:entry.mutationId});
       if(capable(transport)){if(timer)cancelTimer(timer);timer=schedule(()=>{timer=0;void flush()},debounceMs)}
       return{queued:true,idempotent:false,state:state.items[externalId]};
     }
@@ -75,19 +77,21 @@
         }
         let processed=0;const remaining=[];
         for(const entry of state.queue){
+          if(Number(entry.planRevision||0)<Number(state.latestRevision||0)){state.items[entry.externalId]={...(state.items[entry.externalId]||{}),status:'superseded',lastError:'',updatedAt:nowIso()};emit('tredict_sync_superseded',{externalId:entry.externalId,planRevision:entry.planRevision,mutationId:entry.mutationId});continue}
           if(Number(entry.nextAttemptAt||0)>clock()){remaining.push(entry);continue}
           const current=state.items[entry.externalId]||{};
           if(['synced','awaiting_activation','review_required'].includes(current.status)&&current.lastSyncedHash===entry.hash)continue;
           state.items[entry.externalId]={...current,status:'syncing',lastError:'',updatedAt:nowIso()};save(state);
           try{
             const result=await send(transport,entry),nextStatus=resultStatus(result);
-            state.items[entry.externalId]={...state.items[entry.externalId],transport:'tredict',status:nextStatus,lastSyncedAt:nowIso(),lastSyncedHash:entry.hash,tredictWorkoutId:String(result?.tredictWorkoutId||result?.workoutId||state.items[entry.externalId].tredictWorkoutId||''),tredictPlanId:String(result?.planId||state.items[entry.externalId].tredictPlanId||''),lastError:'',message:clean(result?.message||''),retryCount:0};
-            processed++;emit(nextStatus==='synced'?'tredict_sync_success':'tredict_sync_action_required',{externalId:entry.externalId,status:nextStatus});
+            if(result?.staleRevision===true||Number(result?.planRevision||entry.planRevision||0)<Number(state.latestRevision||0)){state.items[entry.externalId]={...state.items[entry.externalId],status:'superseded',lastError:'',updatedAt:nowIso()};emit('tredict_sync_superseded',{externalId:entry.externalId,planRevision:entry.planRevision,mutationId:entry.mutationId});continue}
+            state.items[entry.externalId]={...state.items[entry.externalId],transport:'tredict',planRevision:entry.planRevision,status:nextStatus,lastSyncedAt:nowIso(),lastSyncedHash:entry.hash,tredictWorkoutId:String(result?.tredictWorkoutId||result?.workoutId||state.items[entry.externalId].tredictWorkoutId||''),tredictPlanId:String(result?.planId||state.items[entry.externalId].tredictPlanId||''),lastError:'',message:clean(result?.message||''),retryCount:0};
+            processed++;emit(nextStatus==='synced'?'tredict_sync_success':'tredict_sync_action_required',{externalId:entry.externalId,status:nextStatus,planRevision:entry.planRevision,mutationId:entry.mutationId});
           }catch(error){
             const attempt=Number(entry.attempt||0)+1,retryCount=Number(current.retryCount||0)+1,delay=retryDelays[Math.min(attempt,retryDelays.length-1)];
             state.items[entry.externalId]={...state.items[entry.externalId],transport:'tredict',status:'error',lastError:clean(error?.message||error),retryCount,updatedAt:nowIso()};
-            emit('tredict_sync_failed',{externalId:entry.externalId,retryCount});
-            if(attempt<retryDelays.length){remaining.push({...entry,attempt,nextAttemptAt:clock()+delay});emit('tredict_sync_retry',{externalId:entry.externalId,retryCount,delay})}
+            emit('tredict_sync_failed',{externalId:entry.externalId,retryCount,planRevision:entry.planRevision,mutationId:entry.mutationId});
+            if(attempt<retryDelays.length){remaining.push({...entry,attempt,nextAttemptAt:clock()+delay});emit('tredict_sync_retry',{externalId:entry.externalId,retryCount,delay,planRevision:entry.planRevision,mutationId:entry.mutationId})}
           }
           save(state);
         }
@@ -105,7 +109,7 @@
     function acceptRemote(result,externalIds=[]){
       if(result?.ok!==true)return 0;
       const ids=new Set((Array.isArray(externalIds)?externalIds:[]).map(String).filter(Boolean));if(!ids.size)return 0;
-      const state=read(),nextStatus=resultStatus(result),at=nowIso();let changed=0;
+      const state=read(),remoteRevision=Math.max(0,Number(result?.planRevision||0));if(remoteRevision&&remoteRevision<Number(state.latestRevision||0))return 0;if(remoteRevision>Number(state.latestRevision||0))state.latestRevision=remoteRevision;const nextStatus=resultStatus(result),at=nowIso();let changed=0;
       for(const id of ids){
         const item=state.items[id];if(!item||!['error','pending','syncing','not_synced'].includes(item.status))continue;
         state.items[id]={...item,transport:'tredict',status:nextStatus,lastError:'',lastSyncedAt:at,tredictPlanId:String(result?.planId||item.tredictPlanId||''),message:clean(result?.message||item.message||''),retryCount:0,updatedAt:at};changed++;

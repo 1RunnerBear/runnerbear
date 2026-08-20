@@ -1,1 +1,1 @@
-RunnerBear v10.25 Tredict Transport & Calendar Sync production deploy
+RunnerBear v10.25.1 Coach-First Correction & Adaptive Plan Engine production deploy
