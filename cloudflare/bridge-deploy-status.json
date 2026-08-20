@@ -1,12 +1,12 @@
 {
-  "build": "10.25",
-  "status": "success",
-  "checked_at": "2026-08-20T11:32:07.040853+00:00",
-  "run_id": "32364220371",
-  "source_sha": "6b5fc5368ba34c5e4554eaf770390054b75920d5",
+  "build": "10.25.1",
+  "status": "failed",
+  "checked_at": "2026-08-20T12:46:04.976433+00:00",
+  "run_id": "32370521847",
+  "source_sha": "5039ab82d9344afe8a68d8c1d258575b1c4af593",
   "steps": {
     "deploy": "success",
-    "bridge": "success",
-    "migration_relay": "success"
+    "bridge": "failure",
+    "migration_relay": "skipped"
   }
 }
