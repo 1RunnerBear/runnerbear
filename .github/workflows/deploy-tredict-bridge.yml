@@ -57,15 +57,16 @@ jobs:
           RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error \
-            -H "Origin: https://1runnerbear.github.io" \
-            -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
-            "${DEPLOYMENT_URL}/health" > /tmp/health.json
-          curl --fail --silent --show-error \
-            -H "Origin: https://1runnerbear.github.io" \
-            -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
-            "${DEPLOYMENT_URL}/api/snapshot?days=7" > /tmp/snapshot.json
-          python - <<'PY'
+          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+            if curl --fail --silent --show-error \
+              -H "Origin: https://1runnerbear.github.io" \
+              -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+              "${DEPLOYMENT_URL}/health" > /tmp/health.json && \
+              curl --fail --silent --show-error \
+              -H "Origin: https://1runnerbear.github.io" \
+              -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+              "${DEPLOYMENT_URL}/api/snapshot?days=7" > /tmp/snapshot.json; then
+              if python - <<'PY'
           import json
           health=json.load(open('/tmp/health.json',encoding='utf-8'))
           snap=json.load(open('/tmp/snapshot.json',encoding='utf-8'))
@@ -74,6 +75,14 @@ jobs:
           if not (snap.get('activities') or []): raise SystemExit('No recent activities returned')
           print(f"Bridge + Tredict OK · {len(snap.get('activities') or [])} activities")
           PY
+              then
+                exit 0
+              fi
+            fi
+            echo "Bridge is not ready yet (attempt ${attempt}/12)."
+            sleep 5
+          done
+          exit 1
 
       - name: Verify private migration relay
         id: migration_relay
@@ -98,6 +107,7 @@ jobs:
 
       - name: Write bridge deploy report
         if: always()
+        continue-on-error: true
         env:
           DEPLOY_OUTCOME: ${{ steps.deploy.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify.outcome }}
@@ -105,6 +115,8 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           SHA: ${{ github.sha }}
         run: |
+          REPORT_FILE="$(mktemp)"
+          export REPORT_FILE
           python - <<'PY'
           import json,os,datetime
           steps={
@@ -120,15 +132,20 @@ jobs:
             'source_sha':os.environ.get('SHA'),
             'steps':steps,
           }
-          with open('cloudflare/bridge-deploy-status.json','w',encoding='utf-8') as f:
+          with open(os.environ['REPORT_FILE'],'w',encoding='utf-8') as f:
             json.dump(report,f,indent=2);f.write('\n')
           PY
           git config user.name "runnerbear-bridge-bot"
           git config user.email "runnerbear-bridge-bot@users.noreply.github.com"
-          git add cloudflare/bridge-deploy-status.json
-          git commit -m "Record RunnerBear bridge deploy status" || true
           for attempt in 1 2 3; do
-            git pull --rebase origin main
+            git fetch origin main
+            git checkout -B runnerbear-bridge-report origin/main
+            cp "${REPORT_FILE}" cloudflare/bridge-deploy-status.json
+            git add cloudflare/bridge-deploy-status.json
+            if git diff --cached --quiet; then
+              exit 0
+            fi
+            git commit -m "Record RunnerBear bridge deploy status"
             if git push origin HEAD:main; then
               exit 0
             fi
