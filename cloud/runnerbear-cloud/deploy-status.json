@@ -1,9 +1,9 @@
 {
-  "build": "10.25",
+  "build": "10.25.1",
   "status": "success",
-  "checked_at": "2026-08-20T11:32:14.433671+00:00",
-  "run_id": "32364220399",
-  "source_sha": "6b5fc5368ba34c5e4554eaf770390054b75920d5",
+  "checked_at": "2026-08-20T12:46:21.354999+00:00",
+  "run_id": "32370521816",
+  "source_sha": "5039ab82d9344afe8a68d8c1d258575b1c4af593",
   "steps": {
     "install": "success",
     "validate": "success",
