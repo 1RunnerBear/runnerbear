@@ -1,1 +1,1 @@
-RunnerBear v10.24 Tredict Transport & Calendar Sync production deploy
+RunnerBear v10.25 Tredict Transport & Calendar Sync production deploy

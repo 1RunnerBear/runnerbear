@@ -1,6 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
-const BUILD = '10.24';
+const BUILD = '10.25';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
@@ -202,7 +202,7 @@ async function getHomeBootstrap(request, env) {
     body,
     capacity: { running: (capacity.results || []).map((row) => parseJson(row.payload_json, {})).reverse() },
     syncedAt,
-    source: 'runnerbear-cloud-v10.24-home',
+    source: 'runnerbear-cloud-v10.25-home',
   };
   console.log(JSON.stringify({ event: 'runnerbear_bootstrap_home', build: BUILD, d1Ms, activities: state.tredict.activities.length, healthDays: (health.results || []).length }));
   return {

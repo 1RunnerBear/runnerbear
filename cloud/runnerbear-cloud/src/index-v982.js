@@ -1,7 +1,7 @@
 import legacy from './index.js';
 import { expectedFromBundle, findPlannedWorkout, plannedRows, scheduledDateTime } from '../../../cloudflare/tredict-calendar-sync.mjs';
 
-const BUILD='10.24';
+const BUILD='10.25';
 const USER_ID='primary';
 const TREDICT_SOURCE='tredict';
 const TREDICT_STATE='tredict';
@@ -119,7 +119,7 @@ function cacheFromSnapshot(s){
   return{
     activities:Array.isArray(s?.activities)?s.activities:[],
     hrv:s?.hrv||{},sleep:s?.sleep||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
-    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.24'
+    syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.25'
   };
 }
 
@@ -167,7 +167,7 @@ function sanitizeOutbound(input={}){
   if(!startDate||!endDate||endDate<startDate)throw new Error('Plan requires a valid date range');
   if(externalIds.length!==cleanRows.length||externalIds.some(x=>!x))throw new Error('Plan requires one stable external ID per workout');
   return{
-    source:{version:'10.24',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
+    source:{version:'10.25',startDate,endDate,workoutCount:cleanRows.length,externalIds,clientSignature:text(source.clientSignature,64,'client signature')},
     payload:{plan:{title:text(plan.title,255,'plan title',true),description:text(plan.description,10240,'plan description',true),categories:['building','intensity','race_specific'],targetgroups:['intermediate'],zonetypes:['heartrate','pace'],language:'en'},planTrainings:cleanRows}
   };
 }
@@ -225,10 +225,15 @@ async function reconcileOutbound(request,env){
 
   if(operation==='cancel'&&changed){
     const row=findPlannedWorkout(rows,changed,[mutation?.event?.previousDate,mutation?.event?.newDate]),future=changed.date>new Date().toISOString().slice(0,10);
+    delete items[changed.externalId];
     if(row&&future){
       items[changed.externalId]={status:'review_required',tredictWorkoutId:String(row.id||row.trainingId||''),date:changed.date,hash:String(mutation.hash||''),updatedAt:now()};
       const next={...previous,...base,items,status:'review-required',requiresAction:true,calendarCount:matched.length,message:'Tredict krever kontroll: fjern den utgåtte økten fra kalenderen. RunnerBear-planen er allerede riktig.'};
       await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,requiresAction:true,...publicOutbound(next)};
+    }
+    if(!row){
+      const active=expected.length>0&&matched.length===expected.length,next={...previous,...base,items,status:active?'calendar-active':previous.status||'synced',requiresAction:false,calendarCount:matched.length,message:'Den utgåtte økten er fjernet fra RunnerBear- og Tredict-tilstanden.'};
+      await upsertState(env,OUTBOUND_STATE,next);return{ok:true,build:BUILD,idempotent:true,...publicOutbound(next)};
     }
   }
 

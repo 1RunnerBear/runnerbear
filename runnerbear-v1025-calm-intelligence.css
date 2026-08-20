@@ -1,0 +1,37 @@
+/* RunnerBear 10.25 · calm intelligence and evidence */
+.rb1025-appbar{justify-content:flex-start;min-height:48px;padding-inline:2px}
+.rb1025-appbar .rb119b-wordmark{letter-spacing:.17em}
+.rb1025-coach-intervention{border-color:rgba(22,67,47,.2);box-shadow:0 10px 28px rgba(22,67,47,.07)}
+.rb1025-provenance{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(22,67,47,.1);color:#68736c;font-size:.68rem}
+.rb1025-provenance small{font:inherit;color:inherit}
+.rb1025-body-check{margin:18px 0 4px;padding:16px;border:1px solid rgba(22,67,47,.12);border-radius:16px;background:#f5f3ed}
+.rb1025-plan-overview article{display:block}
+.rb1025-plan-overview article>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rb1025-plan-overview article>header small{display:block;margin-top:3px;color:#6c756e;font-size:.66rem}
+.rb1025-plan-overview article>header strong{color:#16432f;font-size:1.1rem;white-space:nowrap}
+.rb1025-plan-overview article>header strong span{color:#6c756e;font-size:.68rem;font-weight:500}
+.rb1025-week-so-far>div{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:14px}
+.rb1025-week-so-far>div p{margin:0;padding:10px 7px;border-radius:11px;background:#f5f3ed;color:#6c756e;font-size:.64rem;text-align:center}
+.rb1025-week-so-far>div b{display:block;color:#16432f;font-family:var(--rb19b-display);font-size:1rem}
+.rb1025-plan-phase>strong{display:block;margin-top:13px;color:#16432f;font-family:var(--rb19b-display);font-size:1.22rem;font-weight:500}
+.rb1025-plan-phase>p{min-height:32px;margin:4px 0 12px;color:#6c756e;font-size:.7rem;line-height:1.45}
+.rb1025-plan-phase>footer{display:grid;gap:3px;padding-top:10px;border-top:1px solid rgba(22,67,47,.1)}
+.rb1025-plan-phase>footer span{color:#6c756e;font-size:.6rem;text-transform:uppercase;letter-spacing:.08em}
+.rb1025-plan-phase>footer b{color:#293d33;font-size:.7rem}
+.rb1025-chart-legend{display:flex;gap:16px;margin-top:7px;color:#68736c;font-size:.62rem}
+.rb1025-chart-legend span{display:flex;align-items:center;gap:6px}
+.rb1025-chart-legend span::before{width:8px;height:8px;border-radius:50%;background:#16432f;content:""}
+.rb1025-chart-legend .session::before{box-sizing:border-box;background:#f5f3ed;border:2px solid #6f8f7a}
+.rb107-evidence-row strong small{display:block;margin-top:2px;color:#788078;font-size:.58rem;font-weight:500}
+.rb1025-evidence article{grid-template-rows:auto auto auto}
+.rb1025-evidence article>em{white-space:normal;line-height:1.35}
+.rb1025-evidence article>i{display:none}
+@media(max-width:620px){
+  .rb1025-plan-overview{grid-template-columns:1fr}
+  .rb1025-evidence>div{grid-template-columns:1fr}
+  .rb1025-evidence article{grid-template-columns:36px minmax(0,1fr);padding:12px}
+  .rb1025-evidence article>small{font-size:.65rem}
+  .rb1025-evidence article>b{margin-top:-6px;font-size:1.05rem}
+  .rb1025-evidence article>em{font-size:.62rem}
+}
+@media(prefers-reduced-motion:reduce){.rb1025-coach-intervention{scroll-behavior:auto}}

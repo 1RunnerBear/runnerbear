@@ -1,0 +1,37 @@
+{
+  "build": "10.25",
+  "core": [
+    "plan.js",
+    "runnerbear-v100-plan-bootstrap.js",
+    "runnerbear-v100-engine.js",
+    "runnerbear-v1012-analysis.js",
+    "runnerbear-v1020-coach-model.js",
+    "runnerbear-v1022-readiness.js",
+    "runnerbear-v1023-plan-integrity.js",
+    "runnerbear-v1024-tredict-transport.js",
+    "runnerbear-v1025-intelligence.js",
+    "runnerbear-runtime-v1021.js"
+  ],
+  "data": [
+    "runnerbear-tredict-outbound.js",
+    "runnerbear-cloud-v1025.js"
+  ],
+  "ui": "runnerbear-ui-v1025-source.js",
+  "styles": [
+    "runnerbear-v5.css",
+    "runnerbear-v107-coach-os.css",
+    "runnerbear-v1013-coach-ui.css",
+    "runnerbear-v1014-premium-polish.css",
+    "runnerbear-v1016-goals-more.css",
+    "runnerbear-v1017-ux.css",
+    "runnerbear-v1018-plan-preferences.css",
+    "runnerbear-v1019-design-system.css",
+    "runnerbear-v1019b-screen-fidelity.css",
+    "runnerbear-v1019c-final-fidelity.css",
+    "runnerbear-v1020-coaching-clarity.css",
+    "runnerbear-v1021-foundation.css",
+    "runnerbear-v1022-readiness-intensity.css",
+    "runnerbear-v1023-plan-integrity.css",
+    "runnerbear-v1025-calm-intelligence.css"
+  ]
+}
