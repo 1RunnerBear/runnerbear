@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
-import { handleV1026 } from './v1026/routes.js';
+import { handleV1027 } from './v1027/routes.js';
 
-const BUILD = '10.26.0';
+const BUILD = '10.27.0';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
@@ -204,7 +204,7 @@ async function getHomeBootstrap(request, env) {
     body,
     capacity: { running: (capacity.results || []).map((row) => parseJson(row.payload_json, {})).reverse() },
     syncedAt,
-    source: 'runnerbear-cloud-v10.26.0-home',
+    source: 'runnerbear-cloud-v10.27.0-home',
   };
   console.log(JSON.stringify({ event: 'runnerbear_bootstrap_home', build: BUILD, d1Ms, activities: state.tredict.activities.length, healthDays: (health.results || []).length }));
   return {
@@ -431,7 +431,7 @@ export default {
 
     try {
       if (!['GET', 'HEAD'].includes(request.method)) await ensureUser(env);
-      const v2 = await handleV1026(request, env, {
+      const v2 = await handleV1027(request, env, {
         userId: owner(env),
         bodyJson,
         corsHeaders: cors(request, env),

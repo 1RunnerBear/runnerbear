@@ -1,0 +1,9 @@
+/* RunnerBear v10.27 · plan integrity, history and accepted-state contrast. */
+.rb1022-recommendation.accepted{border-color:#164c34;background:#edf6f0}
+.rb1022-recommendation-actions button.primary:disabled{border-color:#0d3f2b;background:#0d3f2b;color:#fff;opacity:1;box-shadow:0 0 0 2px rgba(13,63,43,.14)}
+.rb1025-week-so-far>footer{margin-top:12px;padding-top:10px;border-top:1px solid #dbe3dd;display:grid;gap:3px}
+.rb1025-week-so-far>footer span{color:#68736c;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.rb1025-week-so-far>footer b{color:#274b37;font-size:.78rem;line-height:1.45}
+.rb119c-long button>span:first-child>small+small{display:block;max-width:42ch;margin-top:4px;color:#667269;line-height:1.35}
+.rb1020-day-view.completed .rb1020-day-actual{margin-top:4px}
+@media (prefers-contrast:more){.rb1022-recommendation-actions button.primary:disabled{outline:3px solid #071f15;outline-offset:2px}}

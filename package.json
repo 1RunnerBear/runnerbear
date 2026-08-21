@@ -1,11 +1,11 @@
 {
   "name": "runnerbear-release-harness",
   "private": true,
-  "version": "10.26.0",
+  "version": "10.27.0",
   "type": "commonjs",
   "scripts": {
-    "build": "node scripts/build-v1026.mjs",
-    "check": "node scripts/build-v1026.mjs && git diff --exit-code -- runnerbear-core-v1026.js runnerbear-ui-v1026.js runnerbear-data-v1026.js runnerbear-v1026.css && node --test tests/*.test.cjs tests/e2e/*.spec.mjs",
+    "build": "node scripts/build-v1027.mjs",
+    "check": "node scripts/build-v1027.mjs && git diff --exit-code -- runnerbear-core-v1027.js runnerbear-ui-v1027.js runnerbear-data-v1027.js runnerbear-v1027.css && node --test tests/*.test.cjs tests/e2e/*.spec.mjs",
     "test": "node --test tests/*.test.cjs tests/e2e/*.spec.mjs"
   },
   "engines": {
