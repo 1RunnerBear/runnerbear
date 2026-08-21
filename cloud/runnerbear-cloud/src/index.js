@@ -1,6 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { handleV1026 } from './v1026/routes.js';
 
-const BUILD = '10.25.1';
+const BUILD = '10.26.0';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
@@ -31,7 +32,7 @@ function cors(request, env) {
   return {
     'access-control-allow-origin': origin,
     'access-control-allow-methods': 'GET,PUT,POST,OPTIONS',
-    'access-control-allow-headers': 'content-type,x-runnerbear-key',
+    'access-control-allow-headers': 'content-type,x-runnerbear-key,idempotency-key',
     'access-control-max-age': '86400',
     vary: 'Origin',
   };
@@ -203,7 +204,7 @@ async function getHomeBootstrap(request, env) {
     body,
     capacity: { running: (capacity.results || []).map((row) => parseJson(row.payload_json, {})).reverse() },
     syncedAt,
-    source: 'runnerbear-cloud-v10.25.1-home',
+    source: 'runnerbear-cloud-v10.26.0-home',
   };
   console.log(JSON.stringify({ event: 'runnerbear_bootstrap_home', build: BUILD, d1Ms, activities: state.tredict.activities.length, healthDays: (health.results || []).length }));
   return {
@@ -398,14 +399,26 @@ export default {
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(request, env) });
-    if (path === '/health') return json({
-      ok: true,
-      service: 'runnerbear-cloud',
-      build: BUILD,
-      database: !!env.DB,
-      assets: !!env.ASSETS,
-      accessConfigured: !!(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD),
-    }, 200, cors(request, env));
+    if (path === '/health') {
+      let schemaVersion = 0;
+      if (env.DB) {
+        try {
+          const row = await env.DB.prepare("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='rb_plan_revisions'").first();
+          schemaVersion = row?.ok ? 2 : 1;
+        } catch {}
+      }
+      return json({
+        ok: true,
+        service: 'runnerbear-cloud',
+        build: BUILD,
+        cloudBuild: BUILD,
+        schemaVersion,
+        coachLoop: schemaVersion >= 2,
+        database: !!env.DB,
+        assets: !!env.ASSETS,
+        accessConfigured: !!(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD),
+      }, 200, cors(request, env));
+    }
 
     if (!path.startsWith('/api/')) {
       if (env.ASSETS) return env.ASSETS.fetch(request);
@@ -418,6 +431,12 @@ export default {
 
     try {
       if (!['GET', 'HEAD'].includes(request.method)) await ensureUser(env);
+      const v2 = await handleV1026(request, env, {
+        userId: owner(env),
+        bodyJson,
+        corsHeaders: cors(request, env),
+      });
+      if (v2) return v2;
       if (request.method === 'GET' && path === '/api/session') return json({ ok: true, build: BUILD, owner: owner(env), identity }, 200, cors(request, env));
       if (request.method === 'GET' && path === '/api/bootstrap/home') {
         const data = await getHomeBootstrap(request, env);
@@ -439,6 +458,7 @@ export default {
       return json({ ok: false, error: 'Not found' }, 404, cors(request, env));
     } catch (error) {
       console.error(JSON.stringify({ event: 'runnerbear_cloud_error', path, message: error instanceof Error ? error.message : String(error) }));
+      if (path.startsWith('/api/v2')) return json({ ok: false, code: error instanceof SyntaxError ? 'INVALID_JSON' : 'INTERNAL_ERROR', message: error instanceof SyntaxError ? 'Ugyldig JSON.' : 'RunnerBear kunne ikke fullføre forespørselen.', retryable: !(error instanceof SyntaxError), correlationId: crypto.randomUUID() }, error instanceof SyntaxError ? 400 : 500, cors(request, env));
       const message = error instanceof SyntaxError ? 'Invalid JSON' : error instanceof Error ? error.message : 'Unexpected error';
       const status = /too large/i.test(message) ? 413 : /invalid|required/i.test(message) ? 400 : 500;
       return json({ ok: false, error: message }, status, cors(request, env));

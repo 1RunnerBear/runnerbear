@@ -121,7 +121,7 @@
     const normalizedPlan={...plan,flexible:flexible||plan.flexible},model=structuredWorkout(normalizedPlan),kind=activityKind(activity),work=activity?.detail?.analysis||{},blocks=Array.isArray(work.workBlocks)?work.workBlocks:[],confidence=confidenceFor(normalizedPlan,activity,model,matchConfidence),actualKm=Number(activity?.distance||0)/1000,pct=Number(activity?.heartrate)>0?Math.round(Number(activity.heartrate)/Number(maxHr||188)*100):0;
     const below=model.total.low&&actualKm<model.total.low,above=model.total.high&&actualKm>model.total.high,deltaKm=above?actualKm-model.total.high:below?actualKm-model.total.low:0;
     const expected=model.expectedIntervals,confirmed=confidence.confirmed||0,partialByWork=normalizedPlan.type==='quality'&&expected&&confirmed>0&&confirmed<Math.ceil(expected*.7),partialByTotal=normalizedPlan.type==='quality'&&model.total.low&&actualKm>0&&actualKm<model.total.low*.7;
-    const highCost=normalizedPlan.type==='quality'&&(Number(work.workHr)>Number(thresholdHr||173)+1||Number(work.hrDrift)>12),easyCost=normalizedPlan.type==='easy'&&pct>76;
+    const qualityCost=normalizedPlan.type==='quality'&&(Number(work.workHr)>Number(thresholdHr||173)+1||Number(work.hrDrift)>12),easyCost=normalizedPlan.type==='easy'&&(pct>76||actualKm>Math.max(Number(model.total.high||0),Number(normalizedPlan.km||0))*1.25),highCost=qualityCost||easyCost;
     let code='planned';
     if(normalizedPlan.type==='quality'&&!blocks.length)code='limited';
     else if(partialByWork||partialByTotal)code='partial';
@@ -148,7 +148,7 @@
       title=easyCost?'Rolig økt · høyere kostnad':'Rolig betyr rolig';review=easyCost?`Snittpulsen var ${pct} % av makspuls, høyere enn ønsket for en ren rolig dag.`:`Rolig belastning er registrert${pct?` ved ${pct} % av makspuls`:''}.`;
       consequence=easyCost?'Planen står, men uten bonusfart eller ekstra volum.':'Planen står. Den rolige økten beskytter neste kvalitetsøkt.';
     }else if(normalizedPlan.type==='race'){title='Løpet er registrert';review='Gjennomføringen tas med i kapasitetsbildet og den videre målreisen.'}
-    return{build:BUILD,code,tone:status.tone,status:{code,label:status.label},badge:status.badge,title,review,consequence,confidence,model,kind,blocks,work,actualKm,pct,deltaKm,above:!!above,below:!!below,highCost};
+    return{build:BUILD,code,tone:status.tone,status:{code,label:status.label},badge:status.badge,title,review,consequence,confidence,model,kind,blocks,work,actualKm,pct,deltaKm,above:!!above,below:!!below,qualityCost:!!qualityCost,easyCost:!!easyCost,highCost};
   }
   function selectComparableSessions(plan,sessions=[],kind=''){
     const key=workoutFamily({...plan,activityKind:kind},kind),at=Date.parse(`${plan.ds||plan.date||'1970-01-01'}T12:00:00Z`);

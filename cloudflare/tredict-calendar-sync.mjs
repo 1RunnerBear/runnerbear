@@ -41,3 +41,14 @@ export function expectedFromBundle(bundle,addDays){
     title:String(row?.structuredWorkout?.title||''),
   }));
 }
+
+export function canonicalOperationResult(operation={},rows=[]){
+  const type=String(operation.operationType||operation.operation_type||''),externalId=String(operation.externalId||operation.external_id||operation.workoutId||operation.workout_id||''),date=isoDate(operation.date||operation.localDate||operation.local_date),expected={externalId,date,title:String(operation.title||'')},existing=findPlannedWorkout(rows,expected,[operation.previousDate]);
+  if(!['create','update','move','cancel','replace'].includes(type))return{status:'failed_terminal',code:'INVALID_OPERATION',externalId};
+  if(existing&&type==='create')return{status:'confirmed',code:'ALREADY_PRESENT',externalId,tredictWorkoutId:String(existing.id||existing.trainingId||'')};
+  if(existing&&type==='update')return{status:'review_required',code:'STRUCTURAL_CHANGE_REQUIRES_REVIEW',externalId,tredictWorkoutId:String(existing.id||existing.trainingId||'')};
+  if(existing&&type==='move')return{status:isoDate(existing.date||existing.startDate)===date?'confirmed':'processing',code:isoDate(existing.date||existing.startDate)===date?'ALREADY_MOVED':'MOVE_REQUIRED',externalId,tredictWorkoutId:String(existing.id||existing.trainingId||'')};
+  if(existing&&['cancel','replace'].includes(type))return{status:'review_required',code:'STRUCTURAL_CHANGE_REQUIRES_REVIEW',externalId,tredictWorkoutId:String(existing.id||existing.trainingId||'')};
+  if(!existing&&type==='cancel')return{status:'confirmed',code:'ALREADY_ABSENT',externalId};
+  return{status:'review_required',code:type==='move'?'SOURCE_NOT_FOUND':'PLAN_ACTIVATION_REQUIRED',externalId};
+}

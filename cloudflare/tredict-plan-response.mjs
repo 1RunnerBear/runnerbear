@@ -77,3 +77,8 @@ export function tredictPlanTrainingRetryDelay(error,attempt){
   if(![400,404,409,429].includes(status))return 0;
   return PLAN_TRAINING_RETRY_DELAYS[attempt]||0;
 }
+
+export function normalizeTredictMutationResult(result={},fallback={}){
+  const allowed=new Set(['confirmed','review_required','failed_retryable','failed_terminal','superseded']),status=allowed.has(result.status)?result.status:'review_required',externalId=String(result.externalId||fallback.externalId||''),tredictWorkoutId=String(result.tredictWorkoutId||result.trainingId||'');
+  return{ok:status==='confirmed',status,code:String(result.code||fallback.code||'UNCONFIRMED'),externalId,tredictWorkoutId,idempotencyKey:String(result.idempotencyKey||fallback.idempotencyKey||''),retryable:status==='failed_retryable'};
+}

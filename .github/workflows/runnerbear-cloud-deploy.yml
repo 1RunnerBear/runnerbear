@@ -2,12 +2,6 @@ name: RunnerBear Cloud deploy
 
 on:
   workflow_dispatch:
-    inputs:
-      run_d1_maintenance:
-        description: 'Apply and smoke-test D1 migrations during this manual deploy'
-        required: false
-        default: false
-        type: boolean
   push:
     branches:
       - main
@@ -24,7 +18,7 @@ on:
       - '*.ico'
       - '*.webmanifest'
       - '_headers'
-      - 'scripts/build-v1025.mjs'
+      - 'scripts/build-v1026.mjs'
       - 'tests/**'
       # Cloud deploy inputs. Generated status files are intentionally excluded
       # so the deploy bot cannot trigger itself in a loop.
@@ -72,17 +66,29 @@ jobs:
         if: steps.install.outcome == 'success'
         continue-on-error: true
         run: |
-          node ../../scripts/build-v1025.mjs
-          git diff --exit-code -- ../../runnerbear-core-v1025.js ../../runnerbear-ui-v1025.js ../../runnerbear-data-v1025.js ../../runnerbear-v1025.css
+          node ../../scripts/build-v1026.mjs
+          git diff --exit-code -- ../../runnerbear-core-v1026.js ../../runnerbear-ui-v1026.js ../../runnerbear-data-v1026.js ../../runnerbear-v1026.css
           node --check src/index.js
           node --check src/index-v982.js
+          node --check src/index-v1026.js
           node --check scripts/configure-access.mjs
-          node --test ../../tests/tredict-outbound.test.cjs
-          node --test ../../tests/v1011-trust.test.cjs ../../tests/v1012-analysis.test.cjs ../../tests/v1013-coach-ui.test.cjs ../../tests/v1020-coaching-clarity.test.cjs ../../tests/v1021-performance-foundation.test.cjs ../../tests/v1022-readiness-intensity.test.cjs ../../tests/v1023-plan-integrity-garmin-sync.test.cjs ../../tests/v1024-tredict-transport.test.cjs ../../tests/v1025-calm-intelligence-evidence.test.cjs ../../tests/v10251-adaptive-plan-engine.test.cjs
+          (cd ../.. && node --test tests/*.test.cjs tests/e2e/*.spec.mjs)
+
+      - name: Apply additive D1 migrations before code deploy
+        id: migrate
+        if: steps.validate.outcome == 'success'
+        continue-on-error: true
+        run: npx wrangler d1 migrations apply DB --remote
+
+      - name: Smoke test v10.26 D1 schema
+        id: smoke
+        if: steps.migrate.outcome == 'success'
+        continue-on-error: true
+        run: npx wrangler d1 execute DB --remote --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations')" --json
 
       - name: Build private RunnerBear static app
         id: assets
-        if: steps.validate.outcome == 'success'
+        if: steps.smoke.outcome == 'success'
         continue-on-error: true
         run: |
           rm -rf public
@@ -103,32 +109,39 @@ jobs:
         continue-on-error: true
         run: npx wrangler deploy
 
-      - name: Apply D1 migrations (manual maintenance)
-        id: migrate
-        if: steps.deploy_cloud.outcome == 'success' && github.event_name == 'workflow_dispatch' && inputs.run_d1_maintenance
-        continue-on-error: true
-        run: npx wrangler d1 migrations apply DB --remote
-
-      - name: Smoke test D1 schema (manual maintenance)
-        id: smoke
-        if: steps.migrate.outcome == 'success'
-        continue-on-error: true
-        run: npx wrangler d1 execute DB --remote --command="SELECT name FROM sqlite_master WHERE type='table' AND name='rb_users'" --json
-
       - name: Smoke test Worker and private Tredict RPC
         id: health
         if: steps.deploy_cloud.outcome == 'success'
         continue-on-error: true
         run: |
-          for attempt in 1 2 3 4 5 6 7 8 9 10 11 12; do
+          for attempt in $(seq 1 48); do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
-            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.25.1" || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.25.1") process.exit(1)' "$BODY"; then
+            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.26.0" || x.schemaVersion!==2 || x.coachLoop!==true || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.26.0") process.exit(1)' "$BODY"; then
               exit 0
             fi
             sleep 5
           done
           exit 1
+
+      - name: Activate owner-only shadow mode
+        id: shadow
+        if: steps.health.outcome == 'success'
+        continue-on-error: true
+        env:
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          npx wrangler d1 execute DB --remote --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"10.26.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO UPDATE SET enabled=excluded.enabled,payload_json=excluded.payload_json,updated_at=excluded.updated_at;" --json
+
+      - name: Verify staged feature flags
+        id: flag_smoke
+        if: steps.shadow.outcome == 'success'
+        continue-on-error: true
+        run: |
+          FLAGS="$(npx wrangler d1 execute DB --remote --command="SELECT flag,enabled FROM rb_feature_flags WHERE user_id='primary' ORDER BY flag" --json)"
+          echo "$FLAGS"
+          node -e 'const raw=JSON.parse(process.argv[1]),rows=raw.flatMap(x=>x.results||[]),flags=Object.fromEntries(rows.map(x=>[x.flag,Number(x.enabled)])),expected={coach_loop_shadow:1,coach_loop_read:0,coach_loop_ui:0,coach_loop_write:0,coach_loop_sync:0,coach_loop_safe_auto:0,coach_loop_goal_confidence:0}; for(const [key,value] of Object.entries(expected))if(flags[key]!==value)throw new Error(`Unexpected ${key}=${flags[key]}`)' "$FLAGS"
 
       - name: Smoke test RunnerBear app shell or existing Access guard
         id: app_smoke
@@ -188,6 +201,8 @@ jobs:
           MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           HEALTH_OUTCOME: ${{ steps.health.outcome }}
+          SHADOW_OUTCOME: ${{ steps.shadow.outcome }}
+          FLAG_SMOKE_OUTCOME: ${{ steps.flag_smoke.outcome }}
           APP_SMOKE_OUTCOME: ${{ steps.app_smoke.outcome }}
           ACCESS_OUTCOME: ${{ steps.access.outcome }}
           ACCESS_VARS_OUTCOME: ${{ steps.access_vars.outcome }}
@@ -205,14 +220,16 @@ jobs:
             "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
             "smoke": os.environ.get("SMOKE_OUTCOME", ""),
             "health": os.environ.get("HEALTH_OUTCOME", ""),
+            "shadow": os.environ.get("SHADOW_OUTCOME", ""),
+            "flag_smoke": os.environ.get("FLAG_SMOKE_OUTCOME", ""),
             "app_smoke": os.environ.get("APP_SMOKE_OUTCOME", ""),
             "access": os.environ.get("ACCESS_OUTCOME", ""),
             "access_vars": os.environ.get("ACCESS_VARS_OUTCOME", ""),
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "10.25.1",
-            "status": "success" if outcomes["guard"] == "success" and outcomes["health"] == "success" else "failed",
+            "build": "10.26.0",
+            "status": "success" if all(outcomes[key] == "success" for key in ("migrate", "smoke", "health", "shadow", "flag_smoke", "guard")) else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -236,6 +253,6 @@ jobs:
           done
           exit 1
 
-      - name: Fail workflow when RunnerBear Cloud is not private
-        if: always() && (steps.guard.outcome != 'success' || steps.health.outcome != 'success')
+      - name: Fail workflow when RunnerBear Cloud is not private or staged safely
+        if: always() && (steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
         run: exit 1

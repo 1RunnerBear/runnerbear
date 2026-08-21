@@ -1,0 +1,2 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');
+test('D1 migration contains one active revision and idempotent sync constraints',()=>{const sql=fs.readFileSync('cloud/runnerbear-cloud/migrations/0002_coach_loop.sql','utf8');assert.match(sql,/uq_rb_plan_active_user/);assert.match(sql,/idempotency_key TEXT NOT NULL UNIQUE/);assert.match(sql,/UNIQUE\(plan_revision_id,local_date,slot_index\)/)});
