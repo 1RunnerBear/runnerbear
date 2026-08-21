@@ -74,17 +74,48 @@ jobs:
           node --check scripts/configure-access.mjs
           (cd ../.. && node --test tests/*.test.cjs tests/e2e/*.spec.mjs)
 
-      - name: Apply additive D1 migrations before code deploy
-        id: migrate
+      - name: Resolve existing production D1 binding
+        id: d1
         if: steps.validate.outcome == 'success'
         continue-on-error: true
-        run: npx wrangler d1 migrations apply DB --remote
+        run: |
+          npx wrangler d1 list --json > /tmp/runnerbear-d1.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          raw = json.loads(Path('/tmp/runnerbear-d1.json').read_text(encoding='utf-8'))
+          rows = raw if isinstance(raw, list) else raw.get('result', raw.get('databases', []))
+          rows = [row for row in rows if isinstance(row, dict) and (row.get('uuid') or row.get('id'))]
+          preferred = [row for row in rows if str(row.get('name', '')).lower() == 'app-db']
+          if len(preferred) == 1:
+            selected = preferred[0]
+          elif len(rows) == 1:
+            selected = rows[0]
+          else:
+            names = ', '.join(sorted(str(row.get('name', '<unnamed>')) for row in rows))
+            raise SystemExit(f'Could not resolve the existing RunnerBear D1 database safely. Found: {names or "none"}')
+
+          config_path = Path('wrangler.jsonc')
+          config = json.loads(config_path.read_text(encoding='utf-8'))
+          binding = config['d1_databases'][0]
+          binding['database_id'] = selected.get('uuid') or selected.get('id')
+          binding['database_name'] = selected.get('name') or 'app-db'
+          Path('wrangler.release.jsonc').write_text(json.dumps(config, indent=2) + '\n', encoding='utf-8')
+          print(f"Resolved production D1 binding: {binding['database_name']}")
+          PY
+
+      - name: Apply additive D1 migrations before code deploy
+        id: migrate
+        if: steps.d1.outcome == 'success'
+        continue-on-error: true
+        run: npx wrangler d1 migrations apply DB --remote --config wrangler.release.jsonc
 
       - name: Smoke test v10.26 D1 schema
         id: smoke
         if: steps.migrate.outcome == 'success'
         continue-on-error: true
-        run: npx wrangler d1 execute DB --remote --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations')" --json
+        run: npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations')" --json
 
       - name: Build private RunnerBear static app
         id: assets
@@ -107,7 +138,7 @@ jobs:
         id: deploy_cloud
         if: steps.assets.outcome == 'success'
         continue-on-error: true
-        run: npx wrangler deploy
+        run: npx wrangler deploy --config wrangler.release.jsonc
 
       - name: Smoke test Worker and private Tredict RPC
         id: health
@@ -132,14 +163,14 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          npx wrangler d1 execute DB --remote --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"10.26.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO UPDATE SET enabled=excluded.enabled,payload_json=excluded.payload_json,updated_at=excluded.updated_at;" --json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"10.26.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO UPDATE SET enabled=excluded.enabled,payload_json=excluded.payload_json,updated_at=excluded.updated_at;" --json
 
       - name: Verify staged feature flags
         id: flag_smoke
         if: steps.shadow.outcome == 'success'
         continue-on-error: true
         run: |
-          FLAGS="$(npx wrangler d1 execute DB --remote --command="SELECT flag,enabled FROM rb_feature_flags WHERE user_id='primary' ORDER BY flag" --json)"
+          FLAGS="$(npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT flag,enabled FROM rb_feature_flags WHERE user_id='primary' ORDER BY flag" --json)"
           echo "$FLAGS"
           node -e 'const raw=JSON.parse(process.argv[1]),rows=raw.flatMap(x=>x.results||[]),flags=Object.fromEntries(rows.map(x=>[x.flag,Number(x.enabled)])),expected={coach_loop_shadow:1,coach_loop_read:0,coach_loop_ui:0,coach_loop_write:0,coach_loop_sync:0,coach_loop_safe_auto:0,coach_loop_goal_confidence:0}; for(const [key,value] of Object.entries(expected))if(flags[key]!==value)throw new Error(`Unexpected ${key}=${flags[key]}`)' "$FLAGS"
 
@@ -196,6 +227,7 @@ jobs:
         env:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
+          D1_OUTCOME: ${{ steps.d1.outcome }}
           ASSETS_OUTCOME: ${{ steps.assets.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy_cloud.outcome }}
           MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
@@ -215,6 +247,7 @@ jobs:
           outcomes = {
             "install": os.environ.get("INSTALL_OUTCOME", ""),
             "validate": os.environ.get("VALIDATE_OUTCOME", ""),
+            "d1": os.environ.get("D1_OUTCOME", ""),
             "assets": os.environ.get("ASSETS_OUTCOME", ""),
             "deploy": os.environ.get("DEPLOY_OUTCOME", ""),
             "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
@@ -229,7 +262,7 @@ jobs:
           }
           report = {
             "build": "10.26.0",
-            "status": "success" if all(outcomes[key] == "success" for key in ("migrate", "smoke", "health", "shadow", "flag_smoke", "guard")) else "failed",
+            "status": "success" if all(outcomes[key] == "success" for key in ("d1", "migrate", "smoke", "health", "shadow", "flag_smoke", "guard")) else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -254,5 +287,5 @@ jobs:
           exit 1
 
       - name: Fail workflow when RunnerBear Cloud is not private or staged safely
-        if: always() && (steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
+        if: always() && (steps.d1.outcome != 'success' || steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
         run: exit 1
