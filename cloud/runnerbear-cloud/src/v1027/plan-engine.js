@@ -188,7 +188,19 @@ function restRow(pool, used, date, cfg, index, week) {
 }
 
 function reflowWeek(items, cfg, week, fromDate, trigger, priorHardDates = []) {
-  const source = items.map(clone), fixed = source.filter(row => row.localDate < fromDate || TERMINAL.has(row.status) || row.lockLevel === 'user' || row.lockLevel === 'system' || row.explicitChoice === true || row.plannedLoad?.manualMove === true && trigger !== 'training_preferences_changed' || row.workoutType === 'race'), mutable = source.filter(row => !fixed.includes(row)), occupied = new Set(fixed.map(row => row.localDate)), available = cfg.constraints.runDays.map(day => addDays(week, day)).filter(date => date >= fromDate && !occupied.has(date)), targetMeta = targetForWeek(cfg, week, fromDate), fixedRuns = fixed.filter(row => isRun(row) && countsVolume(row)), fixedQuality = fixedRuns.filter(isQuality).map(row => row.localDate), fixedLong = fixedRuns.find(isLong), blockedHard = [...priorHardDates, ...fixedRuns.filter(isHard).map(row => row.localDate)], preferredLong = addDays(week, cfg.constraints.longRunDay), canLong = date => available.includes(date) && !blockedHard.some(other => dayGap(other, date) < 2), longDate = fixedLong ? '' : canLong(preferredLong) ? preferredLong : available.find(canLong) || '', qualityDates = chooseQualityDates({ week, cfg, available: available.filter(date => date !== longDate), fixedQuality, expected: targetMeta.expectedQualitySessions, longDate, hardDates: [...priorHardDates, ...(fixedLong ? [fixedLong.localDate] : [])] }), runDates = new Set([...available]), types = new Map([...runDates].map(date => [date, 'easy']));
+  const source = items.map(clone), fixed = source.filter(row => row.localDate < fromDate || TERMINAL.has(row.status) || row.lockLevel === 'user' || row.lockLevel === 'system' || row.explicitChoice === true || row.plannedLoad?.manualMove === true && trigger !== 'training_preferences_changed' || row.workoutType === 'race'), mutable = source.filter(row => !fixed.includes(row)), occupied = new Set(fixed.map(row => row.localDate)), available = cfg.constraints.runDays.map(day => addDays(week, day)).filter(date => date >= fromDate && !occupied.has(date)), targetMeta = targetForWeek(cfg, week, fromDate), fixedRuns = fixed.filter(row => isRun(row) && countsVolume(row)), fixedQuality = fixedRuns.filter(isQuality).map(row => row.localDate), fixedLong = fixedRuns.find(isLong), blockedHard = [...priorHardDates, ...fixedRuns.filter(isHard).map(row => row.localDate)], preferredLong = addDays(week, cfg.constraints.longRunDay), mutableLong = mutable.find(row => isLong(row) && available.includes(row.localDate)), reserveExistingLong = !fixedLong && mutableLong && available.length <= 2 && !blockedHard.some(other => dayGap(other, mutableLong.localDate) < 2);
+  let longDate = '', qualityDates = [];
+  if (fixedLong) {
+    qualityDates = chooseQualityDates({ week, cfg, available, fixedQuality, expected: targetMeta.expectedQualitySessions, longDate: '', hardDates: [...priorHardDates, fixedLong.localDate] });
+  } else if (reserveExistingLong) {
+    longDate = mutableLong.localDate;
+    qualityDates = chooseQualityDates({ week, cfg, available: available.filter(date => date !== longDate), fixedQuality, expected: targetMeta.expectedQualitySessions, longDate, hardDates: priorHardDates });
+  } else {
+    qualityDates = chooseQualityDates({ week, cfg, available, fixedQuality, expected: targetMeta.expectedQualitySessions, longDate: '', hardDates: priorHardDates });
+    const hardForLong = [...blockedHard, ...qualityDates], canLong = date => available.includes(date) && !qualityDates.includes(date) && !hardForLong.some(other => dayGap(other, date) < 2);
+    longDate = canLong(preferredLong) ? preferredLong : available.find(canLong) || '';
+  }
+  const runDates = new Set([...available]), types = new Map([...runDates].map(date => [date, 'easy']));
   if (longDate) types.set(longDate, 'long'); qualityDates.forEach(date => types.set(date, 'quality'));
   const used = new Set(), future = [], allDates = Array.from({ length: 7 }, (_, index) => addDays(week, index)).filter(date => date >= fromDate && !occupied.has(date));
   let qualityIndex = 0;
