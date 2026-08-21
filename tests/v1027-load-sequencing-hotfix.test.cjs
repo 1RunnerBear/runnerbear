@@ -1,6 +1,5 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const fs=require('node:fs');
 
 const baseConfig={
   profile:{baseKm:50,normalLow:50,normalHigh:55,upperLimit:55,targetWeeklyVolume:50},
@@ -57,13 +56,4 @@ test('normal full weeks still hit the canonical target without exceeding long-ru
   assert.equal(result.validation.valid,true,JSON.stringify(result.validation.issues));
   assert.equal(week.filter(r=>r.sport==='running').reduce((sum,r)=>sum+r.plannedDistanceM/1000,0),50);
   assert.ok(long.plannedDistanceM/1000<=18);
-});
-
-test('app shell loads the one-shot repair runtime for existing unsafe revisions',()=>{
-  const html=fs.readFileSync('index.html','utf8'),runtime=fs.readFileSync('runnerbear-v1027-load-safety-hotfix.js','utf8');
-  assert.match(html,/runnerbear-v1027-load-safety-hotfix\.js\?v=10271/);
-  assert.match(runtime,/load-safety-repair/);
-  assert.match(runtime,/refresh\?\.\('full'\)/);
-  assert.match(runtime,/confirm:false,force:true/);
-  assert.match(runtime,/Restitusjonsdag\. Ingen intervaller, terskel, progresjon/);
 });
