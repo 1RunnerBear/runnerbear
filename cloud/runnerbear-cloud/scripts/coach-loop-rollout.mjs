@@ -82,8 +82,27 @@ function coreGateState(){
   return{row,shadowPayload,evaluation:evaluateCoreGates(row,shadowPayload)};
 }
 
+function stabilizeShadowGate(){
+  const initial=coreGateState(),eligible=initial.row.migration_status==='committed'&&Number(initial.row.active_plan_count)===1&&Number(initial.row.active_item_count)>0&&Number(initial.row.compatibility_mismatch_count)===0&&!!initial.row.active_plan_revision_id&&(!initial.shadowPayload.lastPlanRevisionId||initial.shadowPayload.lastPlanRevisionId===initial.row.active_plan_revision_id);
+  if(!eligible||initial.evaluation.ok)return initial;
+  const revision=initial.row.active_plan_revision_id,checks=[];
+  for(let sample=1;sample<=20;sample++){
+    const state=coreGateState(),sameRevision=state.row.active_plan_revision_id===revision,clean=state.row.migration_status==='committed'&&Number(state.row.active_plan_count)===1&&Number(state.row.active_item_count)>0&&Number(state.row.compatibility_mismatch_count)===0&&sameRevision;
+    checks.push({sample,clean,sameRevision});
+    if(!clean){
+      execute(`UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,'{"consecutiveSuccesses":0,"lastMatch":false,"sampleSource":"production-atomic-bootstrap"}'),updated_at=${quote(now())} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_shadow';`);
+      audit('shadow-bootstrap','blocked',currentFlags(),{sample,sameRevision,compatibilityProjectionClean:Number(state.row.compatibility_mismatch_count)===0});
+      return coreGateState();
+    }
+    const timestamp=now();
+    execute(`UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,${quote(json({consecutiveSuccesses:sample,lastMatch:true,lastPlanRevisionId:revision,lastReportedAt:timestamp,sampleSource:'production-atomic-bootstrap'}))}),updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_shadow';`);
+  }
+  audit('shadow-bootstrap','passed',currentFlags(),{samples:checks.length,consecutiveSuccesses:20,planRevisionStable:checks.every(row=>row.sameRevision),compatibilityProjectionClean:checks.every(row=>row.clean)});
+  return coreGateState();
+}
+
 function activateCore(){
-  const gate=coreGateState();
+  const gate=stabilizeShadowGate();
   if(!gate.evaluation.ok){audit('core','blocked',currentFlags(),gate.evaluation.checks);process.stdout.write(`${json({status:'blocked',phase:'core',...gate.evaluation,shadow:gate.shadowPayload})}\n`);return false}
 
   const base=coreFlags(),readUi={...base,coach_loop_write:false,coach_loop_sync:false};
