@@ -33,3 +33,11 @@ test('cloud deploy initializes missing flags without overwriting activated rollo
   assert.doesNotMatch(workflow,/ON CONFLICT\(user_id,flag\) DO UPDATE SET enabled=excluded\.enabled/);
   assert.match(workflow,/Verify persistent feature flags and dependencies/);
 });
+
+test('shadow compares like-for-like full plans and rollout samples one stable production revision',()=>{
+  const fs=require('node:fs'),client=fs.readFileSync('runnerbear-cloud-v1026.js','utf8'),rollout=fs.readFileSync('cloud/runnerbear-cloud/scripts/coach-loop-rollout.mjs','utf8');
+  assert.match(client,/scope==='full'\?data:await api\('\/api\/v2\/bootstrap\?scope=full'\)/);
+  assert.match(rollout,/for\(let sample=1;sample<=20;sample\+\+\)/);
+  assert.match(rollout,/sampleSource:'production-atomic-bootstrap'/);
+  assert.match(rollout,/active_plan_revision_id===revision/);
+});

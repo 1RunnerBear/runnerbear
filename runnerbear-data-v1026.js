@@ -517,7 +517,7 @@
   async function refresh(scope='home'){
     let data=await api(`/api/v2/bootstrap?scope=${scope}`);
     if(data.needsMigration){if(data.flags?.coach_loop_shadow!==true&&data.flags?.coach_loop_read!==true)return data;data=await migrate(data.flags||{})}
-    if(data.flags?.coach_loop_read!==true){if(data.flags?.coach_loop_shadow===true)shadowCompare(data);return data}
+    if(data.flags?.coach_loop_read!==true){if(data.flags?.coach_loop_shadow===true){const comparable=scope==='full'?data:await api('/api/v2/bootstrap?scope=full');shadowCompare(comparable)}return data}
     return install(data);
   }
   function proposalFor(plan){
