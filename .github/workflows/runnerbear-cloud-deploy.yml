@@ -18,7 +18,9 @@ on:
       - '*.ico'
       - '*.webmanifest'
       - '_headers'
-      - 'scripts/build-v1026.mjs'
+      - 'scripts/build-v1027.mjs'
+      - 'scripts/v1027-history-recovery.mjs'
+      - 'runnerbear-v1027-assets.json'
       - 'tests/**'
       # Cloud deploy inputs. Generated status files are intentionally excluded
       # so the deploy bot cannot trigger itself in a loop.
@@ -67,11 +69,11 @@ jobs:
         if: steps.install.outcome == 'success'
         continue-on-error: true
         run: |
-          node ../../scripts/build-v1026.mjs
-          git diff --exit-code -- ../../runnerbear-core-v1026.js ../../runnerbear-ui-v1026.js ../../runnerbear-data-v1026.js ../../runnerbear-v1026.css
+          node ../../scripts/build-v1027.mjs
+          git diff --exit-code -- ../../runnerbear-core-v1027.js ../../runnerbear-ui-v1027.js ../../runnerbear-data-v1027.js ../../runnerbear-v1027.css
           node --check src/index.js
           node --check src/index-v982.js
-          node --check src/index-v1026.js
+          node --check src/index-v1027.js
           node --check scripts/configure-access.mjs
           (cd ../.. && node --test tests/*.test.cjs tests/e2e/*.spec.mjs)
 
@@ -106,13 +108,60 @@ jobs:
           print(f"Resolved production D1 binding: {binding['database_name']}")
           PY
 
+      - name: Back up and audit production history before deploy
+        id: backup
+        if: steps.d1.outcome == 'success'
+        continue-on-error: true
+        run: |
+          npx wrangler d1 export DB --remote --config wrangler.release.jsonc --output=/tmp/runnerbear-pre-v1027.sql
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT (SELECT COUNT(*) FROM rb_activities WHERE user_id='primary') AS activities,(SELECT MIN(date) FROM rb_activities WHERE user_id='primary') AS earliest_activity,(SELECT MAX(date) FROM rb_activities WHERE user_id='primary') AS latest_activity,(SELECT COUNT(*) FROM (SELECT source,source_id FROM rb_activities WHERE user_id='primary' GROUP BY source,source_id HAVING COUNT(*)>1)) AS duplicate_external_ids,(SELECT COUNT(*) FROM rb_plan_revision_items i JOIN rb_plan_revisions r ON r.plan_revision_id=i.plan_revision_id WHERE r.user_id='primary') AS plan_items,(SELECT COUNT(*) FROM rb_training_events WHERE user_id='primary') AS events,(SELECT COUNT(*) FROM rb_state WHERE user_id='primary') AS state_namespaces" --json > /tmp/runnerbear-history-before.json
+          cat /tmp/runnerbear-history-before.json
+          BEFORE_COUNT="$(node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};process.stdout.write(String(Number(r.activities||0)))' /tmp/runnerbear-history-before.json)"
+          echo "activity_count=${BEFORE_COUNT}" >> "$GITHUB_OUTPUT"
+          test -s /tmp/runnerbear-pre-v1027.sql
+
+      - name: Preserve pre-deploy D1 backup
+        if: steps.backup.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: runnerbear-pre-v1027-${{ github.run_id }}
+          path: |
+            /tmp/runnerbear-pre-v1027.sql
+            /tmp/runnerbear-history-before.json
+          retention-days: 7
+
+      - name: Idempotently restore 365-day Garmin and Concept2 history
+        id: recover_history
+        if: steps.backup.outcome == 'success'
+        continue-on-error: true
+        env:
+          RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
+        run: |
+          curl --fail --silent --show-error --retry 4 --retry-delay 3 \
+            -H "Origin: https://1runnerbear.github.io" \
+            -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+            "https://runnerbear-tredict-bridge.runnerbear.workers.dev/api/snapshot?days=365" > /tmp/runnerbear-history-snapshot.json
+          node ../../scripts/v1027-history-recovery.mjs /tmp/runnerbear-history-snapshot.json /tmp/runnerbear-history-recovery.sql
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --file=/tmp/runnerbear-history-recovery.sql
+
+      - name: Verify history preservation and stable external IDs
+        id: history
+        if: steps.recover_history.outcome == 'success'
+        continue-on-error: true
+        env:
+          BEFORE_COUNT: ${{ steps.backup.outputs.activity_count }}
+        run: |
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT (SELECT COUNT(*) FROM rb_activities WHERE user_id='primary') AS activities,(SELECT MIN(date) FROM rb_activities WHERE user_id='primary') AS earliest_activity,(SELECT MAX(date) FROM rb_activities WHERE user_id='primary') AS latest_activity,(SELECT COUNT(*) FROM (SELECT source,source_id FROM rb_activities WHERE user_id='primary' GROUP BY source,source_id HAVING COUNT(*)>1)) AS duplicate_external_ids,(SELECT COUNT(*) FROM rb_plan_revision_items i JOIN rb_plan_revisions r ON r.plan_revision_id=i.plan_revision_id WHERE r.user_id='primary') AS plan_items,(SELECT COUNT(*) FROM rb_training_events WHERE user_id='primary') AS events,(SELECT COUNT(*) FROM rb_state WHERE user_id='primary') AS state_namespaces" --json > /tmp/runnerbear-history-after.json
+          cat /tmp/runnerbear-history-after.json
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{},before=Number(process.env.BEFORE_COUNT||0);if(Number(r.activities||0)<Math.max(1,before))throw new Error("Activity history decreased");if(Number(r.duplicate_external_ids||0)!==0)throw new Error("Duplicate external activity IDs");if(Number(r.plan_items||0)<1)throw new Error("Canonical plan history is empty");if(Number(r.state_namespaces||0)<1)throw new Error("Legacy matching state is empty")' /tmp/runnerbear-history-after.json
+
       - name: Apply additive D1 migrations before code deploy
         id: migrate
-        if: steps.d1.outcome == 'success'
+        if: steps.history.outcome == 'success'
         continue-on-error: true
         run: npx wrangler d1 migrations apply DB --remote --config wrangler.release.jsonc
 
-      - name: Smoke test v10.26 D1 schema
+      - name: Smoke test v10.27 D1 schema
         id: smoke
         if: steps.migrate.outcome == 'success'
         continue-on-error: true
@@ -149,7 +198,7 @@ jobs:
           for attempt in $(seq 1 48); do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
-            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.26.0" || x.schemaVersion!==2 || x.coachLoop!==true || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.26.0") process.exit(1)' "$BODY"; then
+            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.27.0" || x.schemaVersion!==2 || x.coachLoop!==true || x.tredictService!==true || x.tredictRpc!==true || x.tredictRpcVersion!=="10.26.0" || x.historyIntegrity!==true || x.historyAudit?.activitiesPresent!==true || Number(x.historyAudit?.duplicateExternalIds||0)!==0) process.exit(1)' "$BODY"; then
               exit 0
             fi
             sleep 5
@@ -164,7 +213,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"10.26.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"10.27.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
 
       - name: Verify persistent feature flags and dependencies
         id: flag_smoke
@@ -229,6 +278,9 @@ jobs:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           VALIDATE_OUTCOME: ${{ steps.validate.outcome }}
           D1_OUTCOME: ${{ steps.d1.outcome }}
+          BACKUP_OUTCOME: ${{ steps.backup.outcome }}
+          RECOVER_HISTORY_OUTCOME: ${{ steps.recover_history.outcome }}
+          HISTORY_OUTCOME: ${{ steps.history.outcome }}
           ASSETS_OUTCOME: ${{ steps.assets.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy_cloud.outcome }}
           MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
@@ -249,6 +301,9 @@ jobs:
             "install": os.environ.get("INSTALL_OUTCOME", ""),
             "validate": os.environ.get("VALIDATE_OUTCOME", ""),
             "d1": os.environ.get("D1_OUTCOME", ""),
+            "backup": os.environ.get("BACKUP_OUTCOME", ""),
+            "recover_history": os.environ.get("RECOVER_HISTORY_OUTCOME", ""),
+            "history": os.environ.get("HISTORY_OUTCOME", ""),
             "assets": os.environ.get("ASSETS_OUTCOME", ""),
             "deploy": os.environ.get("DEPLOY_OUTCOME", ""),
             "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
@@ -262,8 +317,8 @@ jobs:
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "10.26.0",
-            "status": "success" if all(outcomes[key] == "success" for key in ("d1", "migrate", "smoke", "health", "shadow", "flag_smoke", "guard")) else "failed",
+            "build": "10.27.0",
+            "status": "success" if all(outcomes[key] == "success" for key in ("d1", "backup", "recover_history", "history", "migrate", "smoke", "health", "shadow", "flag_smoke", "guard")) else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -287,6 +342,6 @@ jobs:
           done
           exit 1
 
-      - name: Fail workflow when RunnerBear Cloud is not private or rollout-safe
-        if: always() && (steps.d1.outcome != 'success' || steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
+      - name: Fail workflow when RunnerBear Cloud is not private, history-safe or rollout-safe
+        if: always() && (steps.d1.outcome != 'success' || steps.backup.outcome != 'success' || steps.recover_history.outcome != 'success' || steps.history.outcome != 'success' || steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
         run: exit 1
