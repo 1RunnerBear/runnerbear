@@ -16,6 +16,7 @@ on:
       - 'package-lock.json'
       - 'tests/**'
       - '.github/workflows/runnerbear-cloud-deploy.yml'
+      - '.github/workflows/runnerbear-coach-loop-rollout.yml'
       - '.github/workflows/validate-runnerbear.yml'
   pull_request:
     paths:
@@ -32,6 +33,7 @@ on:
       - 'package-lock.json'
       - 'tests/**'
       - '.github/workflows/runnerbear-cloud-deploy.yml'
+      - '.github/workflows/runnerbear-coach-loop-rollout.yml'
       - '.github/workflows/validate-runnerbear.yml'
 
 permissions:

@@ -1,0 +1,109 @@
+name: RunnerBear Coach Loop rollout
+
+on:
+  workflow_run:
+    workflows:
+      - RunnerBear Cloud deploy
+    types:
+      - completed
+  schedule:
+    - cron: '17 03 * * *'
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Locked rollout or rollback phase
+        required: true
+        default: advance
+        type: choice
+        options:
+          - advance
+          - safe-auto
+          - rollback-safe-auto
+          - rollback-sync
+          - rollback-write
+          - rollback-ui
+          - rollback-full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: runnerbear-coach-loop-production-rollout
+  cancel-in-progress: false
+
+jobs:
+  rollout:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      RUNNERBEAR_APP_URL: https://app.runnerbear.workers.dev
+    defaults:
+      run:
+        working-directory: cloud/runnerbear-cloud
+    steps:
+      - name: Checkout production source
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install release dependencies
+        run: npm ci
+
+      - name: Run locked migration, undo, sync, mobile and accessibility gates
+        working-directory: .
+        run: |
+          node scripts/build-v1026.mjs
+          git diff --exit-code -- runnerbear-core-v1026.js runnerbear-ui-v1026.js runnerbear-data-v1026.js runnerbear-v1026.css
+          node --test tests/*.test.cjs tests/e2e/*.spec.mjs
+
+      - name: Apply additive rollout audit migration
+        run: |
+          npx wrangler d1 list --json > /tmp/runnerbear-d1.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          raw = json.loads(Path('/tmp/runnerbear-d1.json').read_text(encoding='utf-8'))
+          rows = raw if isinstance(raw, list) else raw.get('result', raw.get('databases', []))
+          rows = [row for row in rows if isinstance(row, dict) and (row.get('uuid') or row.get('id'))]
+          preferred = [row for row in rows if str(row.get('name', '')).lower() == 'app-db']
+          selected = preferred[0] if len(preferred) == 1 else rows[0] if len(rows) == 1 else None
+          if selected is None:
+              names = ', '.join(sorted(str(row.get('name', '<unnamed>')) for row in rows))
+              raise SystemExit(f'Could not resolve production D1 safely. Found: {names or "none"}')
+          config = json.loads(Path('wrangler.jsonc').read_text(encoding='utf-8'))
+          config['d1_databases'][0]['database_id'] = selected.get('uuid') or selected.get('id')
+          config['d1_databases'][0]['database_name'] = selected.get('name') or 'app-db'
+          Path('wrangler.release.jsonc').write_text(json.dumps(config, indent=2) + '\n', encoding='utf-8')
+          PY
+          npx wrangler d1 migrations apply DB --remote --config wrangler.release.jsonc
+
+      - name: Advance locked rollout or execute rollback
+        env:
+          REQUESTED_PHASE: ${{ inputs.phase || 'advance' }}
+        run: |
+          case "$REQUESTED_PHASE" in
+            rollback-*) node scripts/coach-loop-rollout.mjs rollback "${REQUESTED_PHASE#rollback-}" ;;
+            safe-auto) node scripts/coach-loop-rollout.mjs safe-auto ;;
+            *) node scripts/coach-loop-rollout.mjs advance ;;
+          esac
+
+      - name: Verify production health and Access guard
+        run: |
+          BODY="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 "$RUNNERBEAR_APP_URL/health")"
+          echo "$BODY"
+          node -e 'const x=JSON.parse(process.argv[1]);if(x.ok!==true||x.assets!==true||x.database!==true||x.cloudBuild!=="10.26.0"||x.schemaVersion!==2||x.coachLoop!==true||x.tredictService!==true||x.tredictRpc!==true)process.exit(1)' "$BODY"
+          CODE="$(curl --silent --output /tmp/runnerbear-root --write-out '%{http_code}' "$RUNNERBEAR_APP_URL/")"
+          echo "RunnerBear root HTTP $CODE"
+          case "$CODE" in
+            301|302|303|307|308|401|403) exit 0 ;;
+            *) echo 'Private Access guard is not active'; exit 1 ;;
+          esac

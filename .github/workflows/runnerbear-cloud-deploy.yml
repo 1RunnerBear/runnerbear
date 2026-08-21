@@ -31,6 +31,7 @@ on:
       - 'cloud/runnerbear-cloud/deploy-trigger.txt'
       - 'cloudflare/tredict-calendar-sync.mjs'
       - '.github/workflows/runnerbear-cloud-deploy.yml'
+      - '.github/workflows/runnerbear-coach-loop-rollout.yml'
 
 permissions:
   contents: write
@@ -155,7 +156,7 @@ jobs:
           done
           exit 1
 
-      - name: Activate owner-only shadow mode
+      - name: Ensure owner-only rollout flags exist
         id: shadow
         if: steps.health.outcome == 'success'
         continue-on-error: true
@@ -163,16 +164,16 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"10.26.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO UPDATE SET enabled=excluded.enabled,payload_json=excluded.payload_json,updated_at=excluded.updated_at;" --json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"10.26.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
 
-      - name: Verify staged feature flags
+      - name: Verify persistent feature flags and dependencies
         id: flag_smoke
         if: steps.shadow.outcome == 'success'
         continue-on-error: true
         run: |
-          FLAGS="$(npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT flag,enabled FROM rb_feature_flags WHERE user_id='primary' ORDER BY flag" --json)"
+          FLAGS="$(npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT f.flag,f.enabled,(SELECT status FROM rb_migrations WHERE user_id='primary' AND migration_key='coach-loop-v1026') AS migration_status FROM rb_feature_flags f WHERE f.user_id='primary' ORDER BY f.flag" --json)"
           echo "$FLAGS"
-          node -e 'const raw=JSON.parse(process.argv[1]),rows=raw.flatMap(x=>x.results||[]),flags=Object.fromEntries(rows.map(x=>[x.flag,Number(x.enabled)])),expected={coach_loop_shadow:1,coach_loop_read:0,coach_loop_ui:0,coach_loop_write:0,coach_loop_sync:0,coach_loop_safe_auto:0,coach_loop_goal_confidence:0}; for(const [key,value] of Object.entries(expected))if(flags[key]!==value)throw new Error(`Unexpected ${key}=${flags[key]}`)' "$FLAGS"
+          node -e 'const raw=JSON.parse(process.argv[1]),rows=raw.flatMap(x=>x.results||[]),names=["coach_loop_shadow","coach_loop_read","coach_loop_ui","coach_loop_write","coach_loop_sync","coach_loop_safe_auto","coach_loop_goal_confidence"],flags=Object.fromEntries(rows.map(x=>[x.flag,Number(x.enabled)===1]));for(const name of names)if(!(name in flags))throw new Error(`Missing ${name}`);if(!flags.coach_loop_shadow)throw new Error("Shadow safety flag must remain enabled");if(flags.coach_loop_read&&rows[0]?.migration_status!=="committed")throw new Error("Read requires committed migration");if(flags.coach_loop_ui&&!flags.coach_loop_read)throw new Error("UI requires read");if(flags.coach_loop_write&&!flags.coach_loop_read)throw new Error("Write requires read");if(flags.coach_loop_sync&&!flags.coach_loop_write)throw new Error("Sync requires write");if(flags.coach_loop_safe_auto&&!(flags.coach_loop_read&&flags.coach_loop_ui&&flags.coach_loop_write&&flags.coach_loop_sync))throw new Error("Safe-auto requires active core");if(flags.coach_loop_goal_confidence&&!(flags.coach_loop_read&&flags.coach_loop_ui))throw new Error("Goal confidence requires read and UI")' "$FLAGS"
 
       - name: Smoke test RunnerBear app shell or existing Access guard
         id: app_smoke
@@ -286,6 +287,6 @@ jobs:
           done
           exit 1
 
-      - name: Fail workflow when RunnerBear Cloud is not private or staged safely
+      - name: Fail workflow when RunnerBear Cloud is not private or rollout-safe
         if: always() && (steps.d1.outcome != 'success' || steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
         run: exit 1
