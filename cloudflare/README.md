@@ -16,7 +16,17 @@ This Worker is the secure server-side bridge between RunnerBear Cloud and the us
 - `GET /health` — bridge health check.
 - `GET /api/snapshot?days=28` — sanitized activity summaries, HRV, sleep, resting HR, running capacity and running zones.
 
-The private `TredictService` RPC entrypoint also exposes snapshot, planned-workout listing, structured plan creation and planned-workout date changes to RunnerBear Cloud.
+The private `TredictService` RPC entrypoint also exposes snapshot, planned-workout listing, structured plan creation, planned-workout date changes and `reconcileCanonical(operation)` to RunnerBear Cloud. Canonical operations require a stable RunnerBear workout ID and idempotency key.
+
+## Canonical operation states
+
+- `confirmed` — the stable RunnerBear marker exists, or a move was confirmed with a Tredict workout ID.
+- `review_required` — create/activation, replace or cancel cannot be proven safe; no destructive guess is made.
+- `failed_retryable` — transient transport failure; RunnerBear Cloud schedules bounded retry.
+- `failed_terminal` — invalid operation.
+- `superseded` — a newer plan revision owns the workout.
+
+Create and update first search the calendar marker, making retries idempotent. Move preserves the stable marker and external identity. Structural replace/cancel remains review-required until Tredict exposes a safe atomic operation.
 
 Both routes require `X-RunnerBear-Key` and the expected RunnerBear browser origin.
 

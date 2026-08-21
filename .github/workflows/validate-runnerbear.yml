@@ -8,7 +8,12 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1025.mjs'
+      - 'scripts/build-v1026.mjs'
+      - 'runnerbear-v1026-assets.json'
+      - 'cloud/runnerbear-cloud/**'
+      - 'cloudflare/**'
+      - 'package.json'
+      - 'package-lock.json'
       - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
   pull_request:
@@ -18,7 +23,12 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1025.mjs'
+      - 'scripts/build-v1026.mjs'
+      - 'runnerbear-v1026-assets.json'
+      - 'cloud/runnerbear-cloud/**'
+      - 'cloudflare/**'
+      - 'package.json'
+      - 'package-lock.json'
       - 'tests/**'
       - '.github/workflows/validate-runnerbear.yml'
 
@@ -34,10 +44,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build canonical v10.25.1 assets
+      - name: Build canonical v10.26 assets
         run: |
-          node scripts/build-v1025.mjs
-          git diff --exit-code -- runnerbear-core-v1025.js runnerbear-ui-v1025.js runnerbear-data-v1025.js runnerbear-v1025.css
+          node scripts/build-v1026.mjs
+          git diff --exit-code -- runnerbear-core-v1026.js runnerbear-ui-v1026.js runnerbear-data-v1026.js runnerbear-v1026.css
 
       - name: Check JavaScript loaded by index
         run: |
@@ -105,8 +115,16 @@ jobs:
       - name: Test v10.12 trust and analysis safeguards
         run: node --test tests/v1011-trust.test.cjs tests/v1012-analysis.test.cjs tests/v1020-coaching-clarity.test.cjs
 
-      - name: Test v10.25.1 coach-first adaptive plan and transport
-        run: node --test tests/*.test.cjs
+      - name: Test v10.26 coach loop and all legacy contracts
+        run: node --test tests/*.test.cjs tests/e2e/*.spec.mjs
+
+      - name: Validate empty and upgraded local D1 schema
+        working-directory: cloud/runnerbear-cloud
+        run: |
+          npm ci
+          npx wrangler d1 migrations apply DB --local
+          npx wrangler d1 migrations apply DB --local
+          npx wrangler d1 execute DB --local --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations')" --json
 
       - name: Validate web manifest
         run: python -m json.tool site.webmanifest > /dev/null

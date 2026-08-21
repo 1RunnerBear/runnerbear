@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "app",
-  "main": "src/index-v983.js",
+  "main": "src/index-v1026.js",
   "compatibility_date": "2026-08-20",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": true,
@@ -12,7 +12,8 @@
   "vars": {
     "PRIMARY_USER_ID": "primary",
     "PRIMARY_USER_EMAIL": "torbjorn.forre@gmail.com",
-    "CORS_ORIGINS": ""
+    "CORS_ORIGINS": "",
+    "COACH_LOOP_KILL_SWITCH": "false"
   },
   "assets": {
     "directory": "./public",

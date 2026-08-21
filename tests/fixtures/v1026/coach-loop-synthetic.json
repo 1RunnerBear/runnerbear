@@ -1,0 +1,7 @@
+{
+  "athlete": { "timezone": "Europe/Oslo", "baseKm": 50 },
+  "constraints": { "runDays": [1, 2, 3, 4, 6], "qualityDays": [1, 4], "longRunDay": 6, "alternativeDays": [0, 5], "maxRunDays": 5, "weeklyKmCap": 55 },
+  "health": { "measuredAt": "2026-08-21T06:00:00.000Z", "syncedAt": "2026-08-21T07:30:00.000Z", "hrvRatio": 0.82, "sleepRatio": 0.81, "rhrDelta": 2, "sampleCount": 15 },
+  "planned": { "workoutId": "synthetic-easy-1", "localDate": "2026-08-20", "workoutType": "easy", "plannedDistanceM": 7000 },
+  "activity": { "sourceId": "synthetic-activity-1", "sportType": "running", "distanceM": 13600, "durationSeconds": 4417, "avgHr": 146 }
+}

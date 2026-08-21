@@ -1,64 +1,58 @@
-# RunnerBear Cloud v9.8
+# RunnerBear Cloud v10.26
 
-Job 1 in the RunnerBear cloud migration: central server state and a single bootstrap API.
+RunnerBear Cloud is the authenticated source of truth for Coach Loop. The v1 API remains available as the rollback compatibility surface; `/api/v2/*` owns versioned plans, coach decisions, feedback events and the 10-day Tredict projection after staged activation.
 
-## Scope
+## Deploy and schema
 
-This Worker intentionally does **not** implement end-user login yet. Until v9.8.1, every `/api/*` route is protected by a `RUNNERBEAR_API_KEY` Worker secret using a timing-safe comparison. `/health` is public.
+The production workflow applies additive D1 migrations before deploying code, validates `/health`, and then enables owner-only shadow mode. Run locally with:
 
-D1 is designed to become the source of truth for:
+```sh
+npm ci
+npm run db:migrate:local
+npm run check
+```
 
-- generic RunnerBear state/profile/settings
-- plan days
-- completed activities
-- daily recovery/health data
-- capacity samples
-- shoes
-- source sync status
+`/health` must report `cloudBuild: "10.26.0"`, `schemaVersion: 2`, `coachLoop: true`, a D1 binding, static assets and healthy Tredict RPC v10.26.0.
 
-Browser `localStorage` remains untouched by this job and is not migrated yet.
+## Coach Loop API
 
-## API contract
+- `GET /api/v2/bootstrap?scope=home|full` — atomic plan, workout, decision, readiness/response, sync and flag snapshot.
+- `POST /api/v2/migration/preview|commit` — source-hashed legacy migration.
+- `POST /api/v2/plan/preview|commit|undo` — constraint validation, revision CAS and compatibility projection.
+- `GET /api/v2/coach/decision` and `POST /api/v2/coach/decision/:id/resolve`.
+- `POST /api/v2/feedback` and `POST /api/v2/events` — immutable response events.
+- `GET /api/v2/sync/status` and `POST /api/v2/sync/process` — idempotent 10-day Tredict operations.
 
-- `GET /health`
-- `GET /api/bootstrap?days=120`
-- `PUT /api/state/:namespace`
-- `PUT /api/plan`
-- `PUT /api/activities`
-- `PUT /api/health`
-- `PUT /api/capacity`
-- `PUT /api/shoes`
-- `PUT /api/sync-status`
+All API routes remain behind the existing Cloudflare Access identity. Request bodies are bounded by the existing Worker reader. Health is the only public route.
 
-All protected routes require `X-RunnerBear-Key` until Cloudflare Access replaces this in job 2.
+## Feature flags
 
-## Bootstrap response
+All flags default to false. Valid order is:
 
-`/api/bootstrap` returns one bounded payload containing the central RunnerBear state, plan, recent activities, recent health, capacity, shoes and sync status. The caller may request 7–365 days of activity/health history; the default is 120 days.
+1. `coach_loop_shadow`
+2. `coach_loop_read` after committed migration and 20 consecutive matching shadow bootstraps
+3. `coach_loop_ui` after mobile/visual/a11y review
+4. `coach_loop_write` after migration replay and undo verification
+5. `coach_loop_sync` after create/move/replace/cancel shadow verification
+6. `coach_loop_safe_auto` no earlier than seven error-free days; the athlete must also opt in
 
-## Provision and deploy
+`coach_loop_goal_confidence` can be enabled separately after its evidence gate. The backend rejects invalid dependency combinations. `COACH_LOOP_KILL_SWITCH=true` stops every v2 write/sync and serves compatibility snapshots for v2 reads.
 
-Wrangler 4.45+ supports automatic resource provisioning. The D1 binding therefore contains only `binding: "DB"`; the first authenticated deploy can create and attach the D1 resource automatically.
+## Rollback
 
-1. Install dependencies: `npm install`.
-2. First deploy/provision: `npm run deploy`.
-3. Apply schema: `npm run db:migrate:remote`.
-4. Verify the schema: `npm run db:smoke:remote`.
-5. When a temporary API-key client is needed, set it with `npx wrangler secret put RUNNERBEAR_API_KEY`. Job 2 is intended to replace this with Cloudflare Access.
-6. Before the browser client is switched over, set `CORS_ORIGINS` to the exact RunnerBear frontend origin.
+Rollback is non-destructive. Disable only the affected layer first:
 
-A manual GitHub Actions deployment workflow is included at `.github/workflows/runnerbear-cloud-deploy.yml`. It expects GitHub repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+- UI regression: `coach_loop_ui=false`
+- coach error: `coach_loop_safe_auto=false`
+- plan integrity: `coach_loop_write=false`, then `coach_loop_read=false`
+- transport issue: `coach_loop_sync=false`
+- v2/D1 incident: set `COACH_LOOP_KILL_SWITCH=true`
+- full release failure: redeploy the last good Worker and point `index.html` to the retained v10.25 assets
 
-## Design notes
+Do not reverse migration `0002`. Canonical events/revisions remain read-only after rollback. Every canonical write projects forward state to `rb_plan_days` and legacy localStorage namespaces in `rb_state`, so v10.25 can resume without becoming a second authority.
 
-- D1 is accessed through the Worker binding (`env.DB`), not the Cloudflare REST API.
-- Writes use prepared statements and D1 batch calls.
-- Request bodies are read with an explicit 2 MB ceiling.
-- API secrets are never committed; secret comparison uses SHA-256 plus `crypto.subtle.timingSafeEqual`.
-- The schema is already user-scoped (`user_id`) so the authentication layer can map a signed-in identity without a database redesign.
-- The frontend is deliberately not switched to cloud state in this job. That avoids a half-migrated state before login and migration are approved.
+Before reactivation, verify `/health`, the app shell, v1 bootstrap, compatibility plan and last Tredict status, then restart shadow comparison from zero.
 
-## Next jobs — not included here
+## Data and observability
 
-- v9.8.1: Cloudflare Access / cross-device login and session identity.
-- v9.8.2: one-time migration of existing local RunnerBear state and API cache into D1, then switch the frontend to D1 as source of truth.
+Structured logs contain stable owner scope, correlation/revision/decision/operation IDs, status, policy and reason codes—never raw health values, email, tokens or full explanation text. Actual private production records must not be copied into repository fixtures.

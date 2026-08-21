@@ -1,4 +1,4 @@
-/* RunnerBear v10.8.1 · deterministic Tredict structured-workout compiler */
+/* RunnerBear v10.26.0 · deterministic Tredict structured-workout compiler */
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
@@ -102,10 +102,10 @@
     const type=String(p?.type||'').toLowerCase(),id=sourceId({...p,date}),title=clean(p?.title||'RunnerBear workout',255);
     const steps=type==='quality'?qualitySteps(p):type==='race'?raceSteps(p):easySteps(p);
     return{
-      externalId:id,date,title,type,stimulus:String(p?.stimulus||type),planRevision:Math.max(0,Number(p?.planRevision||0)),km:Number(p?.km)||0,
+      externalId:id,date,title,type,stimulus:String(p?.stimulus||type),planRevision:Math.max(0,Number(p?.planRevision||0)),planRevisionId:clean(p?.planRevisionId||'',160),km:Number(p?.km)||0,
       structuredWorkout:{
         title,
-        notes:clean(`[RB:${id}] [REV:${Math.max(0,Number(p?.planRevision||0))}] [STIMULUS:${p?.stimulus||type}] ${p?.purpose||''} ${p?.desc||''} ${p?.detail||''}`,1024),
+        notes:clean(`[RB:${id}] [REV:${clean(p?.planRevisionId||Math.max(0,Number(p?.planRevision||0)),160)}] [STIMULUS:${p?.stimulus||type}] ${p?.purpose||''} ${p?.desc||''} ${p?.detail||''}`,1024),
         trainingType:'planned',sportType:'running',subSportType:'generic',steps
       }
     };
@@ -118,7 +118,7 @@
     if(!rows.length)throw new Error('No publishable running workouts');
     const start=rows[0].date,end=rows.at(-1).date;
     return{
-      source:{version:'10.25.1',startDate:start,endDate:end,workoutCount:rows.length,externalIds:rows.map(x=>x.externalId),planRevision:Math.max(0,...rows.map(x=>Number(x.planRevision||0)))},
+      source:{version:'10.26.0',startDate:start,endDate:end,workoutCount:rows.length,externalIds:rows.map(x=>x.externalId),planRevision:Math.max(0,...rows.map(x=>Number(x.planRevision||0))),planRevisionId:rows.map(x=>x.planRevisionId).find(Boolean)||''},
       payload:{
         plan:{
           title:`RunnerBear · ${formatDate(start)}–${formatDate(end)}`,
@@ -136,5 +136,5 @@
     return`${(a>>>0).toString(16).padStart(8,'0')}${(b>>>0).toString(16).padStart(8,'0')}`;
   }
 
-  return{version:'10.25.1',paceSeconds,paceTarget,recoverySeconds,workout,plan,signature};
+  return{version:'10.26.0',paceSeconds,paceTarget,recoverySeconds,workout,plan,signature};
 });
