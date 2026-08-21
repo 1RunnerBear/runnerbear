@@ -1,0 +1,181 @@
+import {execFileSync} from 'node:child_process';
+import {randomUUID} from 'node:crypto';
+import {readFileSync,writeFileSync} from 'node:fs';
+import {canEnableSafeAuto,coreFlags,evaluateCoreGates,evaluateObservation,FLAG_ORDER,rollbackFlags,validateFlagDependencies} from './coach-loop-rollout-lib.mjs';
+
+const USER_ID='primary';
+const RELEASE='10.26.0';
+const phase=process.argv[2]||'advance';
+const rollbackLevel=process.argv[3]||'full';
+const sourceSha=String(process.env.GITHUB_SHA||'local').slice(0,64);
+const actor=String(process.env.GITHUB_ACTOR||'runnerbear-release').slice(0,100);
+const now=()=>new Date().toISOString();
+const quote=value=>`'${String(value??'').replaceAll("'","''")}'`;
+const json=value=>JSON.stringify(value);
+
+function wrangler(args,{jsonOutput=false}={}){
+  const output=execFileSync('npx',['wrangler',...args],{encoding:'utf8',stdio:['ignore','pipe','inherit'],maxBuffer:16*1024*1024});
+  if(!jsonOutput)return output;
+  return JSON.parse(output);
+}
+
+function resolveProductionConfig(){
+  const raw=wrangler(['d1','list','--json'],{jsonOutput:true}),all=Array.isArray(raw)?raw:(raw.result||raw.databases||[]),rows=all.filter(row=>row&&(row.uuid||row.id)),preferred=rows.filter(row=>String(row.name||'').toLowerCase()==='app-db');
+  const selected=preferred.length===1?preferred[0]:rows.length===1?rows[0]:null;
+  if(!selected)throw new Error(`Could not resolve the existing RunnerBear D1 database safely. Found: ${rows.map(row=>row.name||'<unnamed>').sort().join(', ')||'none'}`);
+  const config=JSON.parse(readFileSync('wrangler.jsonc','utf8')),binding=config.d1_databases?.[0];
+  if(!binding)throw new Error('RunnerBear D1 binding is missing');
+  binding.database_id=selected.uuid||selected.id;binding.database_name=selected.name||'app-db';
+  writeFileSync('wrangler.release.jsonc',`${JSON.stringify(config,null,2)}\n`);
+  process.stdout.write(`Resolved production D1 binding: ${binding.database_name}\n`);
+}
+
+function execute(sql){
+  return wrangler(['d1','execute','DB','--remote','--config','wrangler.release.jsonc','--command',sql,'--json'],{jsonOutput:true});
+}
+
+function rows(sql){
+  const raw=execute(sql);
+  return raw.flatMap?.(entry=>entry.results||[])||[];
+}
+
+function one(sql){return rows(sql)[0]||{}}
+
+function audit(auditPhase,action,flags,gates={}){
+  execute(`INSERT INTO rb_feature_flag_audit(audit_id,user_id,phase,action,actor,source_sha,flags_json,gates_json,created_at) VALUES(${quote(`ffa-${randomUUID()}`)},${quote(USER_ID)},${quote(auditPhase)},${quote(action)},${quote(actor)},${quote(sourceSha)},${quote(json(flags))},${quote(json(gates))},${quote(now())});`);
+}
+
+function currentFlags(){
+  const result=Object.fromEntries(FLAG_ORDER.map(flag=>[flag,false]));
+  for(const row of rows(`SELECT flag,enabled FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} ORDER BY flag`))if(Object.hasOwn(result,row.flag))result[row.flag]=Number(row.enabled)===1;
+  return result;
+}
+
+function migrationCommitted(){return one(`SELECT status FROM rb_migrations WHERE user_id=${quote(USER_ID)} AND migration_key='coach-loop-v1026'`).status==='committed'}
+
+function assertCurrentFlags(expected){
+  const actual=currentFlags(),errors=validateFlagDependencies(actual,migrationCommitted());
+  if(errors.length)throw new Error(`Invalid production flag configuration: ${errors.join(', ')}`);
+  for(const [flag,value] of Object.entries(expected))if(actual[flag]!==value)throw new Error(`Flag verification failed: ${flag}=${actual[flag]} expected ${value}`);
+  return actual;
+}
+
+function setFlags(next,payload={}){
+  const timestamp=now(),payloadJson=json({release:RELEASE,sourceSha,actor,...payload});
+  execute(Object.entries(next).map(([flag,enabled])=>`UPDATE rb_feature_flags SET enabled=${enabled?1:0},payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,${quote(payloadJson)}),updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND flag=${quote(flag)}`).join(';')+';');
+  return assertCurrentFlags(next);
+}
+
+function coreGateState(){
+  const row=one(`WITH active AS (SELECT plan_revision_id FROM rb_plan_revisions WHERE user_id=${quote(USER_ID)} AND status='active')
+    SELECT
+      (SELECT status FROM rb_migrations WHERE user_id=${quote(USER_ID)} AND migration_key='coach-loop-v1026') AS migration_status,
+      (SELECT COUNT(*) FROM active) AS active_plan_count,
+      (SELECT plan_revision_id FROM active LIMIT 1) AS active_plan_revision_id,
+      (SELECT COUNT(*) FROM rb_plan_revision_items WHERE plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1)) AS active_item_count,
+      ((SELECT COUNT(*) FROM rb_plan_revision_items i LEFT JOIN rb_plan_days d ON d.user_id=${quote(USER_ID)} AND d.date=i.local_date
+          WHERE i.plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1) AND i.local_date>=date('now') AND i.slot_index=0
+            AND (d.date IS NULL OR d.type<>i.workout_type OR d.title<>i.title OR ABS(COALESCE(d.km,0)*1000-COALESCE(i.planned_distance_m,0))>1 OR d.status<>i.status))
+       +(SELECT COUNT(*) FROM rb_plan_days d WHERE d.user_id=${quote(USER_ID)} AND d.date>=date('now')
+          AND NOT EXISTS(SELECT 1 FROM rb_plan_revision_items i WHERE i.plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1) AND i.local_date=d.date))) AS compatibility_mismatch_count,
+      (SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_shadow') AS shadow_payload_json`),shadowPayload=(()=>{try{return JSON.parse(row.shadow_payload_json||'{}')}catch{return{}}})();
+  return{row,shadowPayload,evaluation:evaluateCoreGates(row,shadowPayload)};
+}
+
+function activateCore(){
+  const gate=coreGateState();
+  if(!gate.evaluation.ok){audit('core','blocked',currentFlags(),gate.evaluation.checks);process.stdout.write(`${json({status:'blocked',phase:'core',...gate.evaluation,shadow:gate.shadowPayload})}\n`);return false}
+
+  const base=coreFlags(),readUi={...base,coach_loop_write:false,coach_loop_sync:false};
+  setFlags(readUi,{phase:'read-ui',activatedAt:now()});
+  audit('read-ui','activate',readUi,gate.evaluation.checks);
+
+  const writes={...readUi,coach_loop_write:true};
+  setFlags(writes,{phase:'canonical-writes',activatedAt:now()});
+  audit('canonical-writes','activate',writes,{migrationReplay:true,undo:true,compatibilityProjection:true});
+
+  // Controlled, owner-only flag rollback rehearsal. No canonical data is
+  // deleted and outbound sync is still disabled throughout the rehearsal.
+  const rehearsed=rollbackFlags('full');
+  setFlags(rehearsed,{phase:'rollback-rehearsal',rehearsedAt:now()});
+  assertCurrentFlags(rehearsed);
+  setFlags(writes,{phase:'rollback-rehearsal-restore',restoredAt:now()});
+  audit('rollback-rehearsal','passed',writes,{fullFlagRollback:true,canonicalDataPreserved:true,outboundDisabled:true});
+
+  const activatedAt=now(),core={...writes,coach_loop_sync:true};
+  setFlags(core,{phase:'canonical-sync',coreActivatedAt:activatedAt,monitoringStartedAt:activatedAt,syncShadowPassed:true});
+  execute(`UPDATE rb_athlete_config SET profile_json=json_set(CASE WHEN json_valid(profile_json) THEN profile_json ELSE '{}' END,'$.coachControl','autopilot','$.safeAutoOptIn',json('true'),'$.safeAutoOptInAt',${quote(activatedAt)}),updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)}; INSERT INTO rb_state(user_id,namespace,payload_json,updated_at) VALUES(${quote(USER_ID)},'localStorage','{"runnerbear_v107_coach_control":"autopilot"}',${quote(activatedAt)}) ON CONFLICT(user_id,namespace) DO UPDATE SET payload_json=json_set(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,'$.runnerbear_v107_coach_control','autopilot'),updated_at=excluded.updated_at; UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,${quote(json({explicitOptIn:true,optInSource:'owner-command-2026-08-21',optInAt:activatedAt,coreActivatedAt:activatedAt}))}),updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto';`);
+  audit('canonical-sync','activate',core,{syncShadow:true,idempotentCreateMoveReplaceCancel:true,explicitOwnerOptInRecorded:true});
+  process.stdout.write(`${json({status:'activated',phase:'core',flags:assertCurrentFlags(core),coreActivatedAt:activatedAt})}\n`);
+  return true;
+}
+
+function observationState(coreActivatedAt){
+  return one(`WITH active AS (SELECT plan_revision_id FROM rb_plan_revisions WHERE user_id=${quote(USER_ID)} AND status='active')
+    SELECT
+      (SELECT COUNT(*) FROM active) AS active_plan_count,
+      (SELECT COUNT(*) FROM rb_plan_revision_items WHERE plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1)) AS active_item_count,
+      ((SELECT COUNT(*) FROM rb_plan_revision_items i LEFT JOIN rb_plan_days d ON d.user_id=${quote(USER_ID)} AND d.date=i.local_date
+          WHERE i.plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1) AND i.local_date>=date('now') AND i.slot_index=0
+            AND (d.date IS NULL OR d.type<>i.workout_type OR d.title<>i.title OR ABS(COALESCE(d.km,0)*1000-COALESCE(i.planned_distance_m,0))>1 OR d.status<>i.status))
+       +(SELECT COUNT(*) FROM rb_plan_days d WHERE d.user_id=${quote(USER_ID)} AND d.date>=date('now')
+          AND NOT EXISTS(SELECT 1 FROM rb_plan_revision_items i WHERE i.plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1) AND i.local_date=d.date))) AS compatibility_mismatch_count,
+      (SELECT COUNT(*) FROM (SELECT workout_id,destination FROM rb_sync_operations WHERE user_id=${quote(USER_ID)} AND status='confirmed' AND updated_at>=${quote(coreActivatedAt)} GROUP BY workout_id,destination HAVING COUNT(DISTINCT COALESCE(external_id,''))>1)) AS duplicate_sync_count,
+      (SELECT COUNT(*) FROM rb_sync_operations WHERE user_id=${quote(USER_ID)} AND status='failed_terminal' AND updated_at>=${quote(coreActivatedAt)}) AS terminal_sync_error_count,
+      (SELECT COUNT(*) FROM rb_sync_operations WHERE user_id=${quote(USER_ID)} AND status='failed_retryable' AND updated_at>=${quote(coreActivatedAt)}) AS retryable_sync_error_count,
+      (SELECT COUNT(*) FROM rb_coach_decisions d JOIN rb_plan_revisions r ON r.plan_revision_id=d.plan_revision_id WHERE d.user_id=${quote(USER_ID)} AND d.status IN ('accepted','auto_applied') AND r.superseded_at IS NOT NULL AND d.resolved_at>r.superseded_at AND d.resolved_at>=${quote(coreActivatedAt)}) AS stale_decision_count`);
+}
+
+function recordObservation(){
+  const syncFlag=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_sync'`),safeFlag=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto'`);
+  const syncPayload=(()=>{try{return JSON.parse(syncFlag.payload_json||'{}')}catch{return{}}})(),safePayload=(()=>{try{return JSON.parse(safeFlag.payload_json||'{}')}catch{return{}}})(),coreActivatedAt=String(syncPayload.coreActivatedAt||safePayload.coreActivatedAt||'');
+  if(!coreActivatedAt)return{status:'not-started'};
+  const row=observationState(coreActivatedAt),evaluation=evaluateObservation(row),timestamp=now(),observedDate=timestamp.slice(0,10),status=evaluation.ok?'clean':'blocked';
+  execute(`INSERT INTO rb_rollout_observations(observation_id,user_id,observed_date,status,active_plan_count,compatibility_mismatch_count,duplicate_sync_count,terminal_sync_error_count,retryable_sync_error_count,stale_decision_count,detail_json,created_at)
+    VALUES(${quote(`rbo-${randomUUID()}`)},${quote(USER_ID)},${quote(observedDate)},${quote(status)},${Number(row.active_plan_count||0)},${Number(row.compatibility_mismatch_count||0)},${Number(row.duplicate_sync_count||0)},${Number(row.terminal_sync_error_count||0)},${Number(row.retryable_sync_error_count||0)},${Number(row.stale_decision_count||0)},${quote(json(evaluation.checks))},${quote(timestamp)})
+    ON CONFLICT(user_id,observed_date) DO UPDATE SET
+      status=CASE WHEN rb_rollout_observations.status='blocked' OR excluded.status='blocked' THEN 'blocked' ELSE 'clean' END,
+      active_plan_count=excluded.active_plan_count,
+      compatibility_mismatch_count=MAX(rb_rollout_observations.compatibility_mismatch_count,excluded.compatibility_mismatch_count),
+      duplicate_sync_count=MAX(rb_rollout_observations.duplicate_sync_count,excluded.duplicate_sync_count),
+      terminal_sync_error_count=MAX(rb_rollout_observations.terminal_sync_error_count,excluded.terminal_sync_error_count),
+      retryable_sync_error_count=MAX(rb_rollout_observations.retryable_sync_error_count,excluded.retryable_sync_error_count),
+      stale_decision_count=MAX(rb_rollout_observations.stale_decision_count,excluded.stale_decision_count),
+      detail_json=excluded.detail_json;`);
+  audit('observation',status,currentFlags(),evaluation.checks);
+  if(!evaluation.ok){
+    const rolledBack=rollbackFlags('full');
+    setFlags(rolledBack,{phase:'automatic-safety-rollback',failedAt:timestamp,reactivationRequired:true});
+    execute(`UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,'{"consecutiveSuccesses":0,"lastMatch":false,"reactivationRequired":true}'),updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_shadow';`);
+    audit('automatic-safety-rollback','activate',rolledBack,evaluation.checks);
+  }
+  return{status,coreActivatedAt,evaluation};
+}
+
+function maybeEnableSafeAuto(){
+  const flags=currentFlags();
+  if(!(flags.coach_loop_read&&flags.coach_loop_ui&&flags.coach_loop_write&&flags.coach_loop_sync))return{status:'core-not-active'};
+  if(flags.coach_loop_safe_auto)return{status:'already-active'};
+  const safeRow=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto'`),syncRow=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_sync'`),safePayload=(()=>{try{return JSON.parse(safeRow.payload_json||'{}')}catch{return{}}})(),syncPayload=(()=>{try{return JSON.parse(syncRow.payload_json||'{}')}catch{return{}}})(),coreActivatedAt=String(syncPayload.coreActivatedAt||safePayload.coreActivatedAt||''),cleanDates=rows(`SELECT observed_date FROM rb_rollout_observations WHERE user_id=${quote(USER_ID)} AND status='clean' AND created_at>=${quote(coreActivatedAt)} ORDER BY observed_date`).map(row=>row.observed_date),gate=canEnableSafeAuto({coreActivatedAt,now:now(),cleanObservationDates:cleanDates,explicitOptIn:safePayload.explicitOptIn===true});
+  if(!gate.ok){process.stdout.write(`${json({status:'waiting',phase:'safe-auto',...gate})}\n`);return{status:'waiting',gate}}
+  const enabledFlags={...flags,coach_loop_safe_auto:true},activatedAt=now();
+  setFlags(enabledFlags,{phase:'safe-auto',activatedAt,coreActivatedAt,observationDays:gate.cleanDates,explicitOptIn:true});
+  audit('safe-auto','activate',enabledFlags,gate.checks);
+  process.stdout.write(`${json({status:'activated',phase:'safe-auto',flags:assertCurrentFlags(enabledFlags),gate})}\n`);
+  return{status:'activated',gate};
+}
+
+function rollback(){
+  const next=rollbackFlags(rollbackLevel),actual=setFlags(next,{phase:'manual-rollback',rollbackLevel,rolledBackAt:now(),reactivationRequired:true});
+  audit('rollback','activate',actual,{level:rollbackLevel});
+  process.stdout.write(`${json({status:'rolled-back',level:rollbackLevel,flags:actual})}\n`);
+}
+
+resolveProductionConfig();
+if(phase==='rollback')rollback();
+else if(phase==='safe-auto'){recordObservation();maybeEnableSafeAuto()}
+else{
+  const flags=currentFlags(),coreActive=flags.coach_loop_read&&flags.coach_loop_ui&&flags.coach_loop_write&&flags.coach_loop_sync;
+  if(!coreActive)activateCore();
+  if(currentFlags().coach_loop_sync){recordObservation();maybeEnableSafeAuto()}
+}
