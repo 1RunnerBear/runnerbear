@@ -1,22 +1,23 @@
 {
   "build": "10.26.0",
-  "status": "failed",
-  "checked_at": "2026-08-21T09:18:30.374357+00:00",
-  "run_id": "32467239100",
-  "source_sha": "0f21d8b27fc3743560a591f7066dc3cb2de2fe51",
+  "status": "success",
+  "checked_at": "2026-08-21T09:42:49.449154+00:00",
+  "run_id": "32469144643",
+  "source_sha": "3f3c7248650e1e489dea218b88fb9231931eca71",
   "steps": {
     "install": "success",
     "validate": "success",
-    "assets": "skipped",
-    "deploy": "skipped",
-    "migrate": "failure",
-    "smoke": "skipped",
-    "health": "skipped",
-    "shadow": "skipped",
-    "flag_smoke": "skipped",
-    "app_smoke": "skipped",
-    "access": "skipped",
-    "access_vars": "skipped",
-    "guard": "skipped"
+    "d1": "success",
+    "assets": "success",
+    "deploy": "success",
+    "migrate": "success",
+    "smoke": "success",
+    "health": "success",
+    "shadow": "success",
+    "flag_smoke": "success",
+    "app_smoke": "success",
+    "access": "success",
+    "access_vars": "success",
+    "guard": "success"
   }
 }
