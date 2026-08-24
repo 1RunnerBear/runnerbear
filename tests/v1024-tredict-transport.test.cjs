@@ -53,6 +53,14 @@ test('calendar helpers identify RunnerBear markers and preserve scheduled time',
   assert.equal(row.id,'11');assert.equal(helpers.rowExternalId(row),'rb-workout-1');assert.equal(helpers.scheduledDateTime(row,'2026-08-20'),'2026-08-20T06:30:00.000Z');
 });
 
+test('calendar helpers expose duplicate stable markers instead of hiding them',async()=>{
+  const helpers=await import('../cloudflare/tredict-calendar-sync.mjs'),rows=[
+    {id:'11',date:'2026-08-17T06:30:00.000Z',notes:'[RB:rb-workout-1]'},
+    {id:'12',date:'2026-08-18T06:30:00.000Z',notes:'[RB:rb-workout-1]'},
+  ],matches=helpers.findPlannedWorkouts(rows,{externalId:'rb-workout-1',date:'2026-08-18'});
+  assert.deepEqual(matches.map(row=>row.id),['11','12']);
+});
+
 test('v10.25 app names the real Tredict transport and removes the Garmin API placeholder',()=>{
   const ui=fs.readFileSync(path.join(root,'runnerbear-ui-v1025.js'),'utf8'),data=fs.readFileSync(path.join(root,'runnerbear-data-v1025.js'),'utf8'),cloud=fs.readFileSync(path.join(root,'cloud/runnerbear-cloud/src/index-v982.js'),'utf8'),bridge=fs.readFileSync(path.join(root,'cloudflare/runnerbear-tredict-worker.mjs'),'utf8');
   assert.match(ui,/RunnerBear → Tredict → Garmin/);assert.match(ui,/Klar i Tredict – aktiver planen/);assert.match(ui,/Tredict-kalender/);

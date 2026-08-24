@@ -130,7 +130,7 @@ jobs:
           npm ci
           npx wrangler d1 migrations apply DB --local
           npx wrangler d1 migrations apply DB --local
-          npx wrangler d1 execute DB --local --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations')" --json
+          npx wrangler d1 execute DB --local --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations','rb_sync_bindings')" --json
 
       - name: Validate web manifest
         run: python -m json.tool site.webmanifest > /dev/null

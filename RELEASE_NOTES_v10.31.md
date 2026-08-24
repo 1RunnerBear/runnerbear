@@ -1,4 +1,12 @@
-# RunnerBear 10.31.0
+# RunnerBear 10.31.1
+
+## Automatisk kalender og rask oppstart
+
+- Canonical Coach Loop er eneste eier av planendringer mot Tredict; det eldre helplanslaget kan ikke publisere parallelt.
+- Stabile provider-bindinger bevarer samme Tredict-økt når datoen endres, mens rullerende ti-dagerssynk fylles automatisk av cron.
+- Duplikate RunnerBear-markører oppdages uten å opprette enda en plan, og manuell Tredict-synk er fjernet fra Plan.
+- Sist verifiserte canonical snapshot vises umiddelbart og revalideres i bakgrunnen uten den blokkerende oppstartsskjermen.
+- Forrige uke viser kvalitetsøkter, langtur, totale løpskilometer, løpstid og en datadrevet coachvurdering.
 
 ## Coachens ukereview
 

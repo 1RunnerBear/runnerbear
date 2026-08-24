@@ -9,11 +9,26 @@ test('weekly review distinguishes running, alternative training and missed work 
   const {buildWeeklyReview}=await import('../cloud/runnerbear-cloud/src/v1031/review-engine.js'),plan={planRevisionId,items:[
     row('easy','2026-08-17'),row('quality','2026-08-18',{workoutType:'quality',title:'6 × 6 min terskel',intent:'threshold',plannedDistanceM:10000}),row('crossed','2026-08-19'),row('missed','2026-08-20')
   ]},activities=[
-    {source_id:'garmin-1',date:'2026-08-17',sport_type:'running',distance_m:8100},
-    {source_id:'garmin-2',date:'2026-08-18',sport_type:'running',distance_m:10100},
+    {source_id:'garmin-1',date:'2026-08-17',sport_type:'running',distance_m:8100,duration_seconds:2700},
+    {source_id:'garmin-2',date:'2026-08-18',sport_type:'running',distance_m:10100,duration_seconds:3600},
     {source_id:'c2-1',date:'2026-08-19',sport_type:'rowing',distance_m:10000,duration_seconds:2400}
   ],review=buildWeeklyReview({plan,activities,today:'2026-08-24',generatedAt:'2026-08-24T08:00:00Z'});
-  assert.equal(review.version,'weekly-review-1');assert.equal(review.planRevisionId,planRevisionId);assert.equal(review.totals.completedDistanceM,18200);assert.equal(review.totals.alternativeSessions,1);assert.equal(review.totals.missedSessions,1);assert.equal(review.sessions.find(x=>x.workoutId==='crossed').actualDistanceM,0);assert.equal(review.attention,'watch');
+  assert.equal(review.version,'weekly-review-1');assert.equal(review.planRevisionId,planRevisionId);assert.equal(review.totals.completedDistanceM,18200);assert.equal(review.totals.completedDurationSeconds,6300);assert.equal(review.totals.plannedQualitySessions,1);assert.equal(review.totals.completedQualitySessions,1);assert.equal(review.totals.alternativeSessions,1);assert.equal(review.totals.missedSessions,1);assert.equal(review.sessions.find(x=>x.workoutId==='crossed').actualDistanceM,0);assert.equal(review.attention,'watch');assert.match(review.coachComment,/uten treningsgjeld/i);
+});
+
+test('weekly review summarizes quality, long run, total distance, running time and coach assessment',async()=>{
+  const {buildWeeklyReview}=await import('../cloud/runnerbear-cloud/src/v1031/review-engine.js'),plan={planRevisionId,items:[
+    row('quality-1','2026-08-18',{workoutType:'quality',title:'6 × 6 min terskel',intent:'threshold',plannedDistanceM:10000}),
+    row('quality-2','2026-08-21',{workoutType:'quality',title:'20 × 45/15',intent:'threshold',plannedDistanceM:9000}),
+    row('long','2026-08-23',{title:'17 km langtur',intent:'long',plannedDistanceM:17000}),
+    row('easy','2026-08-20',{plannedDistanceM:8000}),
+  ]},activities=[
+    {source_id:'a1',date:'2026-08-18',sport_type:'running',distance_m:10100,duration_seconds:3300},
+    {source_id:'a2',date:'2026-08-21',sport_type:'running',distance_m:9200,duration_seconds:3000},
+    {source_id:'a3',date:'2026-08-23',sport_type:'running',distance_m:17200,duration_seconds:5460},
+    {source_id:'a4',date:'2026-08-20',sport_type:'running',distance_m:7900,duration_seconds:2700},
+  ],review=buildWeeklyReview({plan,activities,today:'2026-08-24',generatedAt:'2026-08-24T08:00:00Z'});
+  assert.equal(review.totals.completedQualitySessions,2);assert.equal(review.totals.plannedQualitySessions,2);assert.equal(review.longRun.completed,true);assert.equal(review.longRun.actualDistanceM,17200);assert.equal(review.longRun.actualDurationSeconds,5460);assert.equal(review.totals.completedDistanceM,44400);assert.equal(review.totals.completedDurationSeconds,14460);assert.equal(review.headline,'Sterk og balansert uke');assert.match(review.coachComment,/Alle planlagte kvalitetsøkter og langturen/);
 });
 
 test('missed workout evaluation is forward-only and creates no training debt',async()=>{
@@ -50,4 +65,19 @@ test('bootstrap keeps realignment forward-only without returning a duplicate ful
   assert.match(readModel,/function publicRealignment\(proposal\)/);
   assert.match(readModel,/const \{rows,changes,\.\.\.summary\}=proposal/);
   assert.match(readModel,/realignmentProposal:publicRealignment\(realignmentProposal\)/);
+});
+
+test('rolling sync uses one durable binding and moves the same external workout id',async()=>{
+  const {projectRollingSync,stableExternalId}=await import('../cloud/runnerbear-cloud/src/v1031/sync-projection.js'),item=row('quality-stable','2026-08-27',{workoutType:'quality'}),binding={workout_id:item.workoutId,status:'confirmed',confirmed_date:'2026-08-26'},operations=projectRollingSync([item],planRevisionId,'2026-08-24','tredict',[binding]);
+  assert.equal(operations.length,1);assert.equal(operations[0].operationType,'move');assert.equal(operations[0].payload.previousDate,'2026-08-26');assert.equal(stableExternalId(item.workoutId),'rb-workout-quality-stable');assert.equal(projectRollingSync([item],planRevisionId,'2026-08-24','tredict',[{...binding,confirmed_date:item.localDate}]).length,0);
+});
+
+test('startup paints verified cache before revalidation and legacy plan publishing yields to canonical sync',()=>{
+  const canonical=fs.readFileSync('runnerbear-cloud-v1031.js','utf8'),legacy=fs.readFileSync('runnerbear-cloud-v1025.js','utf8'),html=fs.readFileSync('index.html','utf8'),ui=fs.readFileSync('runnerbear-ui-v1031-source.js','utf8');
+  assert.match(canonical,/const cached=verifiedCache\(\);\s*if\(cached\)\{install\(cached\)/);assert.match(legacy,/function canonicalSyncOwner\(\)/);assert.match(legacy,/if\(!IS_CLOUD\|\|canonicalSyncOwner\(\)\)return/);assert.match(html,/runnerbear-data-v1031\.js\?v=10311" defer/);assert.doesNotMatch(ui,/canonicalSyncBannerHtml\(\)[^\n]+data-rb1028-sync-retry/);
+});
+
+test('sync binding migration enforces one provider identity per canonical workout',()=>{
+  const migration=fs.readFileSync('cloud/runnerbear-cloud/migrations/0006_sync_bindings.sql','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v1031/routes.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v1031.js','utf8');
+  assert.match(migration,/PRIMARY KEY\(user_id,destination,workout_id\)/);assert.match(migration,/UNIQUE\(user_id,destination,stable_external_id\)/);assert.match(routes,/remoteWorkoutId:operation\.remote_workout_id/);assert.match(routes,/INSERT INTO rb_sync_bindings/);assert.match(entry,/reconcileActiveSyncProjection/);
 });
