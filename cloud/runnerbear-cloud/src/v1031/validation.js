@@ -16,6 +16,7 @@ export function config(input={}){
   return{
     profile:{...(input.profile||{}),baseKm,normalLow,normalHigh,upperLimit,targetWeeklyVolume},
     constraints:{runDays,qualityDays,alternativeDays,longRunDay,maxRunDays:Math.min(runDays.length,clamp(constraints.maxRunDays??runDays.length,1,7)),weeklyKmCap:Math.min(upperLimit,clamp(constraints.weeklyKmCap??upperLimit,10,300)),safetyOverrides},
-    goal:{mode:['race','base','transition'].includes(goal.mode)?goal.mode:'race',distance:['five','ten','half'].includes(goal.distance)?goal.distance:'half',date:dateOnly(goal.date),name:clean(goal.name),targetSeconds:Math.max(0,finite(goal.targetSeconds))}
+    goal:{mode:['race','base','transition'].includes(goal.mode)?goal.mode:'race',distance:['five','ten','half'].includes(goal.distance)?goal.distance:'half',date:dateOnly(goal.date),name:clean(goal.name),targetSeconds:Math.max(0,finite(goal.targetSeconds)),secondary:normalizeSecondaryGoals(goal.secondary)}
   };
 }
+import { normalizeSecondaryGoals } from './goal-model.js';

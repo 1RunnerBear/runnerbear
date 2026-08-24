@@ -9,6 +9,7 @@ import { bootstrapV2,compatibilityBootstrap } from './read-model.js';
 import { projectRollingSync,projectSync,stableExternalId,syncOperationStatements } from './sync-projection.js';
 import { buildRealignmentProposal } from './review-engine.js';
 import { buildSyncRepair,canExplicitlyVerify } from './sync-repair.js';
+import { restorePausedPrimaryGoalState } from './goal-model.js';
 const json=(body,status=200,headers={})=>Response.json(body,{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
 const fail=(code,status=400,message=code,headers={})=>json({ok:false,code,message,retryable:status>=500,correlationId:crypto.randomUUID()},status,headers);
 const enabled=(all,name)=>all?.[name]===true;
@@ -72,6 +73,28 @@ async function applyRealignmentRequest(request,env,userId,body,headers,ctx){
   console.log(JSON.stringify({event:'coach_realign_applied',build:BUILD,policyVersion:POLICY_VERSION,userScope:userId==='primary'?'owner':'user',planRevisionId:current.planRevisionId,trigger:proposal.trigger,affected:proposal.affectedWorkoutIds.length}));
   return commitPlanRequest(request,env,userId,{expectedPlanRevisionId:current.planRevisionId,previewId,reason:'automatic-realignment',eventType:'plan:auto-adjusted'},headers,ctx);
 }
+export async function repairAccidentalGoalState(env,userId,now=new Date().toISOString()){
+  if(!env.DB)return{ok:false,restored:false};
+  const [stateRow,current,currentConfig]=await Promise.all([
+    env.DB.prepare("SELECT payload_json FROM rb_state WHERE user_id=?1 AND namespace='localStorage'").bind(userId).first(),
+    activePlan(env.DB,userId),
+    athleteConfig(env.DB,userId),
+  ]);
+  if(!stateRow||!current)return{ok:true,restored:false};
+  const local=parse(stateRow.payload_json,{}),rawGoal=parse(local.runnerbear_v109_goals,null);
+  if(!rawGoal)return{ok:true,restored:false};
+  const timezone=currentConfig?.timezone||'Europe/Oslo',today=new Intl.DateTimeFormat('en-CA',{timeZone:timezone}).format(new Date(now)),repair=restorePausedPrimaryGoalState(rawGoal,today,now);
+  if(!repair.changed)return{ok:true,restored:false};
+  const primary=repair.primary,config={...(currentConfig||{}),goal:{...(currentConfig?.goal||{}),mode:'race',name:primary.name||'',date:primary.date||'',distance:primary.distance||'half',targetSeconds:Number(primary.targetSeconds||0),secondary:repair.state.secondary||[]}},preview=previewPlan({currentItems:current.items,historicalItems:current.items,config,fromDate:today,goalChanged:true,trigger:'goal_guard_restore'});
+  if(!preview.validation?.valid){console.error(JSON.stringify({event:'goal_guard_restore_rejected',build:BUILD,userScope:userId==='primary'?'owner':'user',planRevisionId:current.planRevisionId,issues:preview.validation?.issues||[]}));return{ok:false,restored:false,issues:preview.validation?.issues||[]}}
+  const sourceId=`goal-guard:${primary.id||primary.date}:${primary.closedAt||rawGoal.updatedAt||today}`,planRevisionId=newId('pr'),previewEvent=event({userId,type:'plan:preview',sourceId:`${sourceId}:preview`,localDate:today,payload:{config,timezone,fromDate:today,trigger:'goal_guard_restore',reason:'goal-guard-restore',goalChanged:true}}),sourceEvent=event({userId,type:'goal:auto-restored',sourceId,localDate:today,payload:{reason:'goal-guard-restore',trigger:'goal_guard_restore',generatedFromDate:today,resultPlanRevisionId:planRevisionId,goalId:primary.id||'',goalDate:primary.date||''},now});
+  await createDraft(env.DB,{userId,parentRevisionId:current.planRevisionId,reasonCode:'goal-guard-preview',sourceEvent:previewEvent,items:preview.rows,planRevisionId,now});
+  const localPatch={runnerbear_v109_goals:JSON.stringify(repair.state),runnerbear_v10312_goal_guard:JSON.stringify({evaluatedAt:now,restored:true,source:'server'})},compatibility=await compatibilityProjectionStatements(env.DB,userId,planRevisionId,preview.rows,now,localPatch),allFlags=await flags(env.DB,userId),syncOperations=enabled(allFlags,'coach_loop_sync')?projectSync(preview.rows,planRevisionId,today,'tredict',current.items):[],outbox=syncOperationStatements(env.DB,userId,syncOperations,now);
+  await activateDraft(env.DB,{userId,planRevisionId,parentRevisionId:current.planRevisionId,reasonCode:'goal-guard-restore',sourceEvent,config,timezone,now,extraStatements:[...compatibility,...outbox]});
+  console.log(JSON.stringify({event:'goal_guard_restored',build:BUILD,userScope:userId==='primary'?'owner':'user',planRevisionId,parentRevisionId:current.planRevisionId,goalId:primary.id||'',goalDate:primary.date||'',syncOperations:syncOperations.length}));
+  return{ok:true,restored:true,planRevisionId,syncQueued:syncOperations.length};
+}
+
 export async function reconcileActiveSyncProjection(env,userId,today=new Date().toISOString().slice(0,10)){
   if(!env.DB)return{ok:false,queued:0};
   const [plan,bindingRows,currentFlags]=await Promise.all([

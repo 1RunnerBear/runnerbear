@@ -1,4 +1,12 @@
-# RunnerBear 10.31.1
+# RunnerBear 10.31.2
+
+## Målvern og B-løp
+
+- «Bygg form uten løpsdato» krever nå en egen, tydelig bekreftelse før A-målet pauses.
+- Det sist utilsiktet pauserte fremtidige A-målet reaktiveres automatisk én gang, med måltid og B-løp bevart.
+- B-løp er nå del av den kanoniske planrevisjonen og erstatter én kvalitetsdose i aktuell løpsuke.
+- Uken før et løp tidlig i neste uke reduseres til én kvalitetsdose, slik at restitusjonsavstanden og rullerende kvalitetstak beholdes.
+- Den stabile B-løpsidentiteten gjør at Tredict/Garmin justerer samme økt ved planendringer, i stedet for å opprette et parallelt frontend-løp.
 
 ## Automatisk kalender og rask oppstart
 
