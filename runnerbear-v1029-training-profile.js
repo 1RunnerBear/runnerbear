@@ -1,4 +1,4 @@
-/* RunnerBear v10.29.0 · automatic training-profile model */
+/* RunnerBear v10.29.1 · automatic training-profile model */
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
@@ -22,5 +22,5 @@
     return{runDays:running,qualityDays:quality,longRunDay:long,alternativeDays,minRunDays:running.length,maxRunDays:running.length,flexibleSessions:Math.min(2,alternativeDays.length)};
   }
 
-  return{version:'10.29.0',automaticVolume,rhythm};
+  return{version:'10.29.1',automaticVolume,rhythm};
 });

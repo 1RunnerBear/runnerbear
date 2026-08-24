@@ -3,7 +3,7 @@ import { processPendingSync } from './v1027/routes.js';
 
 export { MigrationService } from './migration-service.js';
 
-const BUILD = '10.29.0';
+const BUILD = '10.29.1';
 
 async function historyAudit(db) {
   if (!db) return { ok: false, activities: 0, duplicateExternalIds: 0, planItems: 0, events: 0 };
