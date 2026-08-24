@@ -1,0 +1,14 @@
+/* RunnerBear v10.28 · trust and flow hardening. Design Direction 1.0. */
+.rb1028-sync-banner{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;border:1px solid #d8e1db;border-radius:14px;background:#f7faf8;color:#193f2d}
+.rb1028-sync-banner>i,.rb1023-garmin-status>i{width:9px;height:9px;border-radius:50%;background:#708078;box-shadow:0 0 0 4px rgba(112,128,120,.12)}
+.rb1028-sync-banner>span{display:grid;gap:2px;min-width:0}
+.rb1028-sync-banner b{font-size:.82rem;line-height:1.25}
+.rb1028-sync-banner small{color:#667269;font-size:.72rem;line-height:1.35}
+.rb1028-sync-banner button{border:0;background:transparent;color:#0d4b31;font:inherit;font-size:.76rem;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.rb1028-sync-banner.confirmed>i,.rb1023-garmin-status.confirmed>i{background:#26845b;box-shadow:0 0 0 4px rgba(38,132,91,.13)}
+.rb1028-sync-banner.busy>i,.rb1028-sync-banner.queued>i,.rb1028-sync-banner.processing>i,.rb1023-garmin-status.queued>i,.rb1023-garmin-status.processing>i{background:#b87b17;box-shadow:0 0 0 4px rgba(184,123,23,.14)}
+.rb1028-sync-banner.action>i,.rb1028-sync-banner.retry>i,.rb1028-sync-banner.review>i,.rb1023-garmin-status.failed_retryable>i,.rb1023-garmin-status.review_required>i{background:#a44c3b;box-shadow:0 0 0 4px rgba(164,76,59,.14)}
+.rb10251-bank-modal,.rb10251-move-modal{z-index:12010}
+.rb10251-move-actions button:disabled,.rb10251-move-preview header button:disabled{cursor:wait;opacity:.65}
+@media(max-width:560px){.rb1028-sync-banner{grid-template-columns:auto minmax(0,1fr)}.rb1028-sync-banner button{grid-column:2;justify-self:start;padding:2px 0}}
+@media(prefers-contrast:more){.rb1028-sync-banner{border-width:2px}.rb1028-sync-banner>i,.rb1023-garmin-status>i{outline:1px solid currentColor}}

@@ -1,1 +1,1 @@
-RunnerBear v10.27 plan integrity, history recovery and canonical preference reflow production deploy
+RunnerBear v10.28 trust, canonical first paint and durable sync production deploy

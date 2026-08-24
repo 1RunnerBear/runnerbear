@@ -9,6 +9,9 @@
     "enabled": true,
     "head_sampling_rate": 1
   },
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
   "vars": {
     "PRIMARY_USER_ID": "primary",
     "PRIMARY_USER_EMAIL": "torbjorn.forre@gmail.com",

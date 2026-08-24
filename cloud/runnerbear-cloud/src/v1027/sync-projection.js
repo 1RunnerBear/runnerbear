@@ -6,7 +6,13 @@ export function projectSync(items=[],planRevisionId,today=new Date().toISOString
   for(const before of previousItems.filter(isPublishable)){const after=current.get(before.workoutId);if(after&&isPublishable(after))continue;if(items.some(item=>item.lineageId&&item.lineageId===before.lineageId&&item.workoutId!==before.workoutId&&isPublishable(item)))continue;const operationType='cancel';rows.push({operationId:newId('sync'),workoutId:before.workoutId,planRevisionId,destination,operationType,idempotencyKey:`${destination}:${before.workoutId}:${planRevisionId}:${operationType}`,status:'review_required',payload:{date:before.localDate,title:before.title,lineageId:before.lineageId}})}
   return rows;
 }
+export function syncOperationStatements(db,userId,operations=[],now=new Date().toISOString()){
+  if(!operations.length)return[];const statements=[];
+  for(const op of operations)statements.push(db.prepare("UPDATE rb_sync_operations SET status='superseded',updated_at=?1 WHERE user_id=?2 AND workout_id=?3 AND plan_revision_id<>?4 AND status IN ('queued','processing','failed_retryable','review_required')").bind(now,userId,op.workoutId,op.planRevisionId));
+  statements.push(...operations.map(op=>db.prepare(`INSERT INTO rb_sync_operations(operation_id,user_id,workout_id,plan_revision_id,destination,operation_type,idempotency_key,status,created_at,updated_at)
+    VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?9) ON CONFLICT(idempotency_key) DO NOTHING`).bind(op.operationId,userId,op.workoutId,op.planRevisionId,op.destination,op.operationType,op.idempotencyKey,op.status,now)));
+  return statements;
+}
 export async function storeSyncOperations(db,userId,operations=[],now=new Date().toISOString()){
-  if(!operations.length)return[];const statements=[];for(const op of operations)statements.push(db.prepare("UPDATE rb_sync_operations SET status='superseded',updated_at=?1 WHERE user_id=?2 AND workout_id=?3 AND plan_revision_id<>?4 AND status IN ('queued','failed_retryable','review_required')").bind(now,userId,op.workoutId,op.planRevisionId));statements.push(...operations.map(op=>db.prepare(`INSERT INTO rb_sync_operations(operation_id,user_id,workout_id,plan_revision_id,destination,operation_type,idempotency_key,status,created_at,updated_at)
-    VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?9) ON CONFLICT(idempotency_key) DO NOTHING`).bind(op.operationId,userId,op.workoutId,op.planRevisionId,op.destination,op.operationType,op.idempotencyKey,op.status,now)));await db.batch(statements);return operations;
+  if(!operations.length)return[];await db.batch(syncOperationStatements(db,userId,operations,now));return operations;
 }

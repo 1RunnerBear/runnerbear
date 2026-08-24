@@ -21,7 +21,7 @@ export async function bootstrapV2(env,userId,scope='home'){
   const [featureFlags,config,plan]=await Promise.all([flags(env.DB,userId),athleteConfig(env.DB,userId),activePlan(env.DB,userId)]);
   if(!config||!plan)return{ok:true,build:BUILD,schemaVersion:SCHEMA_VERSION,needsMigration:true,flags:featureFlags,generatedAt:new Date().toISOString()};
   const today=new Intl.DateTimeFormat('en-CA',{timeZone:config.timezone||'Europe/Oslo'}).format(new Date()),todayWorkout=plan.items.find(item=>item.localDate===today)||null;
-  const [coachDecision,sync,response]=await Promise.all([latestDecision(env.DB,userId,plan.planRevisionId),scope==='full'?syncStatus(env.DB,userId):Promise.resolve([]),responseState(env.DB,userId,scope)]);
+  const [coachDecision,sync,response]=await Promise.all([latestDecision(env.DB,userId,plan.planRevisionId),syncStatus(env.DB,userId),responseState(env.DB,userId,scope)]);
   const visiblePlan=scope==='home'?{...plan,items:plan.items.filter(item=>item.localDate>=addDays(today,-35)&&item.localDate<=addDays(today,14))}:plan;
   return{ok:true,build:BUILD,schemaVersion:SCHEMA_VERSION,needsMigration:false,planRevisionId:plan.planRevisionId,cursor:`${plan.planRevisionId}:${coachDecision?.inputCursor||'none'}`,generatedAt:new Date().toISOString(),generatedFromDate:plan.generatedFromDate,trigger:plan.trigger,flags:featureFlags,config,activePlan:visiblePlan,todayWorkout,coachDecision,readiness:response.health,recentActivities:response.recentActivities,responseEvents:response.responseEvents,goalConfidence:featureFlags.coach_loop_goal_confidence?goalConfidence(plan,response):null,syncSource:response.syncSource,sync};
 }

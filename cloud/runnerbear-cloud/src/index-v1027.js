@@ -1,8 +1,9 @@
 import legacy from './index-v982.js';
+import { processPendingSync } from './v1027/routes.js';
 
 export { MigrationService } from './migration-service.js';
 
-const BUILD = '10.27.0';
+const BUILD = '10.28.0';
 
 async function historyAudit(db) {
   if (!db) return { ok: false, activities: 0, duplicateExternalIds: 0, planItems: 0, events: 0 };
@@ -20,14 +21,25 @@ async function historyAudit(db) {
   }
 }
 
+async function syncAudit(db) {
+  if (!db) return { queued: 0, retryable: 0, processing: 0, reviewRequired: 0 };
+  try {
+    const rows = await db.prepare("SELECT status,COUNT(*) AS total FROM rb_sync_operations WHERE user_id='primary' AND status IN ('queued','failed_retryable','processing','review_required') GROUP BY status").all();
+    const counts = Object.fromEntries((rows.results || []).map((row) => [row.status, Number(row.total || 0)]));
+    return { queued: counts.queued || 0, retryable: counts.failed_retryable || 0, processing: counts.processing || 0, reviewRequired: counts.review_required || 0 };
+  } catch {
+    return { queued: 0, retryable: 0, processing: 0, reviewRequired: 0 };
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const response = await legacy.fetch(request, env, ctx);
     const path = new URL(request.url).pathname.replace(/\/+$/, '') || '/';
     if (request.method !== 'GET' || path !== '/health' || !response.ok) return response;
     try {
-      const [body,audit] = await Promise.all([response.json(),historyAudit(env.DB)]);
-      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds} }, {
+      const [body,audit,sync] = await Promise.all([response.json(),historyAudit(env.DB),syncAudit(env.DB)]);
+      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync }, {
         status: response.status,
         headers: {
           'content-type': 'application/json; charset=utf-8',
@@ -37,5 +49,9 @@ export default {
     } catch {
       return response;
     }
+  },
+  async scheduled(controller, env) {
+    const result = await processPendingSync(env, String(env.PRIMARY_USER_ID || 'primary'));
+    console.log(JSON.stringify({ event: 'coach_loop_sync_cron', build: BUILD, cron: controller.cron, processed: result.processed }));
   },
 };

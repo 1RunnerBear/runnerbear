@@ -35,7 +35,9 @@ test('v10.27 renders one active surface and lazy-renders inactive tabs',()=>{
   assert.match(ui,/function renderGoals\(\)/);
   assert.match(ui,/function renderMore\(\)/);
   assert.match(ui,/function renderAll\(\)\{return renderView\(activeView\(\)\)\}/);
-  assert.match(ui,/migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\);runAutopilot\(\);decorateNav\(\);decorateBrand\(\);renderToday\(\)/);
+  assert.match(ui,/migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\);decorateNav\(\);decorateBrand\(\)/);
+  assert.match(ui,/await waitForCanonicalRuntime\(\)/);
+  assert.match(ui,/runAutopilot\(\);renderToday\(\)/);
   assert.match(ui,/bind\(\$\(id\)\)/);
   assert.doesNotMatch(ui,/setTimeout\(renderAll,(?:500|1400)\)/);
   assert.doesNotMatch(ui,/setTimeout\(init,50\)/);
@@ -113,14 +115,14 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
   assert.match(ui,/Concept2/);
 });
 
-test('release metadata and production health gate agree on v10.27.0',()=>{
+test('release metadata and production health gate agree on v10.28.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.27.0');
-  assert.match(read('site.webmanifest'),/v10270/);
-  assert.match(read('cloud/runnerbear-cloud/src/index.js'),/const BUILD = '10\.27\.0'/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.28.0');
+  assert.match(read('site.webmanifest'),/v10280/);
+  assert.match(read('cloud/runnerbear-cloud/src/index.js'),/const BUILD = '10\.28\.0'/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v1027\.js/);
-  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.27\.0\"/);
+  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.28\.0\"/);
   assert.match(bridgeWorkflow,/for attempt in 1 2 3 4 5 6 7 8 9 10 11 12/);
   assert.match(bridgeWorkflow,/git checkout -B runnerbear-bridge-report origin\/main/);
 });

@@ -1,4 +1,4 @@
-# RunnerBear Cloud v10.27
+# RunnerBear Cloud v10.28
 
 RunnerBear Cloud is the authenticated source of truth for Coach Loop. The v1 API remains available as the rollback compatibility surface; `/api/v2/*` owns versioned plans, coach decisions, feedback events and the 10-day Tredict projection after staged activation.
 
@@ -12,7 +12,7 @@ npm run db:migrate:local
 npm run check
 ```
 
-`/health` must report `cloudBuild: "10.27.0"`, `schemaVersion: 2`, `coachLoop: true`, `historyIntegrity: true`, a D1 binding, static assets and healthy Tredict RPC v10.26.0.
+`/health` must report `cloudBuild: "10.28.0"`, `schemaVersion: 2`, `coachLoop: true`, `historyIntegrity: true`, a D1 binding, static assets and healthy Tredict RPC v10.26.0.
 
 ## Coach Loop API
 
