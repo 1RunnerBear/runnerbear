@@ -1,0 +1,40 @@
+/* RunnerBear v10.30.0 · proactive coach brief */
+.rb1030-week-priority{display:grid;gap:13px;padding:18px 19px;border:1px solid rgba(35,91,59,.14);border-radius:18px;background:rgba(255,253,248,.82);box-shadow:0 10px 28px rgba(27,58,40,.055)}
+.rb1030-week-priority>header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.rb1030-week-priority>header>div{display:grid;gap:4px}
+.rb1030-week-priority h2{margin:0;color:#1d362a;font-family:var(--rb19b-display);font-size:1.18rem;font-weight:500;line-height:1.2}
+.rb1030-week-priority>p{margin:0;color:#55645b;font-size:.72rem;line-height:1.55}
+.rb1030-status{flex:0 0 auto;padding:5px 8px;border-radius:999px;background:#e6eee7;color:#315f42;font-size:.55rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.rb1030-week-priority.watch .rb1030-status{background:#f1e8d8;color:#785a2d}
+.rb1030-week-priority.action .rb1030-status{background:#efe0da;color:#79483b}
+.rb1030-week-priority>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rb1030-week-priority>div>span{display:grid;gap:4px;padding:11px 12px;border-radius:13px;background:#f5f3ed}
+.rb1030-week-priority>div small{color:#738078;font-size:.54rem;font-weight:750;letter-spacing:.06em;text-transform:uppercase}
+.rb1030-week-priority>div b{color:#294436;font-size:.68rem;line-height:1.45}
+.rb1030-week-priority>button{display:flex;min-height:44px;align-items:center;justify-content:space-between;padding:0;border:0;border-top:1px solid #e2e7e3;background:transparent;color:#235b3b;font-size:.68rem;font-weight:800;text-align:left}
+.rb1030-week-priority>button svg{width:16px;height:16px}
+.rb1030-plan-effect{grid-template-columns:auto minmax(0,1fr)!important;align-items:start;padding:13px 14px;border:1px solid #e0e7e2;border-radius:14px;background:#f7f9f7}
+.rb1030-plan-effect>span{display:grid;width:32px;height:32px;place-items:center;border-radius:50%;background:#e5ebe5;color:#3e674e}
+.rb1030-plan-effect>span svg{width:16px;height:16px}
+.rb1030-plan-effect>div{display:grid;gap:3px}
+.rb1030-plan-effect small,.rb1030-next-review b{color:#738078;font-size:.55rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.rb1030-plan-effect b{color:#20372b;font-size:.76rem}
+.rb1030-plan-effect p,.rb1030-next-review{margin:0;color:#59665e;font-size:.68rem;line-height:1.5}
+.rb1030-next-review{display:grid;gap:5px;padding:12px 14px;border-radius:13px;background:#f5f3ed}
+.rb10251-goal-summary>header>small{display:block;margin-top:6px;color:#717b73;font-size:.63rem}
+.rb10251-goal-summary>div>button{position:relative;display:grid;min-width:0;min-height:132px;grid-template-rows:auto auto auto auto;align-content:start;padding:13px;border:1px solid transparent;border-radius:14px;background:#f5f3ed;color:inherit;text-align:left}
+.rb10251-goal-summary>div>button:hover,.rb10251-goal-summary>div>button:focus-visible{border-color:rgba(35,91,59,.28);background:#f0f4ef;outline:0}
+.rb10251-goal-summary>div>button>span{display:grid;width:30px;height:30px;place-items:center;margin-bottom:9px;border-radius:50%;background:#e5ebe5;color:#3e674e}
+.rb10251-goal-summary>div>button>span svg{width:16px;height:16px}
+.rb10251-goal-summary>div>button>small{color:#717b73;font-size:.58rem;text-transform:uppercase;letter-spacing:.06em}
+.rb10251-goal-summary>div>button>b{margin:4px 0 2px;color:#16432f;font-family:var(--rb19b-display);font-size:1.03rem;font-weight:500;overflow-wrap:anywhere}
+.rb10251-goal-summary>div>button>em{color:#6d766f;font-size:.6rem;font-style:normal;line-height:1.4}
+.rb10251-goal-summary>div>button>svg{position:absolute;top:12px;right:12px;width:14px;height:14px;color:#6b7d71}
+.rb1030-goal-insight-modal{z-index:12500}
+.rb1030-goal-insight{max-width:570px}
+.rb1030-goal-lead{margin:0;color:#26392f;font-family:var(--rb19b-display);font-size:1.02rem;line-height:1.55}
+.rb1030-goal-insight .rb1020-sheet-body>section{display:grid;gap:5px;padding:13px 14px;border:1px solid #e1e7e3;border-radius:14px;background:#f8faf8}
+.rb1030-goal-insight .rb1020-sheet-body>section small{color:#65736a;font-size:.56rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.rb1030-goal-insight .rb1020-sheet-body>section p{margin:0;color:#4e5e54;font-size:.72rem;line-height:1.55}
+@media(max-width:560px){.rb1030-week-priority>header{display:grid}.rb1030-status{justify-self:start}.rb1030-week-priority>div{grid-template-columns:1fr}.rb10251-goal-summary>div>button{min-height:126px}}
+@media(prefers-reduced-motion:reduce){.rb10251-goal-summary>div>button{transition:none}}
