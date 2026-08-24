@@ -8,9 +8,9 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1031.mjs'
+      - 'scripts/build-v11.mjs'
       - 'scripts/v1027-history-recovery.mjs'
-      - 'runnerbear-v1031-assets.json'
+      - 'runnerbear-v11-assets.json'
       - 'cloud/runnerbear-cloud/**'
       - 'cloudflare/**'
       - 'package.json'
@@ -26,9 +26,9 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1031.mjs'
+      - 'scripts/build-v11.mjs'
       - 'scripts/v1027-history-recovery.mjs'
-      - 'runnerbear-v1031-assets.json'
+      - 'runnerbear-v11-assets.json'
       - 'cloud/runnerbear-cloud/**'
       - 'cloudflare/**'
       - 'package.json'
@@ -50,10 +50,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build canonical v10.31 assets
+      - name: Build canonical v11 assets
         run: |
-          node scripts/build-v1031.mjs
-          git diff --exit-code -- runnerbear-core-v1031.js runnerbear-ui-v1031.js runnerbear-data-v1031.js runnerbear-v1031.css
+          node scripts/build-v11.mjs
+          git diff --exit-code -- runnerbear-core-v11.js runnerbear-ui-v11.js runnerbear-data-v11.js runnerbear-v11.css
 
       - name: Check JavaScript loaded by index
         run: |

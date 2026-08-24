@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "app",
-  "main": "src/index-v1031.js",
+  "main": "src/index-v11.js",
   "compatibility_date": "2026-08-24",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": true,
@@ -17,6 +17,7 @@
     "PRIMARY_USER_EMAIL": "torbjorn.forre@gmail.com",
     "CORS_ORIGINS": "",
     "COACH_LOOP_KILL_SWITCH": "false",
+    "BAKKEN_ENGINE_RELEASE": "11.0.0-owner-20260824",
     "GOAL_REPAIR_RELEASE": "10.31.2-owner-20260824",
     "GOAL_REPAIR_ID": "bergen-half-2026",
     "GOAL_REPAIR_NAME": "Bergen Maraton",
