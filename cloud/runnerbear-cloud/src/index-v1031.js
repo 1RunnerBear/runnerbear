@@ -1,9 +1,9 @@
 import legacy from './index-v1031-legacy.js';
-import { processPendingSync,reconcileActiveSyncProjection } from './v1031/routes.js';
+import { processPendingSync,reconcileActiveSyncProjection,repairAccidentalGoalState } from './v1031/routes.js';
 
 export { MigrationService } from './migration-service.js';
 
-const BUILD = '10.31.1';
+const BUILD = '10.31.2';
 
 async function historyAudit(db) {
   if (!db) return { ok: false, activities: 0, duplicateExternalIds: 0, planItems: 0, events: 0 };
@@ -51,7 +51,7 @@ export default {
     }
   },
   async scheduled(controller, env) {
-    const userId=String(env.PRIMARY_USER_ID||'primary'),projection=await reconcileActiveSyncProjection(env,userId),result=await processPendingSync(env,userId);
-    console.log(JSON.stringify({ event: 'coach_loop_sync_cron', build: BUILD, cron: controller.cron, projected:projection.queued, processed: result.processed }));
+    const userId=String(env.PRIMARY_USER_ID||'primary'),repair=await repairAccidentalGoalState(env,userId),projection=await reconcileActiveSyncProjection(env,userId),result=await processPendingSync(env,userId);
+    console.log(JSON.stringify({ event: 'coach_loop_sync_cron', build: BUILD, cron: controller.cron, goalRestored:repair.restored===true, projected:projection.queued, processed: result.processed }));
   },
 };

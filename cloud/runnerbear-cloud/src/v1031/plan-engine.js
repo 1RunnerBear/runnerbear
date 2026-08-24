@@ -15,6 +15,7 @@ const isRun = row => RUN_TYPES.has(row.workoutType || row.type) || String(row.sp
 const isHard = row => isQuality(row) || isLong(row);
 const countsVolume = row => !NO_VOLUME.has(String(row.status || 'scheduled'));
 const distance = row => finite(row.plannedDistanceM ?? row.planned_distance_m ?? finite(row.km) * 1000);
+const raceKm = key => ({ five: 5, ten: 10, half: 21.1 }[key] || 10);
 const dayGap = (a, b) => Math.abs((ms(a) - ms(b)) / 86400000);
 const clone = row => ({
   ...row,
@@ -76,11 +77,32 @@ function targetForWeek(cfg, week, fromDate) {
   const explicit = overrideFor(cfg, week);
   if (explicit) return { targetKm: explicit.targetWeeklyVolume ?? cfg.profile.targetWeeklyVolume, volumeReason: explicit.reason, expectedQualitySessions: explicit.expectedQualitySessions, safetyOverrideReason: explicit.reason };
   const raceWeek = cfg.goal.mode === 'race' && cfg.goal.date && weekKey(cfg.goal.date) === week;
-  if (raceWeek) return { targetKm: roundHalf(Math.max(cfg.profile.targetWeeklyVolume * .76, ({ five: 5, ten: 10, half: 21.1 }[cfg.goal.distance] || 21.1) + 16)), volumeReason: 'Konkurranseuke · volumet er kontrollert redusert.', expectedQualitySessions: 2, safetyOverrideReason: 'Konkurranseuke' };
+  if (raceWeek) return { targetKm: roundHalf(Math.max(cfg.profile.targetWeeklyVolume * .76, raceKm(cfg.goal.distance) + 16)), volumeReason: 'Konkurranseuke · volumet er kontrollert redusert.', expectedQualitySessions: 2, safetyOverrideReason: 'Konkurranseuke' };
+  const secondary=(cfg.goal.secondary||[]).find(row=>row.status!=='cancelled'&&row.date>=fromDate&&weekKey(row.date)===week);
+  if(secondary){const full=secondary.effort==='race';return{targetKm:roundHalf(Math.max(cfg.profile.targetWeeklyVolume*(full ? 0.84 : 0.92),raceKm(secondary.distance)+(full?18:20))),volumeReason:`B-løpsuke · ${full?'løpet erstatter ukas hardeste kvalitetsdose':'løpet inngår som en kontrollert kvalitetsdose'}.`,expectedQualitySessions:2,safetyOverrideReason:'B-løpsuke'};}
+  const nextWeekRace=[cfg.goal.mode==='race'?cfg.goal.date:'',...(cfg.goal.secondary||[]).filter(row=>row.status!=='cancelled').map(row=>row.date)].filter(Boolean).find(date=>date>addDays(week,6)&&date<=addDays(week,8));
+  if(nextWeekRace)return{targetKm:roundHalf(cfg.profile.targetWeeklyVolume*.88),volumeReason:'Oppladingsuke · én kvalitetsdose tas ut før løp tidlig i neste uke.',expectedQualitySessions:1,safetyOverrideReason:'Løp tidlig i neste uke'};
   const index = Math.max(0, Math.round((ms(week) - ms(monday(fromDate))) / (7 * 86400000)));
   if (index % 4 === 2) return { targetKm: roundHalf(Math.max(cfg.profile.targetWeeklyVolume * .88, cfg.profile.normalLow * .84)), volumeReason: 'Planlagt absorberingsuke · lavere volum med to kontrollerte kvalitetsdoser.', expectedQualitySessions: Math.min(2, cfg.constraints.qualityDays.length), safetyOverrideReason: 'Planlagt absorberingsuke' };
   const progression = index % 4 === 1 ? Math.min(cfg.profile.normalHigh, cfg.profile.targetWeeklyVolume + 2) : cfg.profile.targetWeeklyVolume;
   return { targetKm: roundHalf(progression), volumeReason: '', expectedQualitySessions: Math.min(2, cfg.constraints.qualityDays.length), safetyOverrideReason: '' };
+}
+
+function secondaryRaceRow(race,existing){
+  const km=raceKm(race.distance),base=clone(existing||template('quality',race.date,km,97,weekKey(race.date))),full=race.effort==='race';
+  return{...base,workoutId:`wo-b-race-${hash(race.id)}`,lineageId:`lin-b-race-${hash(race.id)}`,localDate:race.date,slotIndex:0,status:'scheduled',sport:'running',workoutType:'race',title:`${race.name} · B-løp`,intent:'b_race',plannedDurationSeconds:null,plannedDistanceM:km*1000,lockLevel:'system',source:'runnerbear-v10.31.2',prescription:{version:1,main:{kind:'continuous',intensity:full?'race':'controlled'},legacy:{desc:full?'Full innsats. Løpet erstatter ukas hardeste kvalitetsøkt.':'Kontrollert testløp som del av treningsuka.',detail:full?'Åpne kontrollert. Ingen ekstra kvalitet tett på, og ingen treningsgjeld etterpå.':'Løp kontrollert og avslutt med overskudd. Resultatet brukes som datapunkt mot A-målet.',shoe:base.prescription?.legacy?.shoe||'',fuel:base.prescription?.legacy?.fuel||''}},plannedLoad:{...(base.plannedLoad||{}),bRace:{id:race.id,name:race.name,date:race.date,distance:race.distance,effort:race.effort,primaryGoalDate:''}}};
+}
+
+function applySecondaryRaces(rows,cfg,fromDate){
+  const races=(cfg.goal.secondary||[]).filter(row=>row.status!=='cancelled'&&row.date>=fromDate&&(!cfg.goal.date||row.date<cfg.goal.date)),activeIds=new Set(races.map(row=>row.id));
+  let out=rows.map(clone).filter(row=>!row.plannedLoad?.bRace||activeIds.has(row.plannedLoad.bRace.id));
+  for(const race of races){
+    if(cfg.goal.mode==='race'&&cfg.goal.date===race.date)continue;
+    const existing=out.find(row=>row.localDate===race.date&&!row.plannedLoad?.bRace&&row.workoutType!=='race');
+    out=out.filter(row=>row.localDate!==race.date||row.slotIndex!==0);
+    const inserted=secondaryRaceRow(race,existing);inserted.plannedLoad.bRace.primaryGoalDate=cfg.goal.date||'';out.push(inserted);
+  }
+  return out;
 }
 
 function integrityOf(items = []) { return [...items].reverse().map(row => row.plannedLoad?.integrity).find(Boolean) || {}; }
@@ -200,7 +222,7 @@ function reflowWeek(items, cfg, week, fromDate, trigger, priorHardDates = []) {
     const hardForLong = [...blockedHard, ...qualityDates], canLong = date => available.includes(date) && !qualityDates.includes(date) && !hardForLong.some(other => dayGap(other, date) < 2);
     longDate = canLong(preferredLong) ? preferredLong : available.find(canLong) || '';
   }
-  const runDates = new Set([...available]), types = new Map([...runDates].map(date => [date, 'easy']));
+  const priorityDates=[...qualityDates,...(longDate?[longDate]:[]),...available.filter(date=>!qualityDates.includes(date)&&date!==longDate)],mutableRunLimit=Math.max(0,cfg.constraints.maxRunDays-fixedRuns.length),runDates = new Set(priorityDates.slice(0,mutableRunLimit)), types = new Map([...runDates].map(date => [date, 'easy']));
   if (longDate) types.set(longDate, 'long'); qualityDates.forEach(date => types.set(date, 'quality'));
   const used = new Set(), future = [], allDates = Array.from({ length: 7 }, (_, index) => addDays(week, index)).filter(date => date >= fromDate && !occupied.has(date));
   let qualityIndex = 0;
@@ -217,9 +239,9 @@ function reflowWeek(items, cfg, week, fromDate, trigger, priorHardDates = []) {
 }
 
 export function reflowFuturePlan(rows = [], rawConfig = {}, fromDate = new Date().toISOString().slice(0, 10), trigger = 'plan_adjustment') {
-  const cfg = normalizeConfig(rawConfig), groups = weekGroups(rows), out = [];
+  const cfg = normalizeConfig(rawConfig),source=applySecondaryRaces(rows,cfg,fromDate),groups = weekGroups(source), protectedRaceDates=source.filter(row=>row.workoutType==='race'&&row.localDate>=fromDate).map(row=>row.localDate),out = [];
   for (const [week, items] of [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))) {
-    const priorHardDates = out.filter(row => countsVolume(row) && isHard(row)).map(row => row.localDate);
+    const priorHardDates = [...out.filter(row => countsVolume(row) && isHard(row)).map(row => row.localDate),...protectedRaceDates.filter(date=>weekKey(date)!==week)];
     out.push(...(items.some(row => row.localDate >= fromDate) ? reflowWeek(items, cfg, week, fromDate, trigger, priorHardDates) : items));
   }
   const result = out.sort((a, b) => a.localDate.localeCompare(b.localDate) || a.slotIndex - b.slotIndex), validation = validatePlan(result, cfg, { fromDate });
@@ -232,7 +254,7 @@ export function generateGoalPlan(rawConfig = {}, fromDate = new Date().toISOStri
   while (cursor <= goalDate && week < 24) { for (const day of cfg.constraints.runDays) { const date = addDays(cursor, day); if (date < fromDate || date > goalDate) continue; rows.push(template('easy', date, 0, day, cursor)); } cursor = addDays(cursor, 7); week++; }
   if (cfg.goal.mode === 'race' && cfg.goal.date) {
     for (let index = rows.length - 1; index >= 0; index--) if (rows[index].localDate === cfg.goal.date) rows.splice(index, 1);
-    rows.push({ ...template('quality', cfg.goal.date, ({ five: 5, ten: 10, half: 21.1 }[cfg.goal.distance] || 21.1), 99, weekKey(cfg.goal.date)), workoutType: 'race', title: cfg.goal.name || 'Hovedmål', intent: 'race', plannedDistanceM: ({ five: 5, ten: 10, half: 21.1 }[cfg.goal.distance] || 21.1) * 1000, lockLevel: 'system' });
+    rows.push({ ...template('quality', cfg.goal.date, raceKm(cfg.goal.distance), 99, weekKey(cfg.goal.date)), workoutType: 'race', title: cfg.goal.name || 'Hovedmål', intent: 'race', plannedDistanceM: raceKm(cfg.goal.distance) * 1000, lockLevel: 'system' });
   }
   const reflowed = reflowFuturePlan(rows, cfg, fromDate, 'goal_changed'); return { ...reflowed, goalDate };
 }

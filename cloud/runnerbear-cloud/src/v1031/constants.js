@@ -1,4 +1,4 @@
-export const BUILD='10.31.1';
+export const BUILD='10.31.2';
 export const SCHEMA_VERSION=2;
 export const POLICY_VERSION='coach-loop-2';
 export const FLAGS=Object.freeze(['coach_loop_shadow','coach_loop_read','coach_loop_ui','coach_loop_write','coach_loop_sync','coach_loop_safe_auto','coach_loop_goal_confidence']);

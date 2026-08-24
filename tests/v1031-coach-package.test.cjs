@@ -74,7 +74,7 @@ test('rolling sync uses one durable binding and moves the same external workout 
 
 test('startup paints verified cache before revalidation and legacy plan publishing yields to canonical sync',()=>{
   const canonical=fs.readFileSync('runnerbear-cloud-v1031.js','utf8'),legacy=fs.readFileSync('runnerbear-cloud-v1025.js','utf8'),html=fs.readFileSync('index.html','utf8'),ui=fs.readFileSync('runnerbear-ui-v1031-source.js','utf8');
-  assert.match(canonical,/const cached=verifiedCache\(\);\s*if\(cached\)\{install\(cached\)/);assert.match(legacy,/function canonicalSyncOwner\(\)/);assert.match(legacy,/if\(!IS_CLOUD\|\|canonicalSyncOwner\(\)\)return/);assert.match(html,/runnerbear-data-v1031\.js\?v=10311" defer/);assert.doesNotMatch(ui,/canonicalSyncBannerHtml\(\)[^\n]+data-rb1028-sync-retry/);
+  assert.match(canonical,/const cached=verifiedCache\(\);\s*if\(cached\)\{install\(cached\)/);assert.match(legacy,/function canonicalSyncOwner\(\)/);assert.match(legacy,/if\(!IS_CLOUD\|\|canonicalSyncOwner\(\)\)return/);assert.match(html,/runnerbear-data-v1031\.js\?v=10312" defer/);assert.doesNotMatch(ui,/canonicalSyncBannerHtml\(\)[^\n]+data-rb1028-sync-retry/);
 });
 
 test('sync binding migration enforces one provider identity per canonical workout',()=>{
