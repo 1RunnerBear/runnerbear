@@ -1,11 +1,12 @@
 {
-  "build": "10.28.1",
+  "build": "10.29.0",
   "core": [
     "plan.js", "runnerbear-v100-plan-bootstrap.js", "runnerbear-v100-engine.js",
     "runnerbear-v1012-analysis.js", "runnerbear-v1020-coach-model.js", "runnerbear-v1022-readiness.js",
     "runnerbear-v1023-plan-integrity.js", "runnerbear-v1024-tredict-transport.js",
     "runnerbear-v1025-intelligence.js", "runnerbear-v10251-adaptive-plan.js", "runnerbear-runtime-v1021.js",
-    "runnerbear-v1026-coach-loop.js", "runnerbear-v1026-plan-read-model.js", "runnerbear-v1026-feedback.js"
+    "runnerbear-v1026-coach-loop.js", "runnerbear-v1026-plan-read-model.js", "runnerbear-v1026-feedback.js",
+    "runnerbear-v1029-training-profile.js"
   ],
   "data": ["runnerbear-tredict-outbound.js", "runnerbear-cloud-v1025.js", "runnerbear-cloud-v1027.js"],
   "ui": "runnerbear-ui-v1027-source.js",
@@ -18,6 +19,6 @@
     "runnerbear-v1022-readiness-intensity.css", "runnerbear-v1023-plan-integrity.css",
     "runnerbear-v1025-calm-intelligence.css", "runnerbear-v10251-coach-first.css",
     "runnerbear-v1026-coach-loop.css", "runnerbear-v1027-plan-integrity-history.css",
-    "runnerbear-v1028-trust-flow.css"
+    "runnerbear-v1028-trust-flow.css", "runnerbear-v1029-training-profile.css"
   ]
 }

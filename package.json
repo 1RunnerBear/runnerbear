@@ -1,7 +1,7 @@
 {
   "name": "runnerbear-release-harness",
   "private": true,
-  "version": "10.28.1",
+  "version": "10.29.0",
   "type": "commonjs",
   "scripts": {
     "build": "node scripts/build-v1027.mjs",

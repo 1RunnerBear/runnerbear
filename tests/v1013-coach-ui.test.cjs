@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v1027-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v1027\.css\?v=10281/);
+  assert.match(html,/runnerbear-v1027\.css\?v=10290/);
   assert.ok(assets.styles.includes(source),`${source} remains in the canonical stylesheet`);
 }
 
@@ -27,7 +27,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assertCanonicalStyle('runnerbear-v1013-coach-ui.css');
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens vurdering/);
-  assert.match(app,/version:'10\.28\.1'/);
+  assert.match(app,/version:'10\.29\.0'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -54,8 +54,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v10281');
-  assert.equal(version.build,'10.28.1');
+  assert.equal(manifest.start_url,'/?app=v10290');
+  assert.equal(version.build,'10.29.0');
   assert.equal(version.channel,'live');
 });
 
@@ -120,10 +120,10 @@ test('v10.19b presents one week with three fidelity lenses',()=>{
 test('v10.18 exposes editable training preferences and migrates old rhythm',()=>{
   assert.match(app,/function migrateTrainingPreferences/);
   assert.match(app,/data-rb118-preferences-form/);
-  assert.match(app,/Normalvolum/);
-  assert.match(app,/Coachområde fra/);
+  assert.match(app,/Volum styres automatisk/);
+  assert.match(app,/Se hvordan volumet styres/);
   assert.match(app,/Foretrukne kvalitetsdager/);
-  assert.match(app,/Alternative dager/);
+  assert.match(app,/Dager som ikke velges brukes automatisk til hvile eller alternativ trening/);
   assert.match(app,/legacy\.weekRhythm/);
 });
 
