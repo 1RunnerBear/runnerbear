@@ -3,7 +3,7 @@
   "short_name": "RunnerBear",
   "description": "RunnerBear · Bakken-inspirert AI-coach med Garmin-data",
   "id": "/?app=runnerbear",
-  "start_url": "/?app=v10281",
+  "start_url": "/?app=v10290",
   "scope": "/",
   "display": "standalone",
   "background_color": "#F5F3ED",
