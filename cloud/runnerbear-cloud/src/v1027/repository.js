@@ -1,8 +1,14 @@
 import { DEFAULT_FLAGS,FLAGS,POLICY_VERSION } from './constants.js';
 import { newId,eventStatement } from './events.js';
 const parse=(value,fallback)=>{try{return JSON.parse(value)}catch{return fallback}};
-function safePrescription(row){const prescription=parse(row.prescription_json,{}),legacy={...(prescription.legacy||{})},nonRunning=row.sport!=='running'||['rest','cross'].includes(row.workout_type),placeholder=/alternativ eller hvile|hvile · økten utgår/i.test(String(row.title||'')),runCopy=/\b(?:jogg|løp|drag|nedjogg|oppvarming)\b|totalt\s+ca\.?\s*\d+(?:[.,]\d+)?\s*km/i;if(nonRunning&&placeholder){if(runCopy.test(String(legacy.desc||'')))legacy.desc='';if(runCopy.test(String(legacy.detail||'')))legacy.detail=''}return{...prescription,legacy}}
-const itemFromRow=(row,planRevisionId)=>{const plannedLoad=parse(row.planned_load_json,{});return{workoutId:row.workout_id,lineageId:row.lineage_id,planRevisionId,localDate:row.local_date,slotIndex:Number(row.slot_index),status:row.status,sport:row.sport,workoutType:row.workout_type,title:row.title,intent:row.intent,prescription:safePrescription(row),plannedDurationSeconds:row.planned_duration_seconds,plannedDistanceM:row.planned_distance_m,plannedLoad,source:row.source,lockLevel:row.lock_level,flexible:plannedLoad.flexible===true,explicitChoice:plannedLoad.explicitChoice===true}};
+function safeProjection(row){
+  const prescription=parse(row.prescription_json,{}),legacy={...(prescription.legacy||{})},title=String(row.title||''),alternative=/alternativ eller hvile/i.test(title),rest=/hvile · økten utgår/i.test(title),placeholder=alternative||rest,runCopy=/\b(?:jogg|løp|drag|nedjogg|oppvarming)\b|totalt\s+ca\.?\s*\d+(?:[.,]\d+)?\s*km/i;
+  if(!placeholder)return{sport:row.sport,workoutType:row.workout_type,intent:row.intent,prescription:{...prescription,legacy},plannedDurationSeconds:row.planned_duration_seconds,plannedDistanceM:row.planned_distance_m};
+  if(runCopy.test(String(legacy.desc||'')))legacy.desc='';
+  if(runCopy.test(String(legacy.detail||'')))legacy.detail='';
+  return{sport:alternative?'cross':'rest',workoutType:alternative?'cross':'rest',intent:'recovery',prescription:{...prescription,main:{kind:'recovery'},legacy},plannedDurationSeconds:null,plannedDistanceM:0};
+}
+export const itemFromRow=(row,planRevisionId)=>{const plannedLoad=parse(row.planned_load_json,{}),safe=safeProjection(row);return{workoutId:row.workout_id,lineageId:row.lineage_id,planRevisionId,localDate:row.local_date,slotIndex:Number(row.slot_index),status:row.status,sport:safe.sport,workoutType:safe.workoutType,title:row.title,intent:safe.intent,prescription:safe.prescription,plannedDurationSeconds:safe.plannedDurationSeconds,plannedDistanceM:safe.plannedDistanceM,plannedLoad,source:row.source,lockLevel:row.lock_level,flexible:plannedLoad.flexible===true,explicitChoice:plannedLoad.explicitChoice===true}};
 export async function flags(db,userId){
   const rows=await db.prepare('SELECT flag,enabled,payload_json FROM rb_feature_flags WHERE user_id=?1').bind(userId).all(),result={...DEFAULT_FLAGS};
   for(const row of rows.results||[])if(FLAGS.includes(row.flag))result[row.flag]=!!row.enabled;

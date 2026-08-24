@@ -1,7 +1,7 @@
 /* RunnerBear v10.28 · canonical trust, plan integrity and compatibility bridge. */
 (function(){
   'use strict';
-  const BUILD='10.28.0',CACHE='runnerbear_coach_loop_snapshot_v1',SHADOW_COUNT='runnerbear_coach_loop_shadow_success_v1';
+  const BUILD='10.28.1',CACHE='runnerbear_coach_loop_snapshot_v1',SHADOW_COUNT='runnerbear_coach_loop_shadow_success_v1';
   let snapshot=null,lastSignature='',syncTimer=0,startPromise=null,fullLoadedRevision='',syncWatchTimers=[];
   const read=(key,fallback={})=>{try{return JSON.parse(localStorage.getItem(key)||'')??fallback}catch{return fallback}};
   const api=async(path,options={})=>{const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,headers:{Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let body={};try{body=await response.json()}catch{}if(!response.ok)throw Object.assign(new Error(body.message||body.error||`RunnerBear HTTP ${response.status}`),{code:body.code,status:response.status});return body};

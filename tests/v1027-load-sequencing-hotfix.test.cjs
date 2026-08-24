@@ -41,6 +41,19 @@ test('generated recovery rows cannot retain stale threshold instructions',async(
   assert.doesNotMatch(friday.prescription.legacy.detail,/3:58|Serie/);
 });
 
+test('canonical read projection trusts a recovery placeholder over stale running metadata',async()=>{
+  const {itemFromRow}=await import('../cloud/runnerbear-cloud/src/v1027/repository.js');
+  const projected=itemFromRow({workout_id:'w-stale',lineage_id:'l-stale',local_date:'2026-08-28',slot_index:0,status:'scheduled',sport:'running',workout_type:'quality',title:'Alternativ eller hvile',intent:'threshold',prescription_json:JSON.stringify({version:1,main:{kind:'intervals'},legacy:{desc:'90 s jogg. Totalt ca. 10 km.',detail:'4 drag og nedjogg.'}}),planned_duration_seconds:3600,planned_distance_m:10000,planned_load_json:'{}',source:'legacy',lock_level:'none'},'pr-active');
+  assert.equal(projected.sport,'cross');
+  assert.equal(projected.workoutType,'cross');
+  assert.equal(projected.intent,'recovery');
+  assert.equal(projected.plannedDistanceM,0);
+  assert.equal(projected.plannedDurationSeconds,null);
+  assert.equal(projected.prescription.main.kind,'recovery');
+  assert.equal(projected.prescription.legacy.desc,'');
+  assert.equal(projected.prescription.legacy.detail,'');
+});
+
 test('a Sunday long run blocks Monday quality across the week boundary',async()=>{
   const {generateGoalPlan}=await import('../cloud/runnerbear-cloud/src/v1027/plan-engine.js');
   const config={...baseConfig,constraints:{...baseConfig.constraints,runDays:[0,1,2,3,4,6],qualityDays:[0,3],longRunDay:6,alternativeDays:[5],maxRunDays:6}};
