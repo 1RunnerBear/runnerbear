@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v1027-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v1027\.css\?v=10291/);
+  assert.match(html,/runnerbear-v1027\.css\?v=10300/);
   assert.ok(assets.styles.includes(source),`${source} remains in the canonical stylesheet`);
 }
 
@@ -27,7 +27,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
   assertCanonicalStyle('runnerbear-v1013-coach-ui.css');
   assert.match(html,/>Mål<\/button>/);
   assert.match(app,/Coachens vurdering/);
-  assert.match(app,/version:'10\.29\.1'/);
+  assert.match(app,/version:'10\.30\.0'/);
   assert.match(css,/Garmin owns the raw record\. RunnerBear owns the next decision\./);
 });
 
@@ -54,8 +54,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v10291');
-  assert.equal(version.build,'10.29.1');
+  assert.equal(manifest.start_url,'/?app=v10300');
+  assert.equal(version.build,'10.30.0');
   assert.equal(version.channel,'live');
 });
 
