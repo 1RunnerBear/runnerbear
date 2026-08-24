@@ -11,7 +11,10 @@ test('canonical state authorizes the first trusted plan render',()=>{
   assert.match(ui,/boot=await canonical\.start\(\)/);
   assert.match(runtime,/runnerbear:canonical-runtime-ready/);
   assert.doesNotMatch(runtime,/setTimeout\(\(\)=>api\('\/api\/v2\/sync\/process/);
-  assert.match(read('runnerbear-cloud-v1025.js'),/window\.RunnerBearCloudV1027&&!canonical/);
+  const legacyRuntime=read('runnerbear-cloud-v1025.js');
+  assert.match(legacyRuntime,/function canonicalSyncOwner\(\)/);
+  assert.match(legacyRuntime,/window\.RunnerBearCloudV1031\|\|window\.RunnerBearCloudV1027/);
+  assert.match(legacyRuntime,/if\(!IS_CLOUD\|\|canonicalSyncOwner\(\)\)return/);
 });
 
 test('plan commit and sync outbox share one D1 transaction with Worker retries',()=>{

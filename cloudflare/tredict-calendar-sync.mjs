@@ -21,10 +21,14 @@ export function rowExternalId(row={}){
 }
 
 export function findPlannedWorkout(rows,expected={},dates=[]){
+  return findPlannedWorkouts(rows,expected,dates)[0];
+}
+
+export function findPlannedWorkouts(rows,expected={},dates=[]){
   const externalId=String(expected.externalId||'').toLowerCase(),title=String(expected.title||''),wanted=new Set([expected.date,...dates].map(isoDate).filter(Boolean));
-  const byId=(rows||[]).find(row=>externalId&&rowExternalId(row)===externalId);
-  if(byId)return byId;
-  return(rows||[]).find(row=>String(row.title||row.workoutName||row.structuredWorkout?.title||row.training?.title||'')===title&&(!wanted.size||wanted.has(isoDate(row.date||row.startDate))));
+  const byId=(rows||[]).filter(row=>externalId&&rowExternalId(row)===externalId);
+  if(byId.length)return byId;
+  return(rows||[]).filter(row=>String(row.title||row.workoutName||row.structuredWorkout?.title||row.training?.title||'')===title&&(!wanted.size||wanted.has(isoDate(row.date||row.startDate))));
 }
 
 export function scheduledDateTime(row,newDate){
