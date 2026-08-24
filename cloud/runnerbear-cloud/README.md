@@ -12,7 +12,7 @@ npm run db:migrate:local
 npm run check
 ```
 
-`/health` must report `cloudBuild: "10.30.0"`, `schemaVersion: 2`, `coachLoop: true`, `historyIntegrity: true`, a D1 binding, static assets and healthy Tredict RPC v10.26.0.
+`/health` must report `cloudBuild: "10.31.0"`, `schemaVersion: 2`, `coachLoop: true`, `historyIntegrity: true`, a D1 binding, static assets and healthy Tredict RPC v10.26.0.
 
 ## Coach Loop API
 

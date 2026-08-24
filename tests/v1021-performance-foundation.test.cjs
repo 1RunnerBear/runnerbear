@@ -8,12 +8,12 @@ const zlib=require('node:zlib');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('v10.27 index loads only canonical versioned frontend assets',()=>{
+test('v10.31 index loads only canonical versioned frontend assets',()=>{
   const html=read('index.html');
   const scripts=[...html.matchAll(/<script[^>]+src="([^"]+\.js)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   const styles=[...html.matchAll(/<link[^>]+href="([^"]+\.css)(?:\?[^"]*)?"/g)].map(match=>match[1]);
-  assert.deepEqual(scripts,['runnerbear-core-v1027.js','runnerbear-ui-v1027.js','runnerbear-data-v1027.js']);
-  assert.deepEqual(styles,['runnerbear-v1027.css']);
+  assert.deepEqual(scripts,['runnerbear-core-v1031.js','runnerbear-ui-v1031.js','runnerbear-data-v1031.js']);
+  assert.deepEqual(styles,['runnerbear-v1031.css']);
   assert.doesNotMatch(html,/runnerbear-(?:v5|premium|v97|v100|v107|v1020)-/);
   assert.doesNotMatch(html,/http-equiv="(?:Cache-Control|Pragma|Expires)"/);
   assert.doesNotMatch(html,/rel="preload"/);
@@ -24,12 +24,12 @@ test('v10.27 index loads only canonical versioned frontend assets',()=>{
   assert.ok(fs.statSync(path.join(root,styles[0])).size<253000);
 });
 
-test('v10.27 keeps the locked four-request and fifteen-percent compressed asset budget',()=>{
-  const oldFiles=['runnerbear-core-v1026.js','runnerbear-ui-v1026.js','runnerbear-data-v1026.js','runnerbear-v1026.css'],nextFiles=['runnerbear-core-v1027.js','runnerbear-ui-v1027.js','runnerbear-data-v1027.js','runnerbear-v1027.css'],compressed=files=>files.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file)),{level:9}).length,0),oldBytes=compressed(oldFiles),nextBytes=compressed(nextFiles);assert.equal(nextFiles.length,4);assert.ok(nextBytes<=oldBytes*1.15,`compressed assets grew ${((nextBytes/oldBytes-1)*100).toFixed(2)}%`);
+test('v10.31 keeps the locked four-request and fifteen-percent compressed asset budget',()=>{
+  const oldFiles=['runnerbear-core-v1027.js','runnerbear-ui-v1027.js','runnerbear-data-v1027.js','runnerbear-v1027.css'],nextFiles=['runnerbear-core-v1031.js','runnerbear-ui-v1031.js','runnerbear-data-v1031.js','runnerbear-v1031.css'],compressed=files=>files.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file)),{level:9}).length,0),oldBytes=compressed(oldFiles),nextBytes=compressed(nextFiles);assert.equal(nextFiles.length,4);assert.ok(nextBytes<=oldBytes*1.15,`compressed assets grew ${((nextBytes/oldBytes-1)*100).toFixed(2)}%`);
 });
 
-test('v10.27 renders one active surface and lazy-renders inactive tabs',()=>{
-  const ui=read('runnerbear-ui-v1027.js');
+test('v10.31 renders one active surface and lazy-renders inactive tabs',()=>{
+  const ui=read('runnerbear-ui-v1031.js');
   assert.match(ui,/function renderToday\(\)/);
   assert.match(ui,/function renderPlan\(\)/);
   assert.match(ui,/function renderGoals\(\)/);
@@ -101,9 +101,9 @@ test('home bootstrap uses indexed date windows without a read-path user write',(
 });
 
 test('v10.20 state and integration contracts remain in the canonical runtime',()=>{
-  const ui=read('runnerbear-ui-v1027.js');
-  const core=read('runnerbear-core-v1027.js');
-  const data=read('runnerbear-data-v1027.js');
+  const ui=read('runnerbear-ui-v1031.js');
+  const core=read('runnerbear-core-v1031.js');
+  const data=read('runnerbear-data-v1031.js');
   for(const key of ['runfest26_week_adjustments','runnerbear_v107_plan_moves','runnerbear_v107_plan_locks','runnerbear_v108_shoes','runnerbear_v109_goals','runfest26_training_profile_v10'])assert.match(ui,new RegExp(key));
   assert.match(core,/RunnerBearCoachEngine/);
   assert.match(core,/RunnerBearV1012/);
@@ -115,14 +115,14 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
   assert.match(ui,/Concept2/);
 });
 
-test('release metadata and production health gate agree on v10.30.0',()=>{
+test('release metadata and production health gate agree on v10.31.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.30.0');
-  assert.match(read('site.webmanifest'),/v10300/);
-  assert.match(read('cloud/runnerbear-cloud/src/index.js'),/const BUILD = '10\.30\.0'/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'10.31.0');
+  assert.match(read('site.webmanifest'),/v10310/);
+  assert.match(read('cloud/runnerbear-cloud/src/index-v1031.js'),/const BUILD\s*=\s*'10\.31\.0'/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
-  assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v1027\.js/);
-  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.30\.0\"/);
+  assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v1031\.js/);
+  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"10\.31\.0\"/);
   assert.match(bridgeWorkflow,/for attempt in 1 2 3 4 5 6 7 8 9 10 11 12/);
   assert.match(bridgeWorkflow,/git checkout -B runnerbear-bridge-report origin\/main/);
 });
