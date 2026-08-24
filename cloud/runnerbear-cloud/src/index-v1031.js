@@ -43,15 +43,16 @@ async function goalGuardAudit(db) {
 export default {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname.replace(/\/+$/, '') || '/';
-    let goalRepair={ok:true,restored:false};
+    let goalRepair={ok:true,restored:false},syncDrain={ok:true,projected:0,processed:0};
     if(request.method==='GET'&&path==='/health'&&env.GOAL_REPAIR_RELEASE){
       try{goalRepair=await repairAccidentalGoalState(env,String(env.PRIMARY_USER_ID||'primary'))}catch{goalRepair={ok:false,restored:false,issues:['REPAIR_EXECUTION_FAILED']}}
+      try{const userId=String(env.PRIMARY_USER_ID||'primary'),projection=await reconcileActiveSyncProjection(env,userId),drain=await processPendingSync(env,userId);syncDrain={ok:true,projected:Number(projection.queued||0),processed:Number(drain.processed||0)}}catch{syncDrain={ok:false,projected:0,processed:0}}
     }
     const response = await legacy.fetch(request, env, ctx);
     if (request.method !== 'GET' || path !== '/health' || !response.ok) return response;
     try {
       const [body,audit,sync,goalGuard] = await Promise.all([response.json(),historyAudit(env.DB),syncAudit(env.DB),goalGuardAudit(env.DB)]);
-      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync, goalGuard, goalRepair:{ok:goalRepair.ok!==false,restored:goalRepair.restored===true,issues:Array.isArray(goalRepair.issues)?goalRepair.issues:[]} }, {
+      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync, syncDrain, goalGuard, goalRepair:{ok:goalRepair.ok!==false,restored:goalRepair.restored===true,issues:Array.isArray(goalRepair.issues)?goalRepair.issues:[]} }, {
         status: response.status,
         headers: {
           'content-type': 'application/json; charset=utf-8',

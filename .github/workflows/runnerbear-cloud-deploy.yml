@@ -198,7 +198,7 @@ jobs:
           for attempt in $(seq 1 48); do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
-            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.31.2" || x.schemaVersion!==2 || x.coachLoop!==true || x.tredictService!==true || x.tredictRpc!==true || !["10.26.0","10.31.1"].includes(x.tredictRpcVersion) || x.durableSync!==true || x.historyIntegrity!==true || x.historyAudit?.activitiesPresent!==true || Number(x.historyAudit?.duplicateExternalIds||0)!==0 || x.goalGuard?.restored!==true || x.goalGuard?.activePrimary!==true) process.exit(1)' "$BODY"; then
+            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="10.31.2" || x.schemaVersion!==2 || x.coachLoop!==true || x.tredictService!==true || x.tredictRpc!==true || !["10.26.0","10.31.1"].includes(x.tredictRpcVersion) || x.durableSync!==true || x.historyIntegrity!==true || x.historyAudit?.activitiesPresent!==true || Number(x.historyAudit?.duplicateExternalIds||0)!==0 || x.goalGuard?.restored!==true || x.goalGuard?.activePrimary!==true || x.syncDrain?.ok!==true || Number(x.syncOutbox?.queued||0)!==0 || Number(x.syncOutbox?.retryable||0)!==0 || Number(x.syncOutbox?.processing||0)!==0) process.exit(1)' "$BODY"; then
               exit 0
             fi
             sleep 5
