@@ -1,9 +1,9 @@
 {
-  "build": "10.28.0",
+  "build": "10.28.1",
   "status": "success",
-  "checked_at": "2026-08-24T07:43:08.391225+00:00",
-  "run_id": "32702678015",
-  "source_sha": "d4fba1990de5daf34ec7db02d04af6f767679715",
+  "checked_at": "2026-08-24T07:53:24.886916+00:00",
+  "run_id": "32703509202",
+  "source_sha": "dae892a4a18a14ebdf88b5ffaf4a6de0791d200f",
   "steps": {
     "install": "success",
     "validate": "success",
