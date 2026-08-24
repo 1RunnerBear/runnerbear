@@ -23,3 +23,8 @@ test('saving rhythm requires two quality days and regenerates the canonical plan
   const ui=fs.readFileSync('runnerbear-ui-v1027-source.js','utf8');
   assert.match(ui,/qualityDays\.length!==2/);assert.match(ui,/preferencesVersion:4/);assert.match(ui,/training_preferences_changed/);assert.match(ui,/confirm:false,force:true/);assert.match(ui,/alternativeDays=schedule\.alternativeDays/);
 });
+
+test('training-profile save action keeps white text inside the More surface',()=>{
+  const css=fs.readFileSync('runnerbear-v1029-training-profile.css','utf8');
+  assert.match(css,/\.rb118-preferences>\.rb107-button\[type="submit"\]\{[^}]*color:#fff/);
+});

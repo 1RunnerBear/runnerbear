@@ -1,4 +1,4 @@
-# RunnerBear 10.29.0 — enklere treningsprofil
+# RunnerBear 10.29.1 — enklere treningsprofil
 
 - Treningsprofil viser bare valgene som styrer løpsrytmen: vanlige løpedager, to foretrukne kvalitetsdager og langturdag.
 - Dager som ikke er valgt som løpedager blir automatisk tilgjengelige for hvile eller alternativ trening.

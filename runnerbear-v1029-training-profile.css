@@ -1,4 +1,4 @@
-/* RunnerBear v10.29.0 · simplified training profile */
+/* RunnerBear v10.29.1 · simplified training profile */
 .rb1029-profile-intro{display:grid;gap:5px;margin:0;padding:14px 15px;border:1px solid rgba(35,91,59,.14);border-radius:14px;background:linear-gradient(145deg,rgba(232,241,235,.82),rgba(248,250,248,.92));color:#405048;line-height:1.5}
 .rb1029-profile-intro b{color:#142119;font-size:13px}
 .rb1029-profile-intro span{font-size:12px}
@@ -19,6 +19,6 @@
 .rb1029-volume-grid b{color:#142119;font-size:13px}
 .rb1029-volume ul{display:grid;gap:7px;margin:11px 0 0;padding-left:17px;color:#59675f;font-size:11px;line-height:1.45}
 .rb1029-days-note{display:block;margin-top:7px;color:#6a756d;font-size:11px;line-height:1.45}
-.rb118-preferences>button[type="submit"]{margin-top:2px}
+.rb118-preferences>.rb107-button[type="submit"]{margin-top:2px;color:#fff}
 @media(max-width:560px){.rb1029-volume-grid{grid-template-columns:1fr}.rb1029-volume-grid div{grid-template-columns:1fr auto;align-items:center}.rb1029-volume-grid b{text-align:right}}
 @media(prefers-reduced-motion:reduce){.rb1029-volume summary svg{transition:none}}
