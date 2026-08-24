@@ -30,3 +30,13 @@ export function restorePausedPrimaryGoalState(value={},today=new Date().toISOStr
   state.mode='race';state.primary=primary;state.history=history.filter((_,i)=>i!==index);state.transitionUntil='';state.updatedAt=now;
   return{changed:true,state,primary};
 }
+
+export function createReleaseGoalRepairState(value={},request={},today=new Date().toISOString().slice(0,10),now=new Date().toISOString()){
+  const state=value&&typeof value==='object'&&!Array.isArray(value)?structuredClone(value):{},date=dateOnly(request.date),id=clean(request.id);
+  if(state.primary||!id||!date||date<today)return{changed:false,state,primary:null};
+  const primary={id,name:clean(request.name)||'A-mål',date,distance:DISTANCES.has(request.distance)?request.distance:'half',targetSeconds:Math.max(0,Number(request.targetSeconds)||0),status:'active',created:clean(request.created)||now,updatedAt:now};
+  const secondaryByKey=new Map();
+  for(const goal of normalizeSecondaryGoals([...(Array.isArray(state.secondary)?state.secondary:[]),...(Array.isArray(request.secondary)?request.secondary:[])]))secondaryByKey.set(goal.date,goal);
+  state.version=Number(state.version)||1;state.mode='race';state.primary=primary;state.secondary=[...secondaryByKey.values()];state.history=Array.isArray(state.history)?state.history:[];state.transitionUntil='';state.updatedAt=now;
+  return{changed:true,state,primary};
+}

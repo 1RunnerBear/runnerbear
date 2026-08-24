@@ -16,7 +16,18 @@
     "PRIMARY_USER_ID": "primary",
     "PRIMARY_USER_EMAIL": "torbjorn.forre@gmail.com",
     "CORS_ORIGINS": "",
-    "COACH_LOOP_KILL_SWITCH": "false"
+    "COACH_LOOP_KILL_SWITCH": "false",
+    "GOAL_REPAIR_RELEASE": "10.31.2-owner-20260824",
+    "GOAL_REPAIR_ID": "bergen-half-2026",
+    "GOAL_REPAIR_NAME": "Bergen Maraton",
+    "GOAL_REPAIR_DATE": "2026-10-12",
+    "GOAL_REPAIR_DISTANCE": "half",
+    "GOAL_REPAIR_TARGET_SECONDS": "4980",
+    "GOAL_REPAIR_B_ID": "haugesund-half-2026",
+    "GOAL_REPAIR_B_NAME": "Haugesund halvmaraton",
+    "GOAL_REPAIR_B_DATE": "2026-09-14",
+    "GOAL_REPAIR_B_DISTANCE": "half",
+    "GOAL_REPAIR_B_EFFORT": "race"
   },
   "assets": {
     "directory": "./public",

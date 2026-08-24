@@ -15,6 +15,13 @@ test('goal guard restores the most recently paused future A goal without touchin
   assert.equal(result.changed,true);assert.equal(result.state.mode,'race');assert.equal(result.state.primary.id,'bergen-a');assert.equal(result.state.primary.status,'active');assert.equal(result.state.primary.closedAt,undefined);assert.deepEqual(result.state.secondary,baseConfig.goal.secondary);assert.equal(result.state.history.length,1);
 });
 
+test('release repair recreates an absent A goal once and keeps the authorized B race',async()=>{
+  const {createReleaseGoalRepairState}=await import('../cloud/runnerbear-cloud/src/v1031/goal-model.js'),request={id:'bergen-half-2026',name:'Bergen Maraton',date:'2026-10-12',distance:'half',targetSeconds:'4980',secondary:baseConfig.goal.secondary};
+  const result=createReleaseGoalRepairState({mode:'base',primary:null,secondary:[],history:[]},request,'2026-08-24','2026-08-24T11:00:00.000Z');
+  assert.equal(result.changed,true);assert.equal(result.state.mode,'race');assert.equal(result.state.primary.id,'bergen-half-2026');assert.equal(result.state.primary.targetSeconds,4980);assert.equal(result.state.secondary[0].id,'haugesund-half');
+  assert.equal(createReleaseGoalRepairState(result.state,request,'2026-08-24','2026-08-24T11:01:00.000Z').changed,false);
+});
+
 test('B race is canonical, replaces one quality dose, and preserves a valid race week',async()=>{
   const {generateGoalPlan}=await import('../cloud/runnerbear-cloud/src/v1031/plan-engine.js'),result=generateGoalPlan(baseConfig,'2026-08-24'),race=result.rows.find(row=>row.plannedLoad?.bRace?.id==='haugesund-half'),week=result.validation.weeks.find(row=>row.week==='2026-09-14');
   assert.equal(result.validation.valid,true);assert.equal(race.localDate,'2026-09-14');assert.equal(race.workoutType,'race');assert.equal(race.lockLevel,'system');assert.equal(race.plannedDistanceM,21100);assert.equal(week.expectedQualitySessions,2);assert.equal(week.actualQualitySessions,2);assert.equal(week.safetyOverrideReason,'B-løpsuke');
