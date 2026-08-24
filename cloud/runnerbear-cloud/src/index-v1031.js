@@ -42,12 +42,16 @@ async function goalGuardAudit(db) {
 
 export default {
   async fetch(request, env, ctx) {
-    const response = await legacy.fetch(request, env, ctx);
     const path = new URL(request.url).pathname.replace(/\/+$/, '') || '/';
+    let goalRepair={ok:true,restored:false};
+    if(request.method==='GET'&&path==='/health'&&env.GOAL_REPAIR_RELEASE){
+      try{goalRepair=await repairAccidentalGoalState(env,String(env.PRIMARY_USER_ID||'primary'))}catch{goalRepair={ok:false,restored:false,issues:['REPAIR_EXECUTION_FAILED']}}
+    }
+    const response = await legacy.fetch(request, env, ctx);
     if (request.method !== 'GET' || path !== '/health' || !response.ok) return response;
     try {
       const [body,audit,sync,goalGuard] = await Promise.all([response.json(),historyAudit(env.DB),syncAudit(env.DB),goalGuardAudit(env.DB)]);
-      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync, goalGuard }, {
+      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync, goalGuard, goalRepair:{ok:goalRepair.ok!==false,restored:goalRepair.restored===true,issues:Array.isArray(goalRepair.issues)?goalRepair.issues:[]} }, {
         status: response.status,
         headers: {
           'content-type': 'application/json; charset=utf-8',
