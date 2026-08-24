@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { handleV1027 } from './v1027/routes.js';
 
-const BUILD = '10.27.0';
+const BUILD = '10.28.0';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
@@ -204,7 +204,7 @@ async function getHomeBootstrap(request, env) {
     body,
     capacity: { running: (capacity.results || []).map((row) => parseJson(row.payload_json, {})).reverse() },
     syncedAt,
-    source: 'runnerbear-cloud-v10.27.0-home',
+    source: 'runnerbear-cloud-v10.28.0-home',
   };
   console.log(JSON.stringify({ event: 'runnerbear_bootstrap_home', build: BUILD, d1Ms, activities: state.tredict.activities.length, healthDays: (health.results || []).length }));
   return {
@@ -394,7 +394,7 @@ async function putSyncStatus(request, env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const path = url.pathname.replace(/\/+$/, '') || '/';
 
@@ -435,6 +435,7 @@ export default {
         userId: owner(env),
         bodyJson,
         corsHeaders: cors(request, env),
+        ctx,
       });
       if (v2) return v2;
       if (request.method === 'GET' && path === '/api/session') return json({ ok: true, build: BUILD, owner: owner(env), identity }, 200, cors(request, env));
