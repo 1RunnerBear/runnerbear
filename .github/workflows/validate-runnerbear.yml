@@ -8,9 +8,9 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1027.mjs'
+      - 'scripts/build-v1031.mjs'
       - 'scripts/v1027-history-recovery.mjs'
-      - 'runnerbear-v1027-assets.json'
+      - 'runnerbear-v1031-assets.json'
       - 'cloud/runnerbear-cloud/**'
       - 'cloudflare/**'
       - 'package.json'
@@ -26,9 +26,9 @@ on:
       - 'index.html'
       - 'site.webmanifest'
       - '_headers'
-      - 'scripts/build-v1027.mjs'
+      - 'scripts/build-v1031.mjs'
       - 'scripts/v1027-history-recovery.mjs'
-      - 'runnerbear-v1027-assets.json'
+      - 'runnerbear-v1031-assets.json'
       - 'cloud/runnerbear-cloud/**'
       - 'cloudflare/**'
       - 'package.json'
@@ -50,10 +50,10 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Build canonical v10.28 assets
+      - name: Build canonical v10.31 assets
         run: |
-          node scripts/build-v1027.mjs
-          git diff --exit-code -- runnerbear-core-v1027.js runnerbear-ui-v1027.js runnerbear-data-v1027.js runnerbear-v1027.css
+          node scripts/build-v1031.mjs
+          git diff --exit-code -- runnerbear-core-v1031.js runnerbear-ui-v1031.js runnerbear-data-v1031.js runnerbear-v1031.css
 
       - name: Check JavaScript loaded by index
         run: |
@@ -121,7 +121,7 @@ jobs:
       - name: Test v10.12 trust and analysis safeguards
         run: node --test tests/v1011-trust.test.cjs tests/v1012-analysis.test.cjs tests/v1020-coaching-clarity.test.cjs
 
-      - name: Test v10.28 coach loop and all legacy contracts
+      - name: Test v10.31 coach loop and all legacy contracts
         run: node --test tests/*.test.cjs tests/e2e/*.spec.mjs
 
       - name: Validate empty and upgraded local D1 schema

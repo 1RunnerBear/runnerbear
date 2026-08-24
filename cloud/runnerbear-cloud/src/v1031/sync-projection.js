@@ -1,0 +1,18 @@
+import { newId } from './events.js';
+const addDays=(date,days)=>new Date(Date.parse(`${date}T12:00:00Z`)+days*86400000).toISOString().slice(0,10);
+export function projectSync(items=[],planRevisionId,today=new Date().toISOString().slice(0,10),destination='tredict',previousItems=[]){
+  const end=addDays(today,9),inHorizon=item=>item.localDate>=today&&item.localDate<=end,isPublishable=item=>inHorizon(item)&&item.status==='scheduled'&&item.sport==='running',current=new Map(items.map(item=>[item.workoutId,item])),previous=new Map(previousItems.map(item=>[item.workoutId,item])),rows=[];
+  for(const item of items.filter(isPublishable)){const before=previous.get(item.workoutId),lineageReplacement=!before&&previousItems.find(old=>old.lineageId&&old.lineageId===item.lineageId&&old.workoutId!==item.workoutId&&isPublishable(old));let operationType=!previousItems.length?'create':lineageReplacement?'replace':!before?'create':before.localDate!==item.localDate?'move':before.title!==item.title||JSON.stringify(before.prescription||{})!==JSON.stringify(item.prescription||{})?'update':'';if(!operationType)continue;rows.push({operationId:newId('sync'),workoutId:item.workoutId,planRevisionId,destination,operationType,idempotencyKey:`${destination}:${item.workoutId}:${planRevisionId}:${operationType}`,status:operationType==='replace'?'review_required':'queued',payload:{date:item.localDate,previousDate:before?.localDate||lineageReplacement?.localDate||'',title:item.title,prescription:item.prescription,lineageId:item.lineageId}})}
+  for(const before of previousItems.filter(isPublishable)){const after=current.get(before.workoutId);if(after&&isPublishable(after))continue;if(items.some(item=>item.lineageId&&item.lineageId===before.lineageId&&item.workoutId!==before.workoutId&&isPublishable(item)))continue;const operationType='cancel';rows.push({operationId:newId('sync'),workoutId:before.workoutId,planRevisionId,destination,operationType,idempotencyKey:`${destination}:${before.workoutId}:${planRevisionId}:${operationType}`,status:'review_required',payload:{date:before.localDate,title:before.title,lineageId:before.lineageId}})}
+  return rows;
+}
+export function syncOperationStatements(db,userId,operations=[],now=new Date().toISOString()){
+  if(!operations.length)return[];const statements=[];
+  for(const op of operations)statements.push(db.prepare("UPDATE rb_sync_operations SET status='superseded',updated_at=?1 WHERE user_id=?2 AND workout_id=?3 AND plan_revision_id<>?4 AND status IN ('queued','processing','failed_retryable','review_required')").bind(now,userId,op.workoutId,op.planRevisionId));
+  statements.push(...operations.map(op=>db.prepare(`INSERT INTO rb_sync_operations(operation_id,user_id,workout_id,plan_revision_id,destination,operation_type,idempotency_key,status,created_at,updated_at)
+    VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?9) ON CONFLICT(idempotency_key) DO NOTHING`).bind(op.operationId,userId,op.workoutId,op.planRevisionId,op.destination,op.operationType,op.idempotencyKey,op.status,now)));
+  return statements;
+}
+export async function storeSyncOperations(db,userId,operations=[],now=new Date().toISOString()){
+  if(!operations.length)return[];await db.batch(syncOperationStatements(db,userId,operations,now));return operations;
+}
