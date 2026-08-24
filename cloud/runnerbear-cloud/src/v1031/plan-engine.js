@@ -69,6 +69,11 @@ function template(type, date, km, index = 0, week = '') {
     },
   };
 }
+function unusedTemplate(type,date,index,week,used){
+  let candidate=template(type,date,0,index,week),offset=0;
+  while(used.has(candidate.workoutId)){offset++;candidate=template(type,date,0,index+offset*1000,week)}
+  return candidate;
+}
 
 function overrideFor(cfg, week) { return cfg.constraints.safetyOverrides.find(row => row.week === week) || null; }
 export function targetWeeklyVolume(rawConfig = {}) { return normalizeConfig(rawConfig).profile.targetWeeklyVolume; }
@@ -195,7 +200,7 @@ function allocateDistances(rows, targetRemaining, targetWeeklyKm = targetRemaini
 }
 
 function rowFor(pool, used, type, date, index, week) {
-  const match = pool.find(row => !used.has(row.workoutId) && (type === 'long' ? isLong(row) : type === 'quality' ? isQuality(row) && row.workoutType !== 'race' : row.workoutType === 'easy' && !isLong(row))), fallback = pool.find(row => !used.has(row.workoutId)), generated = template(type, date, 0, index, week);
+  const match = pool.find(row => !used.has(row.workoutId) && (type === 'long' ? isLong(row) : type === 'quality' ? isQuality(row) && row.workoutType !== 'race' : row.workoutType === 'easy' && !isLong(row))), fallback = pool.find(row => !used.has(row.workoutId)), generated = unusedTemplate(type,date,index,week,used);
   let row = clone(match || fallback || generated); used.add(row.workoutId); row.localDate = date; row.slotIndex = 0; row.status = 'scheduled'; row.sport = 'running'; row.lockLevel = 'none';
   if (type === 'long') { row.workoutType = 'easy'; row.intent = 'long'; if (!match || row.prescription?.main?.kind !== 'continuous') { row.prescription = generated.prescription; row.plannedDurationSeconds = null; } }
   else if (type === 'quality') { row.workoutType = 'quality'; row.intent = row.intent && !['easy', 'long', 'recovery'].includes(row.intent) ? row.intent : generated.intent; if (!match) { row.title = generated.title; row.prescription = generated.prescription; row.plannedDurationSeconds = null; } }
@@ -204,7 +209,7 @@ function rowFor(pool, used, type, date, index, week) {
 }
 function restRow(pool, used, date, cfg, index, week) {
   const same = pool.find(row => !used.has(row.workoutId) && row.localDate === date), fallback = pool.find(row => !used.has(row.workoutId));
-  let row = clone(same || fallback || template('easy', date, 0, index, week)); used.add(row.workoutId);
+  let row = clone(same || fallback || unusedTemplate('easy',date,index,week,used)); used.add(row.workoutId);
   const cross = cfg.constraints.alternativeDays.includes(dayIndex(date));
   return { ...row, localDate: date, slotIndex: 0, status: 'scheduled', sport: cross ? 'cross' : 'rest', workoutType: cross ? 'cross' : 'rest', title: cross ? 'Alternativ eller hvile' : 'Hvile · treningsramme', intent: 'recovery', plannedDurationSeconds: null, plannedDistanceM: 0, lockLevel: 'none', flexible: true, prescription: { version: 1, main: { kind: 'recovery' }, legacy: recoveryLegacy(cross) } };
 }

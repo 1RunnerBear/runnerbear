@@ -27,6 +27,11 @@ test('B race is canonical, replaces one quality dose, and preserves a valid race
   assert.equal(result.validation.valid,true);assert.equal(race.localDate,'2026-09-14');assert.equal(race.workoutType,'race');assert.equal(race.lockLevel,'system');assert.equal(race.plannedDistanceM,21100);assert.equal(week.expectedQualitySessions,2);assert.equal(week.actualQualitySessions,2);assert.equal(week.safetyOverrideReason,'B-løpsuke');
 });
 
+test('six-day rhythm keeps unique workout identity when Saturday quality precedes Sunday recovery',async()=>{
+  const {generateGoalPlan}=await import('../cloud/runnerbear-cloud/src/v1031/plan-engine.js'),config={...baseConfig,constraints:{...baseConfig.constraints,runDays:[0,1,2,3,5,6],qualityDays:[2,5],longRunDay:6,alternativeDays:[4],maxRunDays:6}},result=generateGoalPlan(config,'2026-08-24'),ids=result.rows.map(row=>row.workoutId);
+  assert.equal(result.validation.valid,true);assert.equal(new Set(ids).size,ids.length);assert.equal(result.validation.issues.some(issue=>issue.code==='HARD_DAY_ADJACENCY'),false);
+});
+
 test('removing a B race removes its canonical identity on the next reflow',async()=>{
   const {generateGoalPlan,reflowFuturePlan}=await import('../cloud/runnerbear-cloud/src/v1031/plan-engine.js'),first=generateGoalPlan(baseConfig,'2026-08-24'),next=reflowFuturePlan(first.rows,{...baseConfig,goal:{...baseConfig.goal,secondary:[]}},'2026-08-24','goal_changed');
   assert.equal(next.validation.valid,true);assert.equal(next.rows.some(row=>row.plannedLoad?.bRace),false);assert.equal(next.rows.some(row=>row.workoutId.startsWith('wo-b-race-')),false);
