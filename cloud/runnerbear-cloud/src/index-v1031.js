@@ -32,14 +32,22 @@ async function syncAudit(db) {
   }
 }
 
+async function goalGuardAudit(db) {
+  if(!db)return{restored:false,activePrimary:false};
+  try{
+    const row=await db.prepare("SELECT payload_json FROM rb_state WHERE user_id='primary' AND namespace='localStorage'").first(),local=JSON.parse(row?.payload_json||'{}'),decode=value=>typeof value==='string'?JSON.parse(value||'{}'):value||{},goal=decode(local.runnerbear_v109_goals),guard=decode(local.runnerbear_v10312_goal_guard);
+    return{restored:guard.restored===true,activePrimary:goal.mode==='race'&&!!goal.primary};
+  }catch{return{restored:false,activePrimary:false}}
+}
+
 export default {
   async fetch(request, env, ctx) {
     const response = await legacy.fetch(request, env, ctx);
     const path = new URL(request.url).pathname.replace(/\/+$/, '') || '/';
     if (request.method !== 'GET' || path !== '/health' || !response.ok) return response;
     try {
-      const [body,audit,sync] = await Promise.all([response.json(),historyAudit(env.DB),syncAudit(env.DB)]);
-      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync }, {
+      const [body,audit,sync,goalGuard] = await Promise.all([response.json(),historyAudit(env.DB),syncAudit(env.DB),goalGuardAudit(env.DB)]);
+      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync, goalGuard }, {
         status: response.status,
         headers: {
           'content-type': 'application/json; charset=utf-8',
