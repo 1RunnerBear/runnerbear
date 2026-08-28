@@ -1,11 +1,11 @@
 {
   "name": "runnerbear-cloud",
   "private": true,
-  "version": "11.2.0",
+  "version": "11.3.0",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "check": "node --check src/index-v11-base.js && node --check src/index-v11-legacy.js && node --check src/index-v11.js && node --check src/index-v112.js && node --check src/v11/body-response.js && node --check src/v112/coach-live.js && cd ../.. && node --test tests/v1027-*.test.cjs tests/v1031-*.test.cjs tests/v11-*.test.cjs tests/v112-*.test.cjs tests/e2e/*.spec.mjs",
+    "check": "node --check src/index-v11-base.js && node --check src/index-v11-legacy.js && node --check src/index-v11.js && node --check src/index-v112.js && node --check src/index-v113.js && node --check src/v11/body-response.js && node --check src/v112/coach-live.js && node --check src/v113/one-decision.js && cd ../.. && node --test tests/v1027-*.test.cjs tests/v1031-*.test.cjs tests/v11-*.test.cjs tests/v112-*.test.cjs tests/v113-*.test.cjs tests/e2e/*.spec.mjs",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote",

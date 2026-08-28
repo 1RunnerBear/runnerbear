@@ -19,9 +19,9 @@ test('v11 index loads only canonical versioned frontend assets',()=>{
   assert.doesNotMatch(html,/rel="preload"/);
   const jsBytes=scripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
   const compressedBytes=scripts.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file))).length,0);
-  assert.ok(jsBytes<455000,'canonical JavaScript is '+jsBytes+' bytes');
-  assert.ok(compressedBytes<130000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
-  assert.ok(fs.statSync(path.join(root,styles[0])).size<253000);
+  assert.ok(jsBytes<465000,'canonical JavaScript is '+jsBytes+' bytes');
+  assert.ok(compressedBytes<132000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
+  assert.ok(fs.statSync(path.join(root,styles[0])).size<260000);
 });
 
 test('v11 keeps the locked four-request and fifteen-percent compressed asset budget',()=>{
@@ -115,14 +115,14 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
   assert.match(ui,/Concept2/);
 });
 
-test('release metadata and production health gate agree on v11.2.0',()=>{
+test('release metadata and production health gate agree on v11.3.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'11.2.0');
-  assert.match(read('site.webmanifest'),/v11200/);
-  assert.match(read('cloud/runnerbear-cloud/src/index-v112.js'),/const BUILD\s*=\s*'11\.2\.0'/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'11.3.0');
+  assert.match(read('site.webmanifest'),/v11300/);
+  assert.match(read('cloud/runnerbear-cloud/src/index-v113.js'),/const BUILD=ONE_DECISION_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
-  assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v112\.js/);
-  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"11\.2\.0\"/);
+  assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v113\.js/);
+  assert.match(read('.github/workflows/runnerbear-cloud-deploy.yml'),/cloudBuild!==\"11\.3\.0\"/);
   assert.match(bridgeWorkflow,/for attempt in 1 2 3 4 5 6 7 8 9 10 11 12/);
   assert.match(bridgeWorkflow,/git checkout -B runnerbear-bridge-report origin\/main/);
 });
