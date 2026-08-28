@@ -1,5 +1,5 @@
-export const BUILD='11.1.0';
-export const SCHEMA_VERSION=3;
+export const BUILD='11.2.0';
+export const SCHEMA_VERSION=4;
 export const POLICY_VERSION='bakken-adaptive-coach-3';
 export const FLAGS=Object.freeze(['coach_loop_shadow','coach_loop_read','coach_loop_ui','coach_loop_write','coach_loop_sync','coach_loop_safe_auto','coach_loop_goal_confidence']);
 export const DEFAULT_FLAGS=Object.freeze(Object.fromEntries(FLAGS.map(flag=>[flag,false])));
