@@ -46,7 +46,7 @@ export async function planByRevision(db,userId,planRevisionId){
   return{planRevisionId:revision.plan_revision_id,parentRevisionId:revision.parent_revision_id,status:revision.status,reasonCode:revision.reason_code,sourceEventId:revision.source_event_id,policyVersion:revision.policy_version,createdAt:revision.created_at,items:(rows.results||[]).map(row=>itemFromRow(row,revision.plan_revision_id))};
 }
 export async function latestDecision(db,userId,planRevisionId){
-  const row=await db.prepare(`SELECT * FROM rb_coach_decisions WHERE user_id=?1 AND plan_revision_id=?2 AND status IN ('proposed','auto_applied','accepted') ORDER BY created_at DESC LIMIT 1`).bind(userId,planRevisionId).first();
+  const row=await db.prepare(`SELECT * FROM rb_coach_decisions WHERE user_id=?1 AND plan_revision_id=?2 AND status IN ('proposed','auto_applied','accepted','rejected') ORDER BY created_at DESC LIMIT 1`).bind(userId,planRevisionId).first();
   return row?{decisionId:row.decision_id,planRevisionId:row.plan_revision_id,inputCursor:row.input_cursor,type:row.decision_type,status:row.status,confidence:row.confidence,reasonCodes:parse(row.reason_codes_json,[]),evidence:parse(row.evidence_json,[]),action:parse(row.action_json,{}),explanation:parse(row.explanation_json,{}),policyVersion:row.policy_version,validUntil:row.valid_until,createdAt:row.created_at}:null;
 }
 export async function syncStatus(db,userId){const rows=await db.prepare(`SELECT o.*,i.local_date,i.title,i.workout_type,i.sport
