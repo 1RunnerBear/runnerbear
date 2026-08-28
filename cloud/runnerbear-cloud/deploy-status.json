@@ -1,9 +1,9 @@
 {
-  "build": "11.0.0",
+  "build": "11.1.0",
   "status": "success",
-  "checked_at": "2026-08-24T12:41:34.553554+00:00",
-  "run_id": "32728363689",
-  "source_sha": "eb9f48bc04834945a8f5f9bea2aff5b0af73fdae",
+  "checked_at": "2026-08-28T11:53:13.568266+00:00",
+  "run_id": "33168801259",
+  "source_sha": "8b86641015da0fdbd767605ccc723f9da018d74b",
   "steps": {
     "install": "success",
     "validate": "success",
