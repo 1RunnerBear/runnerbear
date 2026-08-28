@@ -1,7 +1,7 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { handleV1027 } from './v11/routes.js';
 
-const BUILD = '11.0.0';
+const BUILD = '11.1.0';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_DAYS = 365;
@@ -204,7 +204,7 @@ async function getHomeBootstrap(request, env) {
     body,
     capacity: { running: (capacity.results || []).map((row) => parseJson(row.payload_json, {})).reverse() },
     syncedAt,
-    source: 'runnerbear-cloud-v11.0-home',
+    source: 'runnerbear-cloud-v11.1-home',
   };
   console.log(JSON.stringify({ event: 'runnerbear_bootstrap_home', build: BUILD, d1Ms, activities: state.tredict.activities.length, healthDays: (health.results || []).length }));
   return {
@@ -403,8 +403,8 @@ export default {
       let schemaVersion = 0;
       if (env.DB) {
         try {
-          const row = await env.DB.prepare("SELECT 1 AS ok FROM sqlite_master WHERE type='table' AND name='rb_plan_revisions'").first();
-          schemaVersion = row?.ok ? 2 : 1;
+          const row = await env.DB.prepare("SELECT SUM(CASE WHEN name='rb_plan_revisions' THEN 1 ELSE 0 END) AS coach_loop,SUM(CASE WHEN name='rb_body_response_snapshots' THEN 1 ELSE 0 END) AS body_response FROM sqlite_master WHERE type='table' AND name IN ('rb_plan_revisions','rb_body_response_snapshots')").first();
+          schemaVersion = row?.body_response ? 3 : row?.coach_loop ? 2 : 1;
         } catch {}
       }
       return json({

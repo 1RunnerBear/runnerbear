@@ -1,7 +1,7 @@
 /* RunnerBear v10.28 · canonical trust, plan integrity and compatibility bridge. */
 (function(){
   'use strict';
-  const BUILD='11.0.0',CACHE='runnerbear_coach_loop_snapshot_v1',SHADOW_COUNT='runnerbear_coach_loop_shadow_success_v1';
+  const BUILD='11.1.0',CACHE='runnerbear_coach_loop_snapshot_v1',SHADOW_COUNT='runnerbear_coach_loop_shadow_success_v1';
   let snapshot=null,lastSignature='',syncTimer=0,startPromise=null,fullLoadedRevision='',syncWatchTimers=[];
   const read=(key,fallback={})=>{try{return JSON.parse(localStorage.getItem(key)||'')??fallback}catch{return fallback}};
   const api=async(path,options={})=>{const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,headers:{Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let body={};try{body=await response.json()}catch{}if(!response.ok)throw Object.assign(new Error(body.message||body.error||`RunnerBear HTTP ${response.status}`),{code:body.code,status:response.status});return body};
@@ -53,6 +53,7 @@
   async function applyRealignment(){const proposal=snapshot?.realignmentProposal;if(!proposal||proposal.status!=='proposed'||!proposal.autoEligible||!snapshot?.flags?.coach_loop_safe_auto||localStorage.getItem('runnerbear_v107_coach_control')!=='autopilot')return null;await api('/api/v2/coach/realign/apply',{method:'POST',headers:{'Idempotency-Key':`realignment:${proposal.proposalId}`},body:JSON.stringify({expectedPlanRevisionId:snapshot.planRevisionId,proposalId:proposal.proposalId})});return refresh('full')}
   async function undoPlan(){if(!snapshot?.flags?.coach_loop_write||!snapshot.planRevisionId)return null;await api('/api/v2/plan/undo',{method:'POST',headers:{'Idempotency-Key':window.RunnerBearV1026?.idempotency?.('undo')||`undo:${Date.now()}`},body:JSON.stringify({expectedPlanRevisionId:snapshot.planRevisionId})});return refresh('full')}
   async function submitFeedback(input={}){const normalized=window.RunnerBearFeedbackV1026?.normalize?.(input)||input,result=await api('/api/v2/feedback',{method:'POST',headers:{'Idempotency-Key':window.RunnerBearV1026?.idempotency?.('feedback')||`feedback:${Date.now()}`},body:JSON.stringify(normalized)});await refresh('home');await applyRealignment();return result}
+  async function submitCheckIn(input={}){const key=String(input.sourceId||window.RunnerBearV1026?.idempotency?.('body-checkin')||`body-checkin:${Date.now()}`),result=await api('/api/v2/check-ins',{method:'POST',headers:{'Idempotency-Key':key},body:JSON.stringify({...input,sourceId:key})});try{await refresh('home');await applySafeAuto()}catch(error){console.warn(JSON.stringify({event:'body_response_refresh_failed',build:BUILD,code:error.code||'',message:error.message}))}return result}
   async function loadFullForView(event){const view=String(event?.detail?.view||'');if(!['plan','goals','race','more'].includes(view)||!snapshot?.planRevisionId||fullLoadedRevision===snapshot.planRevisionId)return;try{await refresh('full')}catch(error){console.warn(JSON.stringify({event:'coach_loop_history_refresh_failed',build:BUILD,code:error.code||'',message:error.message}))}}
   function verifiedCache(){const cached=read(CACHE,null);return cached?.flags?.coach_loop_read===true&&cached?.planRevisionId&&Array.isArray(cached?.activePlan?.items)?cached:null}
   function start(){
@@ -61,7 +62,7 @@
     if(cached){install(cached);document.documentElement.classList.add('rb10312-cached-first-paint')}
     startPromise=(async()=>{try{const data=await refresh('home'),input=legacyInput();lastSignature=window.RunnerBearV1026?.stable?.({plan:input.effectivePlan,profile:input.profile,constraints:input.constraints,goal:input.goal})||JSON.stringify(input);window.addEventListener('runnerbear:state-dirty',scheduleSync);window.addEventListener('runnerbear:view',loadFullForView);await applySafeAuto();await applyRealignment();document.documentElement.classList.remove('rb10312-cached-first-paint');return snapshot||data}catch(error){console.error(JSON.stringify({event:'coach_loop_bootstrap_error',build:BUILD,code:error.code||'',message:error.message}));if(cached)return snapshot;throw error}})();return startPromise
   }
-  window.RunnerBearCloudV11={build:BUILD,start,refresh,refreshSync,retrySync,verifySyncRepair,reconfigure,resolveDecision,applySafeAuto,applyRealignment,undoPlan,submitFeedback,shadowCompare,snapshot:()=>snapshot,decision:()=>snapshot?.coachDecision||null,toLegacyDecision,proposalFor};
+  window.RunnerBearCloudV11={build:BUILD,start,refresh,refreshSync,retrySync,verifySyncRepair,reconfigure,resolveDecision,applySafeAuto,applyRealignment,undoPlan,submitFeedback,submitCheckIn,shadowCompare,snapshot:()=>snapshot,decision:()=>snapshot?.coachDecision||null,toLegacyDecision,proposalFor};
   window.RunnerBearCloudV1031=window.RunnerBearCloudV11;
   window.dispatchEvent(new CustomEvent('runnerbear:canonical-runtime-ready'));
 })();
