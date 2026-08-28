@@ -1,0 +1,73 @@
+/* RunnerBear v11.2 Coach Live · locked Concept 1 */
+.rb112-coach-card{position:relative;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:16px;align-items:start;padding:22px 22px 20px;overflow:hidden;background:linear-gradient(145deg,rgba(248,244,234,.98),rgba(241,237,224,.96));border-color:rgba(31,59,48,.13)}
+.rb112-coach-card:after{content:"";position:absolute;right:-34px;top:-42px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,rgba(84,118,94,.12),transparent 70%);pointer-events:none}
+.rb112-coach-mark{display:grid;place-items:center;width:48px;height:48px;border-radius:16px;background:#244b3b;color:#f7f1e4;box-shadow:0 9px 22px rgba(23,55,43,.14)}
+.rb112-coach-mark svg{width:22px;height:22px}
+.rb112-coach-card h2{margin:3px 0 5px;color:#183a2d;font-size:1.18rem;letter-spacing:-.025em}
+.rb112-coach-card p{margin:0;max-width:510px;color:#617068;font-size:.9rem;line-height:1.48}
+.rb112-coach-card>div:nth-child(2)>div{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.rb112-coach-card>div:nth-child(2)>div button{min-height:36px;padding:7px 11px;border:1px solid rgba(36,75,59,.14);border-radius:999px;background:rgba(255,255,255,.57);color:#315443;font:inherit;font-size:.76rem;line-height:1.2;cursor:pointer}
+.rb112-coach-open{position:relative;z-index:1;display:flex;align-items:center;gap:5px;min-height:44px;padding:0 3px;border:0;background:transparent;color:#244b3b;font:inherit;font-size:.84rem;font-weight:760;cursor:pointer}
+.rb112-coach-open svg{width:16px;height:16px}
+.rb112-context-button{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:48px;margin:2px 0 16px;padding:0 18px;border:1px solid rgba(36,75,59,.18);border-radius:15px;background:#eef1e8;color:#244b3b;font:inherit;font-size:.87rem;font-weight:760;cursor:pointer}
+.rb112-context-button svg{width:18px;height:18px}
+
+.rb112-coach-modal{z-index:260}
+.rb112-coach-sheet{display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto;width:min(720px,100%);height:min(820px,calc(100dvh - 32px));max-height:calc(100dvh - 32px);overflow:hidden!important;background:#f8f5ed!important}
+.rb112-coach-sheet>header{position:relative;z-index:2;background:rgba(248,245,237,.96);backdrop-filter:blur(12px);border-bottom:1px solid rgba(27,57,45,.08)}
+.rb112-coach-sheet>header h2{letter-spacing:-.035em}
+.rb112-conversation{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:24px clamp(18px,5vw,42px) 18px;scrollbar-color:rgba(36,75,59,.2) transparent}
+.rb112-welcome{display:flex;flex-direction:column;align-items:center;max-width:520px;margin:34px auto 12px;text-align:center}
+.rb112-welcome>span{display:grid;place-items:center;width:54px;height:54px;margin-bottom:17px;border-radius:18px;background:#244b3b;color:#f8f2e6}
+.rb112-welcome>span svg{width:24px;height:24px}
+.rb112-welcome h3{margin:0;color:#17382b;font-size:1.25rem;letter-spacing:-.025em}
+.rb112-welcome p{max-width:410px;margin:8px 0 22px;color:#67736d;font-size:.9rem;line-height:1.5}
+.rb112-welcome>div{display:grid;gap:9px;width:100%}
+.rb112-welcome button{min-height:48px;padding:11px 15px;border:1px solid rgba(36,75,59,.13);border-radius:15px;background:#fffdf8;color:#294d3d;font:inherit;font-size:.86rem;text-align:left;cursor:pointer;box-shadow:0 3px 10px rgba(31,59,48,.03)}
+.rb112-message{max-width:84%;margin:0 0 18px}
+.rb112-message small{display:block;margin:0 0 6px;color:#7a837e;font-size:.68rem;font-weight:750;letter-spacing:.065em;text-transform:uppercase}
+.rb112-message-content{padding:14px 16px;border-radius:6px 18px 18px 18px;background:#fffdf8;color:#273d34;font-size:.91rem;line-height:1.6;white-space:pre-wrap;box-shadow:0 5px 18px rgba(26,55,43,.06)}
+.rb112-message.user{margin-left:auto}
+.rb112-message.user small{text-align:right}
+.rb112-message.user .rb112-message-content{border-radius:18px 6px 18px 18px;background:#2a5141;color:#fffaf0;box-shadow:0 7px 20px rgba(28,63,49,.13)}
+.rb112-message.pending .rb112-message-content:empty{display:none}
+.rb112-message>i{display:flex;gap:4px;width:max-content;padding:13px 15px;border-radius:6px 18px 18px;background:#fffdf8}
+.rb112-message>i span{width:6px;height:6px;border-radius:50%;background:#82948a;animation:rb112-pulse 1.15s ease-in-out infinite}
+.rb112-message>i span:nth-child(2){animation-delay:.14s}.rb112-message>i span:nth-child(3){animation-delay:.28s}
+@keyframes rb112-pulse{0%,70%,100%{opacity:.35;transform:translateY(0)}35%{opacity:1;transform:translateY(-3px)}}
+.rb112-loading{display:flex;align-items:center;justify-content:center;gap:10px;min-height:120px;color:#68756e;font-size:.85rem}
+.rb112-loading i,.rb112-composer button i{width:16px;height:16px;border:2px solid rgba(36,75,59,.22);border-top-color:#315a48;border-radius:50%;animation:rb112-spin .8s linear infinite}
+@keyframes rb112-spin{to{transform:rotate(360deg)}}
+.rb112-error{max-width:520px;margin:10px auto;padding:12px 14px;border:1px solid rgba(145,70,52,.16);border-radius:12px;background:#f8e9e3;color:#874735;font-size:.83rem;line-height:1.45}
+.rb112-composer{padding:12px clamp(14px,4vw,30px) 8px;border-top:1px solid rgba(27,57,45,.09);background:#f8f5ed}
+.rb112-composer>label{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.rb112-composer>div{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:9px;align-items:end;padding:7px 7px 7px 16px;border:1px solid rgba(36,75,59,.15);border-radius:19px;background:#fffdf9;box-shadow:0 7px 24px rgba(29,59,46,.07)}
+.rb112-composer textarea{width:100%;min-height:40px;max-height:126px;padding:9px 0 7px;border:0;outline:0;resize:none;background:transparent;color:#243c32;font:inherit;font-size:16px;line-height:1.45}
+.rb112-composer textarea::placeholder{color:#909993}
+.rb112-composer button{display:grid;place-items:center;width:48px;height:48px;border:0;border-radius:15px;background:#244b3b;color:#fffaf0;cursor:pointer}
+.rb112-composer button svg{width:19px;height:19px}
+.rb112-composer button:disabled{opacity:.62;cursor:wait}
+.rb112-composer>small{display:block;margin:7px 5px 0;color:#7b8580;font-size:.68rem;line-height:1.3}
+.rb112-coach-sheet>footer{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:50px;padding:5px clamp(18px,4vw,30px) max(7px,env(safe-area-inset-bottom));background:#f8f5ed;color:#78827d;font-size:.68rem}
+.rb112-coach-sheet>footer button{display:flex;align-items:center;gap:6px;min-height:40px;padding:0;border:0;background:transparent;color:#315543;font:inherit;font-weight:750;cursor:pointer}
+.rb112-coach-sheet>footer button svg{width:15px;height:15px}
+
+.rb112-coach-card button:focus-visible,.rb112-context-button:focus-visible,.rb112-welcome button:focus-visible,.rb112-composer button:focus-visible,.rb112-coach-sheet>footer button:focus-visible{outline:3px solid rgba(58,108,83,.35);outline-offset:3px}
+
+@media(max-width:680px){
+  .rb112-coach-card{grid-template-columns:42px minmax(0,1fr);gap:13px;padding:19px 17px}
+  .rb112-coach-mark{width:42px;height:42px;border-radius:14px}
+  .rb112-coach-card>div:nth-child(2)>div{display:none}
+  .rb112-coach-open{grid-column:2;justify-self:start;min-height:40px;margin-top:-3px}
+  .rb112-coach-sheet{width:100%;height:100dvh;max-height:100dvh;border-radius:0!important}
+  .rb112-coach-sheet>header{padding-top:max(18px,env(safe-area-inset-top))!important}
+  .rb112-conversation{padding:18px 16px 12px}
+  .rb112-welcome{margin-top:18px}
+  .rb112-message{max-width:91%}
+  .rb112-composer{padding:10px 10px 6px}
+  .rb112-composer>small{margin-left:8px}
+  .rb112-coach-sheet>footer{padding-inline:16px}
+  .rb112-coach-sheet>footer span{max-width:52%;text-align:right}
+}
+
+@media(prefers-reduced-motion:reduce){.rb112-message>i span,.rb112-loading i,.rb112-composer button i{animation:none}.rb112-conversation{scroll-behavior:auto}}
