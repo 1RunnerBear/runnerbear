@@ -1,0 +1,21 @@
+/* RunnerBear v11.4 Closed Loop Coach · locked Concept 1 / Premium calm */
+.rb113-one-decision>header small{display:grid;gap:2px}
+.rb113-one-decision>header small b{color:#45554b}
+.rb113-one-decision.reflect::before{background:#50715f}
+.rb114-coach-memory{margin-top:14px;border:1px solid #2b41351a;border-radius:16px;background:#ffffff6b}
+.rb114-coach-memory>summary{display:grid;grid-template-columns:36px minmax(0,1fr) 18px;align-items:center;gap:11px;min-height:52px;padding:9px 12px;cursor:pointer;list-style:none}
+.rb114-coach-memory>summary::-webkit-details-marker{display:none}
+.rb114-coach-memory>summary>span:first-child{display:grid;width:36px;height:36px;place-items:center;border-radius:11px;background:#e5ece6;color:#3c624f}
+.rb114-coach-memory>summary>span:nth-child(2){display:grid;gap:2px;min-width:0}
+.rb114-coach-memory b{color:#36463d;font-size:12px}
+.rb114-coach-memory small{color:#6d7771;font-size:11px}
+.rb114-coach-memory>summary small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rb114-coach-memory>summary>svg{color:#78827c;transition:transform .16s}
+.rb114-coach-memory[open]>summary>svg{transform:rotate(90deg)}
+.rb114-coach-memory>div{display:grid;padding:0 12px 10px}
+.rb114-coach-memory article{display:grid;grid-template-columns:58px minmax(0,1fr);gap:10px;padding:10px 0;border-top:1px solid #2b413514}
+.rb114-coach-memory time{color:#77817b;font-size:10px}
+.rb114-coach-memory article span{display:grid;gap:3px;min-width:0}
+.rb114-coach-memory>summary:focus-visible{outline:3px solid #9db8a8;outline-offset:3px}
+@media(max-width:640px){.rb113-one-decision>header{align-items:start}.rb114-coach-memory>summary small{white-space:normal}.rb114-coach-memory article{grid-template-columns:52px 1fr}}
+@media(prefers-reduced-motion:reduce){.rb114-coach-memory>summary>svg{transition:none}}

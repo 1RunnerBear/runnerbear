@@ -1,5 +1,5 @@
 {
-  "build": "11.3.0",
+  "build": "11.4.0",
   "core": [
     "plan.js", "runnerbear-v100-plan-bootstrap.js", "runnerbear-v100-engine.js",
     "runnerbear-v1012-analysis.js", "runnerbear-v1020-coach-model.js", "runnerbear-v1022-readiness.js",
@@ -22,6 +22,6 @@
     "runnerbear-v1028-trust-flow.css", "runnerbear-v1029-training-profile.css",
     "runnerbear-v1030-proactive-coach.css", "runnerbear-v1031-coach-package.css",
     "runnerbear-v111-body-response.css", "runnerbear-v112-coach-live.css",
-    "runnerbear-v113-one-decision.css"
+    "runnerbear-v113-one-decision.css", "runnerbear-v114-closed-loop.css"
   ]
 }
