@@ -49,6 +49,11 @@ export async function latestDecision(db,userId,planRevisionId){
   const row=await db.prepare(`SELECT * FROM rb_coach_decisions WHERE user_id=?1 AND plan_revision_id=?2 AND status IN ('proposed','auto_applied','accepted','rejected') ORDER BY created_at DESC LIMIT 1`).bind(userId,planRevisionId).first();
   return row?{decisionId:row.decision_id,planRevisionId:row.plan_revision_id,inputCursor:row.input_cursor,type:row.decision_type,status:row.status,confidence:row.confidence,reasonCodes:parse(row.reason_codes_json,[]),evidence:parse(row.evidence_json,[]),action:parse(row.action_json,{}),explanation:parse(row.explanation_json,{}),policyVersion:row.policy_version,validUntil:row.valid_until,createdAt:row.created_at}:null;
 }
+export async function recentDecisionHistory(db,userId,limit=8){
+  const rows=await db.prepare(`SELECT decision_id,plan_revision_id,input_cursor,decision_type,status,confidence,reason_codes_json,evidence_json,action_json,explanation_json,policy_version,valid_until,created_at,resolved_at,undo_plan_revision_id
+    FROM rb_coach_decisions WHERE user_id=?1 ORDER BY created_at DESC LIMIT ?2`).bind(userId,Math.max(1,Math.min(8,Number(limit)||8))).all();
+  return(rows.results||[]).map(row=>({decisionId:row.decision_id,planRevisionId:row.plan_revision_id,inputCursor:row.input_cursor,type:row.decision_type,status:row.status,confidence:row.confidence,reasonCodes:parse(row.reason_codes_json,[]),evidence:parse(row.evidence_json,[]),action:parse(row.action_json,{}),explanation:parse(row.explanation_json,{}),policyVersion:row.policy_version,validUntil:row.valid_until,createdAt:row.created_at,resolvedAt:row.resolved_at,undoPlanRevisionId:row.undo_plan_revision_id}));
+}
 export async function syncStatus(db,userId){const rows=await db.prepare(`SELECT o.*,i.local_date,i.title,i.workout_type,i.sport
   FROM rb_sync_operations o
   LEFT JOIN rb_plan_revision_items i ON i.plan_revision_id=o.plan_revision_id AND i.workout_id=o.workout_id

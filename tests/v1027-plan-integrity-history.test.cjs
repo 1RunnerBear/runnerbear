@@ -43,7 +43,7 @@ test('E · current-week UI separates planned, completed and remaining volume',()
 
 test('F · history restoration is idempotent, stable-ID based and non-destructive',()=>{
   const repository=fs.readFileSync('cloud/runnerbear-cloud/src/v1027/repository.js','utf8'),recovery=fs.readFileSync('scripts/v1027-history-recovery.mjs','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8');
-  assert.match(repository,/r\.status<>'draft' AND i\.local_date<\?2/);assert.match(repository,/rb_plan_days WHERE user_id=\?1 AND date<\?2/);assert.match(recovery,/ON CONFLICT\(user_id,source,source_id\) DO UPDATE/);assert.doesNotMatch(recovery,/DELETE FROM rb_activities/);assert.match(workflow,/runnerbear-pre-v113\.sql/);assert.match(workflow,/duplicate_external_ids/);
+  assert.match(repository,/r\.status<>'draft' AND i\.local_date<\?2/);assert.match(repository,/rb_plan_days WHERE user_id=\?1 AND date<\?2/);assert.match(recovery,/ON CONFLICT\(user_id,source,source_id\) DO UPDATE/);assert.doesNotMatch(recovery,/DELETE FROM rb_activities/);assert.match(workflow,/runnerbear-pre-v114\.sql/);assert.match(workflow,/duplicate_external_ids/);
 });
 
 test('G · accepted coach state stays high contrast and calendar navigation stays enabled',()=>{

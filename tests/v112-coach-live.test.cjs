@@ -51,5 +51,5 @@ test('Concept 1 UI adds contextual Coach Live without a fifth navigation tab',()
 
 test('production entrypoint binds Workers AI and cannot mutate the canonical plan',()=>{
   const config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v112.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v112/coach-live.js','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8');
-  assert.match(config,/src\/index-v113\.js/);assert.match(config,/"binding": "AI"/);assert.match(config,/@cf\/zai-org\/glm-4\.7-flash/);assert.match(entry,/coachLiveInference:!!env\.AI/);assert.match(routes,/env\.AI\.run/);assert.doesNotMatch(routes,/(INSERT INTO|UPDATE|DELETE FROM) rb_plan_/);assert.match(workflow,/coachLiveAudit\?\.ok!==true/);assert.match(workflow,/schemaVersion!==4/);
+  assert.match(config,/src\/index-v114\.js/);assert.match(config,/"binding": "AI"/);assert.match(config,/@cf\/zai-org\/glm-4\.7-flash/);assert.match(entry,/coachLiveInference:!!env\.AI/);assert.match(routes,/env\.AI\.run/);assert.doesNotMatch(routes,/(INSERT INTO|UPDATE|DELETE FROM) rb_plan_/);assert.match(workflow,/coachLiveAudit\?\.ok!==true/);assert.match(workflow,/schemaVersion!==4/);
 });

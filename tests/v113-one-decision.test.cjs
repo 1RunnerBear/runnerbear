@@ -52,7 +52,7 @@ test('clarify, completed, rest and rejected decisions have stable safe actions',
 
 test('Coach Live receives One Decision but retains no plan-write authority',async()=>{
   const {minimizeCoachContext,buildSystemPrompt}=await import('../cloud/runnerbear-cloud/src/v112/coach-live.js'),context=minimizeCoachContext(bootstrap,{surface:'today'}),prompt=buildSystemPrompt(context),source=fs.readFileSync('cloud/runnerbear-cloud/src/v112/coach-live.js','utf8');
-  assert.equal(context.oneDecision.version,'one-decision-1');
+  assert.equal(context.oneDecision.version,'one-decision-2');
   assert.equal(context.oneDecision.state,'follow');
   assert.match(prompt,/strukturerte beslutning/);
   assert.match(prompt,/lag aldri et eget planforslag/);
@@ -77,14 +77,15 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
 });
 
-test('release entry augments bootstrap and production health without a new endpoint or schema',()=>{
-  const entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8');
-  assert.match(config,/src\/index-v113\.js/);
+test('release chain preserves the v11.3 contract without a new endpoint or schema',()=>{
+  const entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),current=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8');
+  assert.match(config,/src\/index-v114\.js/);
   assert.match(entry,/path==='\/api\/v2\/bootstrap'/);
+  assert.match(current,/\.\/index-v113\.js/);
   assert.doesNotMatch(entry,/\/api\/v2\/one-decision/);
   assert.match(entry,/oneDecisionVersion:ONE_DECISION_VERSION/);
   assert.match(workflow,/x\.oneDecisionAudit\?\.ok!==true/);
-  assert.match(workflow,/x\.cloudBuild!=="11\.3\.0"/);
+  assert.match(workflow,/x\.cloudBuild!=="11\.4\.0"/);
   assert.match(repository,/status IN \('proposed','auto_applied','accepted','rejected'\)/);
   assert.match(routes,/decision\.status!=='proposed'/);
   assert.match(routes,/reductionPercent>20/);
