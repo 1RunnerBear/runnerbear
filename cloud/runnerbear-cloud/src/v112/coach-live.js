@@ -4,7 +4,7 @@ import { buildCoachContinuity, buildOneDecisionV2 } from '../v114/closed-loop.js
 export const COACH_LIVE_PROMPT_VERSION='coach-live-no-4';
 export const COACH_LIVE_STREAM_VERSION='runnerbear-sse-1';
 export const DEFAULT_COACH_LIVE_MODEL='@cf/zai-org/glm-4.7-flash';
-const BUILD='11.4.1';
+const BUILD='11.5.0';
 const USER_MESSAGE_LIMIT=1200;
 const ASSISTANT_MESSAGE_LIMIT=12000;
 const ALLOWED_SURFACES=new Set(['today','workout','body_response','plan','goals','more']);

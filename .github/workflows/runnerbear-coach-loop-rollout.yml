@@ -102,7 +102,7 @@ jobs:
         run: |
           BODY="$(curl --fail --silent --show-error --retry 4 --retry-delay 2 "$RUNNERBEAR_APP_URL/health")"
           echo "$BODY"
-          node -e 'const x=JSON.parse(process.argv[1]);if(x.ok!==true||x.assets!==true||x.database!==true||x.cloudBuild!=="11.4.1"||x.schemaVersion!==4||x.healthReadOnly!==true||x.coachLoop!==true||x.coachLiveReliabilityAudit?.ok!==true||x.bakkenEngine!==true||x.bakkenEngineVersion!=="11.0.0"||x.bakkenRepair?.ok!==true||x.bakkenPlanAudit?.ok!==true||x.tredictService!==true||x.tredictRpc!==true||x.durableSync!==true||x.historyIntegrity!==true||x.historyAudit?.activitiesPresent!==true||Number(x.historyAudit?.duplicateExternalIds||0)!==0)process.exit(1)' "$BODY"
+          node -e 'const x=JSON.parse(process.argv[1]);if(x.ok!==true||x.assets!==true||x.database!==true||x.cloudBuild!=="11.5.0"||x.schemaVersion!==4||x.premiumUxAudit?.ok!==true||x.premiumUxAudit?.unifiedDialogContract!==true||x.healthReadOnly!==true||x.coachLoop!==true||x.coachLiveReliabilityAudit?.ok!==true||x.bakkenEngine!==true||x.bakkenEngineVersion!=="11.0.0"||x.bakkenRepair?.ok!==true||x.bakkenPlanAudit?.ok!==true||x.tredictService!==true||x.tredictRpc!==true||x.durableSync!==true||x.historyIntegrity!==true||x.historyAudit?.activitiesPresent!==true||Number(x.historyAudit?.duplicateExternalIds||0)!==0)process.exit(1)' "$BODY"
           CODE="$(curl --silent --output /tmp/runnerbear-root --write-out '%{http_code}' "$RUNNERBEAR_APP_URL/")"
           echo "RunnerBear root HTTP $CODE"
           case "$CODE" in
