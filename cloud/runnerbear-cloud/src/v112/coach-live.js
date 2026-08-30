@@ -1,9 +1,10 @@
 import { bootstrapV2 } from '../v11/read-model.js';
 import { buildCoachContinuity, buildOneDecisionV2 } from '../v114/closed-loop.js';
 
-export const COACH_LIVE_PROMPT_VERSION='coach-live-no-3';
+export const COACH_LIVE_PROMPT_VERSION='coach-live-no-4';
+export const COACH_LIVE_STREAM_VERSION='runnerbear-sse-1';
 export const DEFAULT_COACH_LIVE_MODEL='@cf/zai-org/glm-4.7-flash';
-const BUILD='11.4.0';
+const BUILD='11.4.1';
 const USER_MESSAGE_LIMIT=1200;
 const ASSISTANT_MESSAGE_LIMIT=12000;
 const ALLOWED_SURFACES=new Set(['today','workout','body_response','plan','goals','more']);
@@ -103,17 +104,60 @@ RUNNERBEAR-KONTEKST:
 ${JSON.stringify(coachContext)}`;
 }
 
+function contentText(value){
+  if(typeof value==='string')return value;
+  if(!Array.isArray(value))return'';
+  return value.map(part=>typeof part==='string'?part:typeof part?.text==='string'?part.text:typeof part?.content==='string'?part.content:'').join('');
+}
+
+function responseText(value){
+  if(typeof value==='string')return value.trim();
+  const candidates=[value?.response,value?.result?.response,value?.output_text,value?.choices?.[0]?.message?.content,value?.choices?.[0]?.delta?.content,value?.delta?.content];
+  for(const candidate of candidates){const text=contentText(candidate);if(text)return text}
+  return'';
+}
+
+export function extractTextFromResponse(value){return responseText(value).trim()}
+
 export function extractTextFromSse(raw){
   const source=String(raw||'');let text='';
   for(const line of source.split(/\r?\n/)){
     if(!line.startsWith('data:'))continue;
     const data=line.slice(5).trim();if(!data||data==='[DONE]')continue;
     try{
-      const item=JSON.parse(data),delta=item.response??item.delta?.content??item.choices?.[0]?.delta?.content??'';
-      if(typeof delta==='string')text+=delta;
+      const item=JSON.parse(data),delta=responseText(item);
+      if(delta)text+=delta;
     }catch{}
   }
   return text.trim();
+}
+
+function withTimeout(promise,timeoutMs,code){
+  let timer;const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(code)),timeoutMs)});
+  return Promise.race([promise,timeout]).finally(()=>clearTimeout(timer));
+}
+
+async function readInferenceStream(source,timeoutMs=45000){
+  const reader=source.getReader(),decoder=new TextDecoder();let raw='';
+  try{
+    while(true){const{done,value}=await withTimeout(reader.read(),timeoutMs,'AI_STREAM_TIMEOUT');if(done)break;if(raw.length<120000)raw+=decoder.decode(value,{stream:true})}
+    raw+=decoder.decode();return extractTextFromSse(raw).slice(0,ASSISTANT_MESSAGE_LIMIT);
+  }finally{reader.releaseLock?.()}
+}
+
+export async function runCoachInference(ai,model,messages){
+  const input={messages,max_completion_tokens:700,temperature:0.25,reasoning_effort:'low',chat_template_kwargs:{enable_thinking:false}};let firstError='';
+  try{
+    const result=await withTimeout(ai.run(model,{...input,stream:true}),15000,'AI_START_TIMEOUT'),source=result instanceof Response?result.body:result;
+    const content=source?.getReader?await readInferenceStream(source):extractTextFromResponse(result);
+    if(content)return{content:content.trim().slice(0,ASSISTANT_MESSAGE_LIMIT),mode:'stream'};
+    firstError='EMPTY_STREAM_RESPONSE';
+  }catch(error){firstError=bounded(error?.message||'AI_STREAM_FAILED',80)}
+  try{
+    const result=await withTimeout(ai.run(model,{...input,stream:false}),45000,'AI_FALLBACK_TIMEOUT'),content=extractTextFromResponse(result).trim().slice(0,ASSISTANT_MESSAGE_LIMIT);
+    if(content)return{content,mode:'fallback',recoveredFrom:firstError||'EMPTY_STREAM_RESPONSE'};
+    throw new Error('EMPTY_MODEL_RESPONSE');
+  }catch(error){const code=bounded(error?.message||'AI_FALLBACK_FAILED',80);throw new Error(`${firstError||'AI_STREAM_FAILED'}:${code}`.slice(0,80))}
 }
 
 async function ensureThread(env,userId,{threadId,context,planRevisionId,title}){
@@ -125,12 +169,29 @@ async function ensureThread(env,userId,{threadId,context,planRevisionId,title}){
   return row||null;
 }
 
-async function threadMessages(env,userId,threadId,limit=80){
+async function storedThreadMessages(env,userId,threadId,limit=80){
   const result=await env.DB.prepare(`SELECT message_id,thread_id,role,content,category,model,plan_revision_id,created_at FROM (
     SELECT message_id,thread_id,role,content,category,model,plan_revision_id,created_at FROM rb_coach_live_messages
     WHERE user_id=?1 AND thread_id=?2 ORDER BY created_at DESC LIMIT ?3
   ) ORDER BY created_at ASC`).bind(userId,threadId,Math.max(1,Math.min(120,limit))).all();
   return result.results||[];
+}
+
+export async function threadMessages(env,userId,threadId,limit=80){
+  const [messages,runResult]=await Promise.all([
+    storedThreadMessages(env,userId,threadId,limit),
+    env.DB.prepare(`SELECT run_id,user_message_id,assistant_message_id,status,error_code,created_at,completed_at FROM rb_coach_live_runs
+      WHERE user_id=?1 AND thread_id=?2 ORDER BY created_at ASC LIMIT ?3`).bind(userId,threadId,Math.max(1,Math.min(120,limit))).all(),
+  ]),runs=runResult.results||[],byUser=new Map(runs.map(run=>[run.user_message_id,run])),byAssistant=new Map(runs.filter(run=>run.assistant_message_id).map(run=>[run.assistant_message_id,run])),out=[];
+  for(const message of messages){
+    const run=message.role==='user'?byUser.get(message.message_id):byAssistant.get(message.message_id);
+    out.push({...message,status:message.role==='assistant'?(run?.status||'completed'):'completed',run_id:run?.run_id||null});
+    if(message.role!=='user'||!run||run.assistant_message_id)continue;
+    const stale=run.status==='running'&&Date.now()-Date.parse(run.created_at||0)>90000,status=stale?'failed':run.status;
+    if(!['running','failed'].includes(status))continue;
+    out.push({message_id:`run-state-${run.run_id}`,thread_id:threadId,role:'assistant',content:status==='failed'?'Coach Live fikk ikke laget et svar. Spørsmålet er bevart, og du kan prøve igjen.':'Coach Live lager et svar …',category:'system',model:null,plan_revision_id:message.plan_revision_id,created_at:run.completed_at||run.created_at,status,retryable:status==='failed',run_id:run.run_id,in_reply_to:message.message_id,error_code:stale?'STALE_RUN':run.error_code||null});
+  }
+  return out;
 }
 
 async function recentThreads(env,userId){
@@ -139,31 +200,28 @@ async function recentThreads(env,userId){
   return result.results||[];
 }
 
-function streamReply(text){
+function streamReply(text,{messageId='',runId='',mode='deterministic'}={}){
   const encoder=new TextEncoder();
-  return new ReadableStream({start(controller){controller.enqueue(encoder.encode(`data: ${JSON.stringify({response:text})}\n\ndata: [DONE]\n\n`));controller.close()}});
+  return new ReadableStream({start(controller){controller.enqueue(encoder.encode(`data: ${JSON.stringify({type:'delta',text,version:COACH_LIVE_STREAM_VERSION})}\n\ndata: ${JSON.stringify({type:'completed',messageId,runId,mode,version:COACH_LIVE_STREAM_VERSION})}\n\ndata: [DONE]\n\n`));controller.close()}});
 }
 
-async function persistAssistant(env,{userId,threadId,runId,assistantMessageId,model,planRevisionId,category,context,stream,startedAt,safety=false}){
-  const reader=stream.getReader(),decoder=new TextDecoder();let raw='';
-  try{
-    while(true){const{done,value}=await reader.read();if(done)break;if(raw.length<80_000)raw+=decoder.decode(value,{stream:true})}
-    raw+=decoder.decode();
-    const content=extractTextFromSse(raw).trim().slice(0,ASSISTANT_MESSAGE_LIMIT);
-    if(!content)throw new Error('EMPTY_MODEL_RESPONSE');
-    const stamp=now(),status=safety?'safety_redirect':'completed',latency=Math.max(0,Date.now()-startedAt);
-    await env.DB.batch([
-      env.DB.prepare(`INSERT INTO rb_coach_live_messages(user_id,message_id,thread_id,role,content,category,context_json,model,plan_revision_id,created_at)
-        VALUES(?1,?2,?3,'assistant',?4,?5,?6,?7,?8,?9)`).bind(userId,assistantMessageId,threadId,content,category,JSON.stringify(context),model,planRevisionId||null,stamp),
-      env.DB.prepare(`UPDATE rb_coach_live_runs SET assistant_message_id=?3,status=?4,latency_ms=?5,completed_at=?6 WHERE user_id=?1 AND run_id=?2`).bind(userId,runId,assistantMessageId,status,latency,stamp),
-      env.DB.prepare('UPDATE rb_coach_live_threads SET updated_at=?3,last_message_at=?3 WHERE user_id=?1 AND thread_id=?2').bind(userId,threadId,stamp),
-    ]);
-    console.log(JSON.stringify({event:'coach_live_run',build:BUILD,runId,threadId,status,model,latencyMs:latency}));
-  }catch(error){
-    const stamp=now(),code=bounded(error?.message||'STREAM_PERSIST_FAILED',80);
-    await env.DB.prepare("UPDATE rb_coach_live_runs SET status='failed',latency_ms=?3,error_code=?4,completed_at=?5 WHERE user_id=?1 AND run_id=?2").bind(userId,runId,Math.max(0,Date.now()-startedAt),code,stamp).run();
-    console.error(JSON.stringify({event:'coach_live_run',build:BUILD,runId,threadId,status:'failed',model,errorCode:code}));
-  }
+async function persistAssistant(env,{userId,threadId,runId,assistantMessageId,model,planRevisionId,category,context,content,startedAt,safety=false,mode='stream'}){
+  content=bounded(content,ASSISTANT_MESSAGE_LIMIT);if(!content)throw new Error('EMPTY_MODEL_RESPONSE');
+  const stamp=now(),status=safety?'safety_redirect':'completed',latency=Math.max(0,Date.now()-startedAt);
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO rb_coach_live_messages(user_id,message_id,thread_id,role,content,category,context_json,model,plan_revision_id,created_at)
+      VALUES(?1,?2,?3,'assistant',?4,?5,?6,?7,?8,?9)`).bind(userId,assistantMessageId,threadId,content,category,JSON.stringify({...context,inferenceMode:mode}),model,planRevisionId||null,stamp),
+    env.DB.prepare(`UPDATE rb_coach_live_runs SET assistant_message_id=?3,status=?4,latency_ms=?5,error_code=NULL,completed_at=?6 WHERE user_id=?1 AND run_id=?2`).bind(userId,runId,assistantMessageId,status,latency,stamp),
+    env.DB.prepare('UPDATE rb_coach_live_threads SET updated_at=?3,last_message_at=?3 WHERE user_id=?1 AND thread_id=?2').bind(userId,threadId,stamp),
+  ]);
+  console.log(JSON.stringify({event:'coach_live_run',build:BUILD,runId,threadId,status,model,mode,latencyMs:latency,nonEmpty:true}));
+}
+
+async function failRun(env,{userId,threadId,runId,model,startedAt,error}){
+  const stamp=now(),code=bounded(error?.message||error||'AI_INFERENCE_FAILED',80),latency=Math.max(0,Date.now()-startedAt);
+  await env.DB.prepare("UPDATE rb_coach_live_runs SET status='failed',latency_ms=?3,error_code=?4,completed_at=?5 WHERE user_id=?1 AND run_id=?2").bind(userId,runId,latency,code,stamp).run();
+  console.error(JSON.stringify({event:'coach_live_run',build:BUILD,runId,threadId,status:'failed',model,errorCode:code,latencyMs:latency,nonEmpty:false}));
+  return code;
 }
 
 async function createThread(request,env,userId){
@@ -200,28 +258,32 @@ async function sendMessage(request,env,ctx,userId){
     env.DB.prepare(`UPDATE rb_coach_live_threads SET title=CASE WHEN last_message_at IS NULL THEN ?3 ELSE title END,context_surface=?4,plan_revision_id=?5,updated_at=?6,last_message_at=?6 WHERE user_id=?1 AND thread_id=?2`).bind(userId,threadId,message.slice(0,72),context.surface,planRevisionId,stamp),
   ]);
 
-  let clientStream,persistStream;
   if(safetyReply){
-    const source=streamReply(safetyReply),branches=source.tee();clientStream=branches[0];persistStream=branches[1];
-    const task=persistAssistant(env,{userId,threadId,runId,assistantMessageId,model:'runnerbear-safety-boundary',planRevisionId,category:'health',context:storedContext,stream:persistStream,startedAt,safety:true});
-    if(ctx?.waitUntil)ctx.waitUntil(task);else void task;
-  }else{
-    if(!env.AI){await env.DB.prepare("UPDATE rb_coach_live_runs SET status='failed',error_code='AI_BINDING_MISSING',completed_at=?3 WHERE user_id=?1 AND run_id=?2").bind(userId,runId,now()).run();return json({ok:false,error:'Coach Live er midlertidig utilgjengelig.'},503)}
-    const coachContext=minimizeCoachContext(bootstrap,context),history=await threadMessages(env,userId,threadId,14),messages=[{role:'system',content:buildSystemPrompt(coachContext)},...history.slice(-13).map(row=>({role:row.role,content:row.content}))];
-    let inference;
-    try{inference=await env.AI.run(model,{messages,stream:true,max_tokens:550,temperature:0.25})}catch(error){const code=bounded(error?.message||'AI_INFERENCE_FAILED',80);await env.DB.prepare("UPDATE rb_coach_live_runs SET status='failed',error_code=?3,completed_at=?4 WHERE user_id=?1 AND run_id=?2").bind(userId,runId,code,now()).run();return json({ok:false,error:'Coach Live fikk ikke laget et svar. Prøv igjen.'},502)}
-    const source=inference instanceof Response?inference.body:inference;
-    if(!source?.tee)return json({ok:false,error:'Coach Live fikk et ugyldig svar.'},502);
-    const branches=source.tee();clientStream=branches[0];persistStream=branches[1];
-    const task=persistAssistant(env,{userId,threadId,runId,assistantMessageId,model,planRevisionId,category,context:storedContext,stream:persistStream,startedAt});
-    if(ctx?.waitUntil)ctx.waitUntil(task);else void task;
+    await persistAssistant(env,{userId,threadId,runId,assistantMessageId,model:'runnerbear-safety-boundary',planRevisionId,category:'health',context:storedContext,content:safetyReply,startedAt,safety:true,mode:'safety'});
+    return new Response(streamReply(safetyReply,{messageId:assistantMessageId,runId,mode:'safety'}),{status:200,headers:{'content-type':'text/event-stream; charset=utf-8','cache-control':'no-cache, no-store','x-accel-buffering':'no','x-runnerbear-thread-id':threadId,'x-runnerbear-run-id':runId,'x-runnerbear-plan-revision':planRevisionId||'none','x-runnerbear-stream-version':COACH_LIVE_STREAM_VERSION}});
   }
-  return new Response(clientStream,{status:200,headers:{'content-type':'text/event-stream; charset=utf-8','cache-control':'no-cache, no-store','x-accel-buffering':'no','x-runnerbear-thread-id':threadId,'x-runnerbear-run-id':runId,'x-runnerbear-plan-revision':planRevisionId||'none'}});
+  const errorHeaders={'x-runnerbear-thread-id':threadId,'x-runnerbear-run-id':runId};
+  if(!env.AI){await failRun(env,{userId,threadId,runId,model,startedAt,error:'AI_BINDING_MISSING'});return json({ok:false,error:'Coach Live er midlertidig utilgjengelig.',retryable:true,threadId,runId},503,errorHeaders)}
+  const coachContext=minimizeCoachContext(bootstrap,context),history=await storedThreadMessages(env,userId,threadId,14),messages=[{role:'system',content:buildSystemPrompt(coachContext)},...history.slice(-13).map(row=>({role:row.role,content:row.content}))];
+  try{
+    const inference=await runCoachInference(env.AI,model,messages);
+    await persistAssistant(env,{userId,threadId,runId,assistantMessageId,model,planRevisionId,category,context:storedContext,content:inference.content,startedAt,mode:inference.mode});
+    return new Response(streamReply(inference.content,{messageId:assistantMessageId,runId,mode:inference.mode}),{status:200,headers:{'content-type':'text/event-stream; charset=utf-8','cache-control':'no-cache, no-store','x-accel-buffering':'no','x-runnerbear-thread-id':threadId,'x-runnerbear-run-id':runId,'x-runnerbear-plan-revision':planRevisionId||'none','x-runnerbear-stream-version':COACH_LIVE_STREAM_VERSION}});
+  }catch(error){
+    await failRun(env,{userId,threadId,runId,model,startedAt,error});
+    return json({ok:false,error:'Coach Live fikk ikke laget et svar. Spørsmålet er bevart – prøv igjen.',retryable:true,threadId,runId},502,errorHeaders);
+  }
 }
 
 export async function coachLiveAudit(db){
   if(!db)return{ok:false,tablesFound:0};
-  try{const row=await db.prepare("SELECT COUNT(*) AS total FROM sqlite_master WHERE type='table' AND name IN ('rb_coach_live_threads','rb_coach_live_messages','rb_coach_live_runs')").first(),tablesFound=Number(row?.total||0);return{ok:tablesFound===3,tablesFound}}catch(error){return{ok:false,tablesFound:0,error:bounded(error?.message,160)}}
+  try{
+    const [row,runs]=await Promise.all([
+      db.prepare("SELECT COUNT(*) AS total FROM sqlite_master WHERE type='table' AND name IN ('rb_coach_live_threads','rb_coach_live_messages','rb_coach_live_runs')").first(),
+      db.prepare("SELECT SUM(CASE WHEN status IN ('completed','safety_redirect') THEN 1 ELSE 0 END) AS completed,SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed,SUM(CASE WHEN status='running' THEN 1 ELSE 0 END) AS running,MAX(CASE WHEN status IN ('completed','safety_redirect') THEN completed_at END) AS last_completed_at FROM rb_coach_live_runs WHERE user_id='primary'").first(),
+    ]),tablesFound=Number(row?.total||0);
+    return{ok:tablesFound===3,tablesFound,streamVersion:COACH_LIVE_STREAM_VERSION,promptVersion:COACH_LIVE_PROMPT_VERSION,planWrites:false,completed:Number(runs?.completed||0),failed:Number(runs?.failed||0),running:Number(runs?.running||0),lastCompletedAt:runs?.last_completed_at||null};
+  }catch(error){return{ok:false,tablesFound:0,streamVersion:COACH_LIVE_STREAM_VERSION,error:bounded(error?.message,160)}}
 }
 
 export async function handleCoachLive(request,env,ctx,{userId}){

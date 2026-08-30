@@ -1,5 +1,6 @@
 import legacy from './index-v11-legacy.js';
-import { processPendingSync,reconcileActiveSyncProjection,repairAccidentalGoalState,repairBakkenV11Plan } from './v11/routes.js';
+import { auditBakkenPlan,processPendingSync,reconcileActiveSyncProjection,repairAccidentalGoalState,repairBakkenV11Plan } from './v11/routes.js';
+import { activePlan } from './v11/repository.js';
 
 export { MigrationService } from './migration-service.js';
 
@@ -54,11 +55,9 @@ async function bodyResponseAudit(db) {
 export default {
   async fetch(request, env, ctx) {
     const path = new URL(request.url).pathname.replace(/\/+$/, '') || '/';
-    let goalRepair={ok:true,restored:false},bakkenRepair={ok:true,repaired:false,afterAudit:{ok:false}},syncDrain={ok:true,projected:0,processed:0};
+    let goalRepair={ok:true,restored:false,readOnly:true},bakkenRepair={ok:false,repaired:false,idempotent:true,readOnly:true,afterAudit:{ok:false}},syncDrain={ok:true,readOnly:true,projected:0,processed:0};
     if(request.method==='GET'&&path==='/health'){
-      if(env.GOAL_REPAIR_RELEASE)try{goalRepair=await repairAccidentalGoalState(env,String(env.PRIMARY_USER_ID||'primary'))}catch{goalRepair={ok:false,restored:false,issues:['REPAIR_EXECUTION_FAILED']}}
-      if(env.BAKKEN_ENGINE_RELEASE)try{bakkenRepair=await repairBakkenV11Plan(env,String(env.PRIMARY_USER_ID||'primary'))}catch(error){bakkenRepair={ok:false,repaired:false,reason:String(error?.message||error),afterAudit:{ok:false}}}
-      try{const userId=String(env.PRIMARY_USER_ID||'primary'),projection=await reconcileActiveSyncProjection(env,userId),drain=await processPendingSync(env,userId);syncDrain={ok:true,projected:Number(projection.queued||0),processed:Number(drain.processed||0)}}catch{syncDrain={ok:false,projected:0,processed:0}}
+      try{const userId=String(env.PRIMARY_USER_ID||'primary'),plan=await activePlan(env.DB,userId),audit=auditBakkenPlan(plan||{});bakkenRepair={ok:audit.ok,repaired:false,idempotent:true,readOnly:true,planRevisionId:plan?.planRevisionId||null,afterAudit:audit}}catch(error){bakkenRepair={ok:false,repaired:false,idempotent:true,readOnly:true,reason:String(error?.message||error),afterAudit:{ok:false}}}
     }
     const response = await legacy.fetch(request, env, ctx);
     if (request.method !== 'GET' || path !== '/health' || !response.ok) return response;

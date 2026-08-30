@@ -55,9 +55,9 @@ test('sync repair classifies activation, source and structural conflicts with ex
   assert.equal(repair.attention,'action');assert.equal(repair.counts.actionRequired,3);assert.deepEqual(repair.items.map(x=>x.kind),['activation_required','source_missing','structural_review']);assert.equal(canExplicitlyVerify(operations[2]),true);assert.match(repair.items[2].verifyLabel,/kontroller/i);
 });
 
-test('v11.4 preserves the locked wrapper chain and accessible review and repair UI',()=>{
-  const config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),current=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),oneDecision=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),previous=fs.readFileSync('cloud/runnerbear-cloud/src/index-v112.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v11.js','utf8'),base=fs.readFileSync('cloud/runnerbear-cloud/src/index-v11-base.js','utf8'),ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
-  assert.match(config,/index-v114\.js/);assert.match(current,/\.\/index-v113\.js/);assert.match(oneDecision,/\.\/index-v112\.js/);assert.match(previous,/\.\/index-v11\.js/);assert.match(entry,/v11\/routes\.js/);assert.match(base,/v11\/routes\.js/);assert.match(ui,/function weeklyReviewCardHtml/);assert.match(ui,/role="dialog" aria-modal="true" aria-labelledby="rb1031ReviewTitle"/);assert.match(ui,/data-rb1031-sync-verify/);assert.ok(manifest.styles.includes('runnerbear-v1031-coach-package.css'));
+test('v11.4.1 preserves the locked wrapper chain and accessible review and repair UI',()=>{
+  const config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),release=fs.readFileSync('cloud/runnerbear-cloud/src/index-v1141.js','utf8'),current=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),oneDecision=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),previous=fs.readFileSync('cloud/runnerbear-cloud/src/index-v112.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v11.js','utf8'),base=fs.readFileSync('cloud/runnerbear-cloud/src/index-v11-base.js','utf8'),ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
+  assert.match(config,/index-v1141\.js/);assert.match(release,/\.\/index-v114\.js/);assert.match(current,/\.\/index-v113\.js/);assert.match(oneDecision,/\.\/index-v112\.js/);assert.match(previous,/\.\/index-v11\.js/);assert.match(entry,/v11\/routes\.js/);assert.match(base,/v11\/routes\.js/);assert.match(ui,/function weeklyReviewCardHtml/);assert.match(ui,/role="dialog" aria-modal="true" aria-labelledby="rb1031ReviewTitle"/);assert.match(ui,/data-rb1031-sync-verify/);assert.ok(manifest.styles.includes('runnerbear-v1031-coach-package.css'));
 });
 
 test('bootstrap keeps realignment forward-only without returning a duplicate full plan payload',()=>{
@@ -74,7 +74,7 @@ test('rolling sync uses one durable binding and moves the same external workout 
 
 test('startup paints verified cache before revalidation and legacy plan publishing yields to canonical sync',()=>{
   const canonical=fs.readFileSync('runnerbear-cloud-v11.js','utf8'),legacy=fs.readFileSync('runnerbear-cloud-v1025.js','utf8'),html=fs.readFileSync('index.html','utf8'),ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8');
-  assert.match(canonical,/const cached=verifiedCache\(\);\s*if\(cached\)\{install\(cached\)/);assert.match(legacy,/function canonicalSyncOwner\(\)/);assert.match(legacy,/if\(!IS_CLOUD\|\|canonicalSyncOwner\(\)\)return/);assert.match(html,/runnerbear-data-v11\.js\?v=11400" defer/);assert.doesNotMatch(ui,/canonicalSyncBannerHtml\(\)[^\n]+data-rb1028-sync-retry/);
+  assert.match(canonical,/const cached=verifiedCache\(\);\s*if\(cached\)\{install\(cached\)/);assert.match(legacy,/function canonicalSyncOwner\(\)/);assert.match(legacy,/if\(!IS_CLOUD\|\|canonicalSyncOwner\(\)\)return/);assert.match(html,/runnerbear-data-v11\.js\?v=11401" defer/);assert.doesNotMatch(ui,/canonicalSyncBannerHtml\(\)[^\n]+data-rb1028-sync-retry/);
 });
 
 test('sync binding migration enforces one provider identity per canonical workout',()=>{

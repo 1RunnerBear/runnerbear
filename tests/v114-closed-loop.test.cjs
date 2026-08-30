@@ -113,9 +113,10 @@ test('Closed Loop UI stays inside One Decision with accessible disclosure and fo
   assert.equal((html.match(/<(?:link|script)\b[^>]+(?:runnerbear-v11\.css|runnerbear-(?:core|ui|data)-v11\.js)/g)||[]).length,4);
 });
 
-test('v11.4 release augments existing routes, strips internal memory sources and adds no schema',()=>{
-  const entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),readModel=fs.readFileSync('cloud/runnerbear-cloud/src/v11/read-model.js','utf8');
-  assert.match(config,/src\/index-v114\.js/);
+test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>{
+  const release=fs.readFileSync('cloud/runnerbear-cloud/src/index-v1141.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),readModel=fs.readFileSync('cloud/runnerbear-cloud/src/v11/read-model.js','utf8');
+  assert.match(config,/src\/index-v1141\.js/);
+  assert.match(release,/\.\/index-v114\.js/);
   assert.match(entry,/\.\/index-v113\.js/);
   assert.match(entry,/\['\/api\/v2\/bootstrap','\/health'\]/);
   assert.doesNotMatch(entry,/\/api\/v2\/coach-continuity/);
@@ -123,7 +124,7 @@ test('v11.4 release augments existing routes, strips internal memory sources and
   assert.match(repository,/ORDER BY created_at DESC LIMIT \?2/);
   assert.match(readModel,/recentDecisionHistory\(env\.DB,userId\)/);
   assert.match(readModel,/ORDER BY occurred_at DESC LIMIT 30/);
-  assert.match(workflow,/x\.cloudBuild!=="11\.4\.0"/);
+  assert.match(workflow,/x\.cloudBuild!=="11\.4\.1"/);
   assert.match(workflow,/x\.oneDecisionVersion!=="one-decision-2"/);
   assert.match(workflow,/x\.coachContinuityVersion!=="coach-continuity-1"/);
   assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,8);
