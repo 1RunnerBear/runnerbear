@@ -168,7 +168,7 @@ Rollback is the prior v11.5 Worker and static bundle. Database tables are not dr
 ## Acceptance criteria
 
 1. No visible “Coach Live”, “Ask coach”, chat composer, starter prompt or chat modal exists in canonical assets.
-2. `/api/v2/coach-live` and descendants return `410`, never inference or conversation data.
+2. `/api/v2/coach-live` and descendants return `410` after the private Access layer, never inference or conversation data. An unauthenticated production request may be stopped earlier by Cloudflare Access.
 3. Health reports build `11.6.0`, `contextualCoachVersion=contextual-coach-1`, `coachLive=false`, `coachLiveRoutes=false`, `planWritesByAi=false`, four navigation tabs and 20% maximum reduction.
 4. Bootstrap contains a `contextualCoach` envelope matching the active `planRevisionId`.
 5. Today shows one coach recommendation and one primary action.
@@ -197,7 +197,6 @@ Rollback is the prior v11.5 Worker and static bundle. Database tables are not dr
 - No destructive migration.
 - Pre-deploy D1 backup and post-deploy history count/duplicate audit pass.
 - Production health and app smoke pass on build `11.6.0`.
-- Coach Live 410 smoke passes.
+- The Worker contract for every Coach Live route passes with `410`; the external smoke must receive either that `410` payload or a private Access rejection, while `/health` independently proves `coachLive=false`, `coachLiveRoutes=false` and `coachLiveInference=false`.
 - Contextual Coach bootstrap gate passes with the current plan revision.
 - Sync outbox has no queued, retryable or processing residue after rollout.
-

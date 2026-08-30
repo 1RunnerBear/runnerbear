@@ -10,7 +10,7 @@ RunnerBear now behaves like a coach that follows the athlete in the background i
 - Kept coach feedback next to the workout, plan change, weekly review and goal evidence it explains.
 - Clarified pre-workout advice versus post-workout verdict and consequence.
 - Replaced the chat-heavy v11.5 style layer with a smaller contextual-coach layer.
-- Former Coach Live endpoints now return `410 Gone`; no AI inference binding is used.
+- Former Coach Live endpoints now return `410 Gone` behind the existing private Access layer; no AI inference binding is used.
 
 ## Preserved
 
