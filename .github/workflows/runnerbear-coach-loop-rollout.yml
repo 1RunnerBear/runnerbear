@@ -104,7 +104,19 @@ jobs:
           echo "$BODY"
           node ../../scripts/verify-v116-health.mjs "$BODY"
           RETIRED_CODE="$(curl --silent --output /tmp/runnerbear-retired-coach-live.json --write-out '%{http_code}' "$RUNNERBEAR_APP_URL/api/v2/coach-live")"
-          test "$RETIRED_CODE" = "410"
+          echo "Coach Live HTTP $RETIRED_CODE"
+          case "$RETIRED_CODE" in
+            410)
+              node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.code!=="COACH_LIVE_REMOVED"||x.replacement!=="contextual-coach-1")process.exit(1)' /tmp/runnerbear-retired-coach-live.json
+              ;;
+            301|302|303|307|308|401|403)
+              echo 'Cloudflare Access blocks the retired private route; the health contract proves chat, routes and inference are disabled.'
+              ;;
+            *)
+              echo 'Retired Coach Live route unexpectedly remained reachable.'
+              exit 1
+              ;;
+          esac
           CODE="$(curl --silent --output /tmp/runnerbear-root --write-out '%{http_code}' "$RUNNERBEAR_APP_URL/")"
           echo "RunnerBear root HTTP $CODE"
           case "$CODE" in

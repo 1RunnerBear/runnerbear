@@ -219,15 +219,27 @@ jobs:
           done
           exit 1
 
-      - name: Verify Coach Live is retired
+      - name: Verify Coach Live is retired or blocked by Access
         id: coach_live_removed
         if: steps.health.outcome == 'success'
         continue-on-error: true
         run: |
           CODE="$(curl --silent --show-error --output /tmp/runnerbear-retired-coach-live.json --write-out '%{http_code}' https://app.runnerbear.workers.dev/api/v2/coach-live)"
-          cat /tmp/runnerbear-retired-coach-live.json
-          test "$CODE" = "410"
-          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.code!=="COACH_LIVE_REMOVED"||x.replacement!=="contextual-coach-1")process.exit(1)' /tmp/runnerbear-retired-coach-live.json
+          echo "Coach Live HTTP $CODE"
+          case "$CODE" in
+            410)
+              cat /tmp/runnerbear-retired-coach-live.json
+              node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.code!=="COACH_LIVE_REMOVED"||x.replacement!=="contextual-coach-1")process.exit(1)' /tmp/runnerbear-retired-coach-live.json
+              ;;
+            301|302|303|307|308|401|403)
+              echo 'Cloudflare Access blocks the retired private route; the public health contract already proves chat, routes and inference are disabled.'
+              ;;
+            *)
+              echo 'Retired Coach Live route unexpectedly remained reachable.'
+              cat /tmp/runnerbear-retired-coach-live.json
+              exit 1
+              ;;
+          esac
 
       - name: Ensure owner-only rollout flags exist
         id: shadow

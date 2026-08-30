@@ -41,3 +41,15 @@ test('current assets and production configuration contain no chat client or AI b
   assert.doesNotMatch(compat,/handleCoachLive|coachLiveAudit|DEFAULT_COACH_LIVE_MODEL|env\.AI|env\.DB/);assert.doesNotMatch(reliability,/\.\/v112\/coach-live\.js/);
   assert.equal(manifest.build,'11.6.0');assert.equal(manifest.styles.at(-1),'runnerbear-v116-contextual-coach.css');
 });
+
+test('production gates accept only Gone or the private Access guard for retired chat',()=>{
+  const deploy=read('.github/workflows/runnerbear-cloud-deploy.yml'),rollout=read('.github/workflows/runnerbear-coach-loop-rollout.yml'),health=read('scripts/verify-v116-health.mjs');
+  for(const workflow of [deploy,rollout]){
+    assert.match(workflow,/410\)/);
+    assert.match(workflow,/301\|302\|303\|307\|308\|401\|403\)/);
+    assert.match(workflow,/Retired Coach Live route unexpectedly remained reachable/);
+  }
+  assert.match(deploy,/COACH_LIVE_REMOVED/);assert.match(deploy,/contextual-coach-1/);
+  assert.match(rollout,/COACH_LIVE_REMOVED/);assert.match(rollout,/contextual-coach-1/);
+  assert.match(health,/x\.coachLive===false&&x\.coachLiveRoutes===false&&x\.coachLiveInference===false/);
+});
