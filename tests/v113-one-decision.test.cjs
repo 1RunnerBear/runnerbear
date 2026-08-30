@@ -78,14 +78,15 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
 });
 
 test('release chain preserves the v11.3 contract without a new endpoint or schema',()=>{
-  const entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),current=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8');
-  assert.match(config,/src\/index-v114\.js/);
+  const entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),release=fs.readFileSync('cloud/runnerbear-cloud/src/index-v1141.js','utf8'),current=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8');
+  assert.match(config,/src\/index-v1141\.js/);
   assert.match(entry,/path==='\/api\/v2\/bootstrap'/);
   assert.match(current,/\.\/index-v113\.js/);
+  assert.match(release,/\.\/index-v114\.js/);
   assert.doesNotMatch(entry,/\/api\/v2\/one-decision/);
   assert.match(entry,/oneDecisionVersion:ONE_DECISION_VERSION/);
   assert.match(workflow,/x\.oneDecisionAudit\?\.ok!==true/);
-  assert.match(workflow,/x\.cloudBuild!=="11\.4\.0"/);
+  assert.match(workflow,/x\.cloudBuild!=="11\.4\.1"/);
   assert.match(repository,/status IN \('proposed','auto_applied','accepted','rejected'\)/);
   assert.match(routes,/decision\.status!=='proposed'/);
   assert.match(routes,/reductionPercent>20/);

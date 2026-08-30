@@ -69,7 +69,7 @@ test('v10.25 UI is calm by default and exposes honest evidence and settings',()=
 
 test('PWA manifest ships installable PNG and maskable icon sizes',()=>{
   const manifest=JSON.parse(read('site.webmanifest'));
-  assert.equal(manifest.start_url,'/?app=v11400');
+  assert.equal(manifest.start_url,'/?app=v11401');
   const expected=new Map([['rb-icon-192.png','192x192'],['rb-icon-512.png','512x512'],['rb-icon-maskable-512.png','512x512']]);
   for(const [name,size] of expected){
     const icon=manifest.icons.find(row=>row.src.startsWith(name));

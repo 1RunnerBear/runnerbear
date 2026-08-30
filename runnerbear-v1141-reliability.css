@@ -1,0 +1,6 @@
+/* RunnerBear v11.4.1 · Coach Live reliability and trust patch · Concept 1 */
+.rb112-message.failed{max-width:min(92%,520px)}
+.rb112-message.failed .rb112-message-content{border:1px solid rgba(145,70,52,.16);background:#f8e9e3;color:#794435;box-shadow:none}
+.rb1141-coach-retry{min-height:44px;margin-top:8px;padding:0 14px;border:1px solid rgba(36,75,59,.18);border-radius:13px;background:#fffdf8;color:#244b3b;font:inherit;font-size:.8rem;font-weight:780;cursor:pointer}
+.rb1141-coach-retry:focus-visible{outline:3px solid rgba(58,108,83,.35);outline-offset:3px}
+@media(prefers-contrast:more){.rb112-message.failed .rb112-message-content,.rb1141-coach-retry{border-width:2px}}
