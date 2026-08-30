@@ -1,9 +1,9 @@
 {
   "build": "11.6.0",
-  "status": "failed",
-  "checked_at": "2026-08-30T18:53:42.587511+00:00",
-  "run_id": "33329320118",
-  "source_sha": "b635b0666b6c6ee5afe3980db0b3bbdca6a2b36f",
+  "status": "success",
+  "checked_at": "2026-08-30T18:58:08.236436+00:00",
+  "run_id": "33329509917",
+  "source_sha": "3b7778096921fcf46492df7dd8cf6d87d94fc225",
   "steps": {
     "install": "success",
     "validate": "success",
@@ -16,12 +16,12 @@
     "migrate": "success",
     "smoke": "success",
     "health": "success",
-    "coach_live_removed": "failure",
+    "coach_live_removed": "success",
     "shadow": "success",
     "flag_smoke": "success",
-    "app_smoke": "skipped",
-    "access": "skipped",
-    "access_vars": "skipped",
-    "guard": "skipped"
+    "app_smoke": "success",
+    "access": "success",
+    "access_vars": "success",
+    "guard": "success"
   }
 }
