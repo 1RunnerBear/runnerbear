@@ -79,10 +79,12 @@ jobs:
           node --check src/index-v114.js
           node --check src/index-v1141.js
           node --check src/index-v115.js
+          node --check src/index-v116.js
           node --check src/v11/body-response.js
           node --check src/v112/coach-live.js
           node --check src/v113/one-decision.js
           node --check src/v114/closed-loop.js
+          node --check src/v116/contextual-coach.js
           node --check scripts/configure-access.mjs
           (cd ../.. && node --test tests/*.test.cjs tests/e2e/*.spec.mjs)
 
@@ -122,20 +124,20 @@ jobs:
         if: steps.d1.outcome == 'success'
         continue-on-error: true
         run: |
-          npx wrangler d1 export DB --remote --config wrangler.release.jsonc --output=/tmp/runnerbear-pre-v115.sql
+          npx wrangler d1 export DB --remote --config wrangler.release.jsonc --output=/tmp/runnerbear-pre-v116.sql
           npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT (SELECT COUNT(*) FROM rb_activities WHERE user_id='primary') AS activities,(SELECT MIN(date) FROM rb_activities WHERE user_id='primary') AS earliest_activity,(SELECT MAX(date) FROM rb_activities WHERE user_id='primary') AS latest_activity,(SELECT COUNT(*) FROM (SELECT source,source_id FROM rb_activities WHERE user_id='primary' GROUP BY source,source_id HAVING COUNT(*)>1)) AS duplicate_external_ids,(SELECT COUNT(*) FROM rb_plan_revision_items i JOIN rb_plan_revisions r ON r.plan_revision_id=i.plan_revision_id WHERE r.user_id='primary') AS plan_items,(SELECT COUNT(*) FROM rb_training_events WHERE user_id='primary') AS events,(SELECT COUNT(*) FROM rb_state WHERE user_id='primary') AS state_namespaces" --json > /tmp/runnerbear-history-before.json
           cat /tmp/runnerbear-history-before.json
           BEFORE_COUNT="$(node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};process.stdout.write(String(Number(r.activities||0)))' /tmp/runnerbear-history-before.json)"
           echo "activity_count=${BEFORE_COUNT}" >> "$GITHUB_OUTPUT"
-          test -s /tmp/runnerbear-pre-v115.sql
+          test -s /tmp/runnerbear-pre-v116.sql
 
       - name: Preserve pre-deploy D1 backup
         if: steps.backup.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: runnerbear-pre-v115-${{ github.run_id }}
+          name: runnerbear-pre-v116-${{ github.run_id }}
           path: |
-            /tmp/runnerbear-pre-v115.sql
+            /tmp/runnerbear-pre-v116.sql
             /tmp/runnerbear-history-before.json
           retention-days: 7
 
@@ -170,14 +172,14 @@ jobs:
         continue-on-error: true
         run: npx wrangler d1 migrations apply DB --remote --config wrangler.release.jsonc
 
-      - name: Smoke test v11.5 D1 schema
+      - name: Smoke test v11.6 D1 schema
         id: smoke
         if: steps.migrate.outcome == 'success'
         continue-on-error: true
         run: |
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations','rb_sync_bindings','rb_health_observations','rb_health_baseline_snapshots','rb_body_response_snapshots','rb_subjective_checkins','rb_workout_response_links','rb_recovery_insights','rb_coach_live_threads','rb_coach_live_messages','rb_coach_live_runs')" --json > /tmp/runnerbear-schema-v115.json
-          cat /tmp/runnerbear-schema-v115.json
-          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};if(Number(r.tables_found||0)!==14)throw new Error("RunnerBear v11.5 schema is incomplete")' /tmp/runnerbear-schema-v115.json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations','rb_sync_bindings','rb_health_observations','rb_health_baseline_snapshots','rb_body_response_snapshots','rb_subjective_checkins','rb_workout_response_links','rb_recovery_insights','rb_coach_live_threads','rb_coach_live_messages','rb_coach_live_runs')" --json > /tmp/runnerbear-schema-v116.json
+          cat /tmp/runnerbear-schema-v116.json
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};if(Number(r.tables_found||0)!==14)throw new Error("RunnerBear v11.6 schema is incomplete")' /tmp/runnerbear-schema-v116.json
 
       - name: Build private RunnerBear static app
         id: assets
@@ -210,12 +212,22 @@ jobs:
           for attempt in $(seq 1 48); do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
-            if node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true || x.assets!==true || x.database!==true || x.cloudBuild!=="11.5.0" || x.schemaVersion!==4 || x.premiumUx!==true || x.premiumUxVersion!=="premium-ux-1" || x.premiumUxAudit?.ok!==true || x.premiumUxAudit?.coachLiveStructured!==true || x.premiumUxAudit?.unifiedDialogContract!==true || x.premiumUxAudit?.keyboardFocusTrap!==true || x.premiumUxAudit?.planWritesByAi!==false || Number(x.premiumUxAudit?.maximumReductionPercent||0)!==20 || Number(x.premiumUxAudit?.navigationTabs||0)!==4 || x.healthReadOnly!==true || x.coachLiveReliability!==true || x.coachLiveReliabilityVersion!=="reliability-1" || x.coachLiveReliabilityAudit?.ok!==true || x.coachLiveReliabilityAudit?.emptyResponsesAccepted!==false || x.coachLiveReliabilityAudit?.retryableTurnState!==true || x.oneDecision!==true || x.oneDecisionVersion!=="one-decision-2" || x.oneDecisionAudit?.ok!==true || x.oneDecisionAudit?.oneDecisionVersion!=="one-decision-2" || x.oneDecisionAudit?.planWritesByAi!==false || Number(x.oneDecisionAudit?.maximumReductionPercent||0)!==20 || x.coachContinuity!==true || x.coachContinuityVersion!=="coach-continuity-1" || x.coachContinuityAudit?.ok!==true || Number(x.coachContinuityAudit?.historyLimit||0)!==3 || x.coachContinuityAudit?.rawHealthValuesExposed!==false || x.coachLoop!==true || x.coachLive!==true || x.coachLiveInference!==true || x.coachLiveModel!=="@cf/zai-org/glm-4.7-flash" || x.coachLiveAudit?.ok!==true || Number(x.coachLiveAudit?.tablesFound||0)!==3 || x.coachLiveAudit?.streamVersion!=="runnerbear-sse-1" || x.bodyResponseEngine!==true || x.bodyResponseEngineVersion!=="body-response-1" || x.bodyResponseAudit?.ok!==true || Number(x.bodyResponseAudit?.tablesFound||0)!==6 || x.bakkenEngine!==true || x.bakkenEngineVersion!=="11.0.0" || x.bakkenRepair?.ok!==true || x.bakkenPlanAudit?.ok!==true || Number(x.bakkenPlanAudit?.missingMetadata||0)!==0 || Number(x.bakkenPlanAudit?.genericFallbacks||0)!==0 || Number(x.bakkenPlanAudit?.duplicateDefaultVo2Weeks?.length||0)!==0 || Number(x.bakkenPlanAudit?.ordinaryWeeksWithoutThreshold?.length||0)!==0 || x.tredictService!==true || x.tredictRpc!==true || !["10.26.0","10.31.1"].includes(x.tredictRpcVersion) || x.durableSync!==true || x.historyIntegrity!==true || x.historyAudit?.activitiesPresent!==true || Number(x.historyAudit?.duplicateExternalIds||0)!==0 || x.goalGuard?.restored!==true || x.goalGuard?.activePrimary!==true || x.syncDrain?.ok!==true || x.syncDrain?.readOnly!==true || Number(x.syncOutbox?.queued||0)!==0 || Number(x.syncOutbox?.retryable||0)!==0 || Number(x.syncOutbox?.processing||0)!==0) process.exit(1)' "$BODY"; then
+            if node ../../scripts/verify-v116-health.mjs "$BODY"; then
               exit 0
             fi
             sleep 5
           done
           exit 1
+
+      - name: Verify Coach Live is retired
+        id: coach_live_removed
+        if: steps.health.outcome == 'success'
+        continue-on-error: true
+        run: |
+          CODE="$(curl --silent --show-error --output /tmp/runnerbear-retired-coach-live.json --write-out '%{http_code}' https://app.runnerbear.workers.dev/api/v2/coach-live)"
+          cat /tmp/runnerbear-retired-coach-live.json
+          test "$CODE" = "410"
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.code!=="COACH_LIVE_REMOVED"||x.replacement!=="contextual-coach-1")process.exit(1)' /tmp/runnerbear-retired-coach-live.json
 
       - name: Ensure owner-only rollout flags exist
         id: shadow
@@ -225,7 +237,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"11.5.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"11.6.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
 
       - name: Verify persistent feature flags and dependencies
         id: flag_smoke
@@ -238,7 +250,7 @@ jobs:
 
       - name: Smoke test RunnerBear app shell or existing Access guard
         id: app_smoke
-        if: steps.health.outcome == 'success'
+        if: steps.health.outcome == 'success' && steps.coach_live_removed.outcome == 'success'
         continue-on-error: true
         run: |
           CODE="$(curl --silent --output /tmp/rb-app --write-out '%{http_code}' https://app.runnerbear.workers.dev/)"
@@ -298,6 +310,7 @@ jobs:
           MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           HEALTH_OUTCOME: ${{ steps.health.outcome }}
+          COACH_LIVE_REMOVED_OUTCOME: ${{ steps.coach_live_removed.outcome }}
           SHADOW_OUTCOME: ${{ steps.shadow.outcome }}
           FLAG_SMOKE_OUTCOME: ${{ steps.flag_smoke.outcome }}
           APP_SMOKE_OUTCOME: ${{ steps.app_smoke.outcome }}
@@ -321,6 +334,7 @@ jobs:
             "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
             "smoke": os.environ.get("SMOKE_OUTCOME", ""),
             "health": os.environ.get("HEALTH_OUTCOME", ""),
+            "coach_live_removed": os.environ.get("COACH_LIVE_REMOVED_OUTCOME", ""),
             "shadow": os.environ.get("SHADOW_OUTCOME", ""),
             "flag_smoke": os.environ.get("FLAG_SMOKE_OUTCOME", ""),
             "app_smoke": os.environ.get("APP_SMOKE_OUTCOME", ""),
@@ -329,8 +343,8 @@ jobs:
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "11.5.0",
-            "status": "success" if all(outcomes[key] == "success" for key in ("d1", "backup", "recover_history", "history", "migrate", "smoke", "health", "shadow", "flag_smoke", "guard")) else "failed",
+            "build": "11.6.0",
+            "status": "success" if all(outcomes[key] == "success" for key in ("d1", "backup", "recover_history", "history", "migrate", "smoke", "health", "coach_live_removed", "shadow", "flag_smoke", "guard")) else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -355,5 +369,5 @@ jobs:
           exit 1
 
       - name: Fail workflow when RunnerBear Cloud is not private, history-safe or rollout-safe
-        if: always() && (steps.d1.outcome != 'success' || steps.backup.outcome != 'success' || steps.recover_history.outcome != 'success' || steps.history.outcome != 'success' || steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
+        if: always() && (steps.d1.outcome != 'success' || steps.backup.outcome != 'success' || steps.recover_history.outcome != 'success' || steps.history.outcome != 'success' || steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.coach_live_removed.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
         run: exit 1

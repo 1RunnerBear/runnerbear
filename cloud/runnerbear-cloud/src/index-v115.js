@@ -12,7 +12,7 @@ function jsonResponse(response,body){
 }
 
 export function premiumUxAudit(){
-  return{ok:true,version:'premium-ux-1',designDirection:'1.0',coachLiveStructured:true,unifiedDialogContract:true,keyboardFocusTrap:true,planWritesByAi:false,maximumReductionPercent:20,navigationTabs:4,styleSources:26};
+  return{ok:true,version:'premium-ux-1',designDirection:'1.0',generalChat:false,unifiedDialogContract:true,keyboardFocusTrap:true,planWritesByAi:false,maximumReductionPercent:20,navigationTabs:4,styleSources:26};
 }
 
 export default{

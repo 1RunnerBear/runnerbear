@@ -101,10 +101,10 @@ test('Closed Loop UI stays inside One Decision with accessible disclosure and fo
   const ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),css=fs.readFileSync('runnerbear-v114-closed-loop.css','utf8'),html=fs.readFileSync('index.html','utf8'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
   assert.match(ui,/function coachContinuity\(\)/);
   assert.match(ui,/<details class="rb114-coach-memory">/);
-  assert.match(ui,/Coachminnet/);
+  assert.match(ui,/Tidligere respons/);
   assert.match(ui,/complete_feedback/);
   assert.match(ui,/targetWorkoutId/);
-  assert.match(ui,/reflect:'Kort oppfølging'/);
+  assert.match(ui,/reflect:'Etter økten'/);
   assert.match(css,/locked Concept 1 \/ Premium calm/);
   assert.match(css,/:focus-visible/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
@@ -115,7 +115,7 @@ test('Closed Loop UI stays inside One Decision with accessible disclosure and fo
 
 test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>{
   const release=fs.readFileSync('cloud/runnerbear-cloud/src/index-v1141.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),readModel=fs.readFileSync('cloud/runnerbear-cloud/src/v11/read-model.js','utf8');
-  assert.match(config,/src\/index-v115\.js/);
+  assert.match(config,/src\/index-v116\.js/);
   assert.match(release,/\.\/index-v114\.js/);
   assert.match(entry,/\.\/index-v113\.js/);
   assert.match(entry,/\['\/api\/v2\/bootstrap','\/health'\]/);
@@ -124,8 +124,10 @@ test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>
   assert.match(repository,/ORDER BY created_at DESC LIMIT \?2/);
   assert.match(readModel,/recentDecisionHistory\(env\.DB,userId\)/);
   assert.match(readModel,/ORDER BY occurred_at DESC LIMIT 30/);
-  assert.match(workflow,/x\.cloudBuild!=="11\.5\.0"/);
-  assert.match(workflow,/x\.oneDecisionVersion!=="one-decision-2"/);
-  assert.match(workflow,/x\.coachContinuityVersion!=="coach-continuity-1"/);
+  assert.match(workflow,/verify-v116-health\.mjs/);
+  const healthGate=fs.readFileSync('scripts/verify-v116-health.mjs','utf8');
+  assert.match(healthGate,/x\.cloudBuild==='11\.6\.0'/);
+  assert.match(healthGate,/x\.oneDecisionVersion==='one-decision-2'/);
+  assert.match(healthGate,/x\.coachContinuityVersion==='coach-continuity-1'/);
   assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,8);
 });

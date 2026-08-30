@@ -117,11 +117,12 @@ test('v11 UI exposes coach rationale and all three quality-bank stimulus groups'
 });
 
 test('v11 release and production gates are locked to the Bakken audit',()=>{
-  const planEngine=fs.readFileSync('cloud/runnerbear-cloud/src/v11/plan-engine.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v11.js','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),html=fs.readFileSync('index.html','utf8');
+  const planEngine=fs.readFileSync('cloud/runnerbear-cloud/src/v11/plan-engine.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v11.js','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),healthGate=fs.readFileSync('scripts/verify-v116-health.mjs','utf8'),html=fs.readFileSync('index.html','utf8');
   assert.doesNotMatch(planEngine,/index\s*%\s*2.+5\s*[×x]\s*1000/is);
   assert.match(entry,/repairBakkenV11Plan/);
   assert.match(entry,/bakkenPlanAudit/);
-  assert.match(workflow,/x\.bakkenPlanAudit\?\.ok!==true/);
-  assert.match(workflow,/x\.bakkenEngineVersion!=="11\.0\.0"/);
-  assert.match(html,/runnerbear-core-v11\.js\?v=11500/);
+  assert.match(workflow,/verify-v116-health\.mjs/);
+  assert.match(healthGate,/x\.bakkenPlanAudit\?\.ok===true/);
+  assert.match(healthGate,/x\.bakkenEngineVersion==='11\.0\.0'/);
+  assert.match(html,/runnerbear-core-v11\.js\?v=11600/);
 });

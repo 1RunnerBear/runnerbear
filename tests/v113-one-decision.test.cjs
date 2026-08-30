@@ -67,7 +67,7 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
   assert.match(ui,/aria-labelledby=\"rb113ProposalTitle\"/);
   assert.match(ui,/data-rb113-proposal-resolve=\"accept\"/);
   assert.match(ui,/data-rb113-proposal-resolve=\"reject\"/);
-  assert.match(ui,/oneDecision\(\)\?oneDecisionHeroHtml\(base\)/);
+  assert.match(ui,/decisionSurface=oneDecision\(\)\?/);
   assert.doesNotMatch(html,/data-tab="coach"|data-tab="health"/);
   assert.equal((html.match(/<(?:link|script)\b[^>]+(?:runnerbear-v11\.css|runnerbear-(?:core|ui|data)-v11\.js)/g)||[]).length,4);
   assert.ok(manifest.styles.includes('runnerbear-v113-one-decision.css'));
@@ -79,14 +79,14 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
 
 test('release chain preserves the v11.3 contract without a new endpoint or schema',()=>{
   const entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),release=fs.readFileSync('cloud/runnerbear-cloud/src/index-v1141.js','utf8'),current=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8');
-  assert.match(config,/src\/index-v115\.js/);
+  assert.match(config,/src\/index-v116\.js/);
   assert.match(entry,/path==='\/api\/v2\/bootstrap'/);
   assert.match(current,/\.\/index-v113\.js/);
   assert.match(release,/\.\/index-v114\.js/);
   assert.doesNotMatch(entry,/\/api\/v2\/one-decision/);
   assert.match(entry,/oneDecisionVersion:ONE_DECISION_VERSION/);
-  assert.match(workflow,/x\.oneDecisionAudit\?\.ok!==true/);
-  assert.match(workflow,/x\.cloudBuild!=="11\.5\.0"/);
+  assert.match(workflow,/verify-v116-health\.mjs/);
+  assert.match(fs.readFileSync('scripts/verify-v116-health.mjs','utf8'),/x\.oneDecisionAudit\?\.ok===true/);
   assert.match(repository,/status IN \('proposed','auto_applied','accepted','rejected'\)/);
   assert.match(routes,/decision\.status!=='proposed'/);
   assert.match(routes,/reductionPercent>20/);

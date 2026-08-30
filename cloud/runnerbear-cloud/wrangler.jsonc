@@ -1,16 +1,13 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "app",
-  "main": "src/index-v115.js",
+  "main": "src/index-v116.js",
   "compatibility_date": "2026-08-28",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": true,
   "observability": {
     "enabled": true,
     "head_sampling_rate": 1
-  },
-  "ai": {
-    "binding": "AI"
   },
   "triggers": {
     "crons": ["*/5 * * * *"]
@@ -20,10 +17,8 @@
     "PRIMARY_USER_EMAIL": "torbjorn.forre@gmail.com",
     "CORS_ORIGINS": "",
     "COACH_LOOP_KILL_SWITCH": "false",
-    "COACH_LIVE_MODEL": "@cf/zai-org/glm-4.7-flash",
-    "COACH_LIVE_RELEASE": "11.5.0-owner-20260830",
-    "ONE_DECISION_RELEASE": "11.5.0-owner-20260830",
-    "COACH_CONTINUITY_RELEASE": "11.5.0-owner-20260830",
+    "ONE_DECISION_RELEASE": "11.6.0-owner-20260830",
+    "COACH_CONTINUITY_RELEASE": "11.6.0-owner-20260830",
     "BAKKEN_ENGINE_RELEASE": "11.0.0-owner-20260824",
     "GOAL_REPAIR_RELEASE": "10.31.2-owner-20260824",
     "GOAL_REPAIR_ID": "bergen-half-2026",

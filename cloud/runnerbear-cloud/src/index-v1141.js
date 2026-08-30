@@ -1,5 +1,4 @@
 import previous, { MigrationService } from './index-v114.js';
-import { COACH_LIVE_PROMPT_VERSION, COACH_LIVE_STREAM_VERSION } from './v112/coach-live.js';
 
 export { MigrationService };
 
@@ -13,7 +12,7 @@ function jsonResponse(response,body){
 }
 
 export function reliabilityAudit(){
-  return{ok:true,version:'reliability-1',healthReadOnly:true,coachLiveStreamVersion:COACH_LIVE_STREAM_VERSION,coachLivePromptVersion:COACH_LIVE_PROMPT_VERSION,emptyResponsesAccepted:false,retryableTurnState:true,planWritesByAi:false,maximumReductionPercent:20};
+  return{ok:true,version:'reliability-1',healthReadOnly:true,retiredChatRuntime:false,emptyResponsesAccepted:false,planWritesByAi:false,maximumReductionPercent:20};
 }
 
 export default{
@@ -24,7 +23,7 @@ export default{
     try{
       const body=await response.json(),audit=reliabilityAudit();
       if(path==='/api/v2/bootstrap')return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD});
-      return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD,schemaVersion:4,healthReadOnly:true,coachLiveReliability:true,coachLiveReliabilityVersion:audit.version,coachLiveReliabilityAudit:audit});
+      return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD,schemaVersion:4,healthReadOnly:true,reliabilityVersion:audit.version,reliabilityAudit:audit});
     }catch(error){
       console.error(JSON.stringify({event:'reliability_augmentation',build:BUILD,status:'failed',errorCode:String(error?.message||'AUGMENTATION_FAILED').slice(0,80)}));
       return fallback;
