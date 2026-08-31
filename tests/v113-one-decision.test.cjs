@@ -63,6 +63,7 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
   const ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),css=fs.readFileSync('runnerbear-v113-one-decision.css','utf8'),html=fs.readFileSync('index.html','utf8'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
   assert.match(ui,/function oneDecisionHeroHtml/);
   assert.doesNotMatch(ui,/Oppdater Garmin-data|if\(kind==='refresh_data'\)/);
+  assert.match(html,/runnerbear-ui-v11\.js\?v=11601/);
   assert.match(ui,/aria-labelledby=\"rb113DecisionTitle\"/);
   assert.match(ui,/function oneDecisionProposalModalHtml/);
   assert.match(ui,/aria-labelledby=\"rb113ProposalTitle\"/);
