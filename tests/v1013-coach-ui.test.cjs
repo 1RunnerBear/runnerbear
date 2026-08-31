@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=11600/);
+  assert.match(html,/runnerbear-v11\.css\?v=11700/);
   assert.ok(assets.styles.includes(source),`${source} remains in the canonical stylesheet`);
 }
 
@@ -54,8 +54,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v11600');
-  assert.equal(version.build,'11.6.0');
+  assert.equal(manifest.start_url,'/?app=v11700');
+  assert.equal(version.build,'11.7.0');
   assert.equal(version.channel,'live');
 });
 

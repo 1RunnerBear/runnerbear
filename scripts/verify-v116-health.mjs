@@ -1,10 +1,10 @@
 const x=JSON.parse(process.argv[2]||'{}');
 
-const fail=message=>{throw new Error(`RunnerBear v11.6 health gate: ${message}`)};
+const fail=message=>{throw new Error(`RunnerBear v11.7 health gate: ${message}`)};
 const required=(condition,message)=>{if(!condition)fail(message)};
 
 required(x.ok===true&&x.assets===true&&x.database===true,'base health is not green');
-required(x.cloudBuild==='11.6.0'&&x.schemaVersion===4,'unexpected build or schema');
+required(x.cloudBuild==='11.7.0'&&x.schemaVersion===4,'unexpected build or schema');
 required(x.contextualCoach===true&&x.contextualCoachVersion==='contextual-coach-1','contextual coach is unavailable');
 required(x.contextualCoachAudit?.ok===true,'contextual coach audit failed');
 required(x.contextualCoachAudit?.mode==='background','coach is not background-first');
@@ -24,12 +24,17 @@ required(x.coachContinuityAudit?.rawHealthValuesExposed===false,'raw health valu
 required(x.coachLoop===true,'canonical coach loop is unavailable');
 required(x.bodyResponseEngine===true&&x.bodyResponseEngineVersion==='body-response-1','Body Response Engine is unavailable');
 required(x.bodyResponseAudit?.ok===true&&Number(x.bodyResponseAudit?.tablesFound||0)===6,'Body Response audit failed');
-required(x.bakkenEngine===true&&x.bakkenEngineVersion==='11.0.0','Bakken engine is unavailable');
+required(x.bakkenEngine===true&&x.bakkenEngineVersion==='11.7.0','Bakken engine is unavailable');
+required(x.bakkenWorkoutBank===true&&x.bakkenWorkoutBankVersion==='2.0.0','Workout Bank 2.0 is unavailable');
+required(x.hillWorkoutsEnabled===false,'hill workouts must remain disabled');
 required(x.bakkenRepair?.ok===true&&x.bakkenPlanAudit?.ok===true,'Bakken production plan audit failed');
 required(Number(x.bakkenPlanAudit?.missingMetadata||0)===0,'Bakken metadata is missing');
 required(Number(x.bakkenPlanAudit?.genericFallbacks||0)===0,'generic quality fallbacks remain');
 required(Number(x.bakkenPlanAudit?.duplicateDefaultVo2Weeks?.length||0)===0,'duplicate default VO2 weeks remain');
 required(Number(x.bakkenPlanAudit?.ordinaryWeeksWithoutThreshold?.length||0)===0,'ordinary weeks without threshold remain');
+required(Number(x.bakkenPlanAudit?.futureHillWorkouts?.length||0)===0,'future hill workouts remain');
+required(Number(x.bakkenPlanAudit?.unknownWorkoutBankIds?.length||0)===0,'unknown workout bank IDs remain');
+required(Number(x.bakkenPlanAudit?.duplicateQualitySessionIds?.length||0)===0,'duplicate quality session IDs remain');
 required(x.tredictService===true&&x.tredictRpc===true,'Tredict transport is unavailable');
 required(['10.26.0','10.31.1'].includes(x.tredictRpcVersion),'unexpected Tredict RPC version');
 required(x.durableSync===true&&x.historyIntegrity===true,'sync or history integrity failed');

@@ -4,7 +4,8 @@ import { buildContextualCoach, CONTEXTUAL_COACH_BUILD, CONTEXTUAL_COACH_VERSION,
 
 export { MigrationService };
 
-const BUILD=CONTEXTUAL_COACH_BUILD;
+const BUILD='11.7.0';
+void CONTEXTUAL_COACH_BUILD;
 
 function jsonResponse(response,body){
   const headers=new Headers(response.headers);

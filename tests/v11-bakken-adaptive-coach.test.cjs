@@ -15,7 +15,7 @@ test('v11 programs every automatic future quality session and removes the double
   const [{generateGoalPlan},{auditBakkenPlan}]=await Promise.all([import('../cloud/runnerbear-cloud/src/v11/plan-engine.js'),import('../cloud/runnerbear-cloud/src/v11/routes.js')]),result=generateGoalPlan(baseConfig,'2026-08-24'),quality=result.rows.filter(row=>row.workoutType==='quality'&&row.status==='scheduled');
   assert.equal(result.validation.valid,true);
   assert.ok(quality.length>4);
-  assert.equal(quality.every(row=>row.prescription?.version===2&&row.plannedLoad?.bakken?.engineVersion==='11.0.0'),true);
+  assert.equal(quality.every(row=>row.prescription?.version===2&&row.plannedLoad?.bakken?.engineVersion==='11.7.0'&&row.plannedLoad?.bakken?.workoutBankVersion==='2.0.0'),true);
   assert.equal(quality.some(row=>/Kvalitetsøkt · Bakken-motor/i.test(row.title)),false);
   const audit=auditBakkenPlan({items:result.rows},'2026-08-24');
   assert.equal(audit.ok,true);
@@ -78,7 +78,7 @@ test('a legacy manually moved quality keeps its date but receives the v11 prescr
   assert.equal(next.validation.valid,true);
   assert.equal(repaired.localDate,date);
   assert.equal(repaired.plannedLoad.manualMove,true);
-  assert.equal(repaired.plannedLoad.bakken.engineVersion,'11.0.0');
+  assert.equal(repaired.plannedLoad.bakken.engineVersion,'11.7.0');
   assert.equal(repaired.prescription.version,2);
 });
 
@@ -89,28 +89,30 @@ test('B race remains canonical and replaces one quality dose without training de
   assert.equal(race.lockLevel,'system');
   assert.equal(quality.length,2);
   assert.equal(quality.filter(row=>row.workoutType==='quality').length,1);
-  assert.equal(quality.find(row=>row.workoutType==='quality').plannedLoad.bakken.engineVersion,'11.0.0');
+  assert.equal(quality.find(row=>row.workoutType==='quality').plannedLoad.bakken.engineVersion,'11.7.0');
   assert.match(weekRows.find(row=>row.plannedLoad?.integrity)?.plannedLoad.integrity.safetyOverrideReason,/B-løpsuke/);
 });
 
-test('manual quality-bank choices stay explicit and outside automatic repair',()=>{
+test('manual quality-bank choices stay explicit while release repair supersedes old bank metadata',()=>{
   const client=fs.readFileSync('runnerbear-cloud-v11.js','utf8'),transport=fs.readFileSync('runnerbear-cloud-v1025.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8'),engine=fs.readFileSync('cloud/runnerbear-cloud/src/v11/bakken-engine.js','utf8');
   assert.match(client,/manualQuality=workoutType==='quality'&&!!row\.workoutBankId/);
   assert.match(client,/explicitChoice:Object\.hasOwn\(explicitModes,row\.baseDs\)\|\|manualQuality/);
-  assert.match(routes,/row\.explicitChoice!==true/);
-  assert.match(engine,/row\.explicitChoice===true/);
+  assert.match(routes,/repairFutureWorkoutBank/);
+  assert.match(engine,/WORKOUT_BANK_2_REPAIR/);
   assert.match(transport,/window\.RunnerBearCloudV1031\|\|window\.RunnerBearCloudV1027/);
   assert.match(client,/window\.RunnerBearCloudV1031=window\.RunnerBearCloudV11/);
 });
 
-test('v11 UI exposes coach rationale and all three quality-bank stimulus groups',()=>{
+test('v11 UI exposes coach rationale and the five calm Workout Bank groups',()=>{
   const ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),browser=fs.readFileSync('runnerbear-v11-bakken-engine.js','utf8'),model=require('../runnerbear-v11-bakken-engine.js'),ranked=model.rankWorkoutBank({intendedStimulus:'race_specific',phase:'specific',goalDistance:'half',weekMode:'NORMAL'});
   assert.match(ui,/Bakken Adaptive Coach/);
-  assert.match(ui,/Løpsspesifikke økter/);
-  assert.match(ui,/X-økter · eget stimulus/);
+  assert.match(ui,/Hovedterskel/);
+  assert.match(ui,/Støtteterskel/);
+  assert.match(ui,/Løpsspesifikt/);
+  assert.match(ui,/Redusert dose/);
   assert.match(ui,/meta\.rationale/);
   assert.match(browser,/x-5x1000/);
-  assert.match(browser,/family:'race_specific'/);
+  assert.match(browser,/'race_specific','race_specific'/);
   assert.equal(ranked.find(row=>row.stimulus==='race_specific').id,'specific-half-3x3000');
   assert.equal(ranked.some(row=>row.id==='x-5x1000'),false);
   assert.equal(model.rankWorkoutBank({goalDistance:'ten',phase:'specific'}).some(row=>row.id==='x-5x1000'),true);
@@ -123,6 +125,7 @@ test('v11 release and production gates are locked to the Bakken audit',()=>{
   assert.match(entry,/bakkenPlanAudit/);
   assert.match(workflow,/verify-v116-health\.mjs/);
   assert.match(healthGate,/x\.bakkenPlanAudit\?\.ok===true/);
-  assert.match(healthGate,/x\.bakkenEngineVersion==='11\.0\.0'/);
-  assert.match(html,/runnerbear-core-v11\.js\?v=11600/);
+  assert.match(healthGate,/x\.bakkenEngineVersion==='11\.7\.0'/);
+  assert.match(healthGate,/x\.bakkenWorkoutBankVersion==='2\.0\.0'/);
+  assert.match(html,/runnerbear-core-v11\.js\?v=11700/);
 });

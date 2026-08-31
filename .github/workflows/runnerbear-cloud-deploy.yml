@@ -209,7 +209,7 @@ jobs:
         if: steps.deploy_cloud.outcome == 'success'
         continue-on-error: true
         run: |
-          for attempt in $(seq 1 48); do
+          for attempt in $(seq 1 96); do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
             if node ../../scripts/verify-v116-health.mjs "$BODY"; then
@@ -249,7 +249,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"11.6.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"11.7.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
 
       - name: Verify persistent feature flags and dependencies
         id: flag_smoke
@@ -355,7 +355,7 @@ jobs:
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "11.6.0",
+            "build": "11.7.0",
             "status": "success" if all(outcomes[key] == "success" for key in ("d1", "backup", "recover_history", "history", "migrate", "smoke", "health", "coach_live_removed", "shadow", "flag_smoke", "guard")) else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),

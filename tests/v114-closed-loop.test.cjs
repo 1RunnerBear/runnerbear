@@ -126,7 +126,7 @@ test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>
   assert.match(readModel,/ORDER BY occurred_at DESC LIMIT 30/);
   assert.match(workflow,/verify-v116-health\.mjs/);
   const healthGate=fs.readFileSync('scripts/verify-v116-health.mjs','utf8');
-  assert.match(healthGate,/x\.cloudBuild==='11\.6\.0'/);
+  assert.match(healthGate,/x\.cloudBuild==='11\.7\.0'/);
   assert.match(healthGate,/x\.oneDecisionVersion==='one-decision-2'/);
   assert.match(healthGate,/x\.coachContinuityVersion==='coach-continuity-1'/);
   assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,9);

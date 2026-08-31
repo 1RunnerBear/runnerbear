@@ -28,6 +28,8 @@
   }
   function recoverySeconds(text,fallback=60){
     const s=String(text||'').replace(/[–—]/g,'-');
+    const explicit=s.match(/(?:med|pause(?:n)?(?: er)?|jogg(?: i)?)\s*(\d+(?:[.,]\d+)?)\s*min(?:utt(?:er)?)?\b/i);
+    if(explicit)return Math.round(Number(explicit[1].replace(',','.'))*60);
     const seconds=s.match(/(\d+)\s*(?:-\s*(\d+)\s*)?s(?:ek)?\b/i);
     if(seconds)return Math.round((Number(seconds[1])+Number(seconds[2]||seconds[1]))/2);
     const minutes=s.match(/(\d+(?:[.,]\d+)?)\s*min\b/i);

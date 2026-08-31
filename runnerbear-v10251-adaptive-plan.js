@@ -35,7 +35,6 @@
     {id:'threshold-20x45-15',stimulus:'threshold',title:'20 × 45/15',type:'quality',km:9,desc:'20 × 45 sek kontrollert / 15 sek flytende rolig.',detail:'Kort terskelvariant med god rytme. Farten styres slik at siste tredel er like kontrollert som den første.',workMinutes:15},
     {id:'threshold-5x8',stimulus:'threshold',title:'5 × 8 min terskel',type:'quality',km:13,desc:'5 × 8 min kontrollert terskel med 90 sek rolig jogg.',detail:'Lang, jevn arbeidsdel. Prioriter repeterbar fart fremfor høyest mulig puls.',workMinutes:40},
     {id:'threshold-4x10',stimulus:'threshold',title:'4 × 10 min terskel',type:'quality',km:13,desc:'4 × 10 min kontrollert terskel med 90 sek rolig jogg.',detail:'Sammenhengende terskelkapasitet med lav kostnad og tydelig kontroll.',workMinutes:40},
-    {id:'x-hills',stimulus:'x',title:'10 × 60 sek korte bakker',type:'quality',km:9,desc:'10 × 60 sek kontrollert hardt i slak motbakke.',detail:'X-element. Full rolig retur og god teknikk. Brukes målrettet, ikke som terskelerstatning uten coachbegrunnelse.',workMinutes:10},
     {id:'x-5x1000',stimulus:'x',title:'5 × 1000 m · VO₂',type:'quality',km:10,desc:'5 × 1000 m i kontrollert VO₂-fart med 2 min rolig jogg.',detail:'X-element med høyere kostnad enn terskel. Krever god helse, riktig fase og restitusjon rundt økten.',workMinutes:18}
   ]);
 

@@ -15,7 +15,7 @@ export function config(input={}){
   const safetyOverrides=Array.isArray(constraints.safetyOverrides)?constraints.safetyOverrides.filter(row=>row&&typeof row==='object'&&!Array.isArray(row)).map(row=>({week:dateOnly(row.week),reason:clean(row.reason),expectedQualitySessions:clamp(row.expectedQualitySessions??2,0,2),targetWeeklyVolume:row.targetWeeklyVolume==null?null:clamp(row.targetWeeklyVolume,0,upperLimit)})).filter(row=>row.week&&row.reason):[];
   return{
     profile:{...(input.profile||{}),baseKm,normalLow,normalHigh,upperLimit,targetWeeklyVolume},
-    constraints:{runDays,qualityDays,alternativeDays,longRunDay,maxRunDays:Math.min(runDays.length,clamp(constraints.maxRunDays??runDays.length,1,7)),weeklyKmCap:Math.min(upperLimit,clamp(constraints.weeklyKmCap??upperLimit,10,300)),safetyOverrides},
+    constraints:{runDays,qualityDays,alternativeDays,longRunDay,maxRunDays:Math.min(runDays.length,clamp(constraints.maxRunDays??runDays.length,1,7)),weeklyKmCap:Math.min(upperLimit,clamp(constraints.weeklyKmCap??upperLimit,10,300)),avoidHillWorkouts:true,safetyOverrides},
     goal:{mode:['race','base','transition'].includes(goal.mode)?goal.mode:'race',distance:['five','ten','half'].includes(goal.distance)?goal.distance:'half',date:dateOnly(goal.date),name:clean(goal.name),targetSeconds:Math.max(0,finite(goal.targetSeconds)),secondary:normalizeSecondaryGoals(goal.secondary)}
   };
 }

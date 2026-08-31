@@ -39,7 +39,7 @@ test('current assets and production configuration contain no chat client or AI b
   assert.match(ui,/surfaces\?\.postWorkout/);assert.match(ui,/context\.healthTrend/);assert.match(ui,/context\?\.whatWentWell/);
   assert.match(config,/src\/index-v116\.js/);assert.doesNotMatch(config,/"binding":\s*"AI"|COACH_LIVE_MODEL|@cf\/zai-org/);
   assert.doesNotMatch(compat,/handleCoachLive|coachLiveAudit|DEFAULT_COACH_LIVE_MODEL|env\.AI|env\.DB/);assert.doesNotMatch(reliability,/\.\/v112\/coach-live\.js/);
-  assert.equal(manifest.build,'11.6.0');assert.equal(manifest.styles.at(-1),'runnerbear-v116-contextual-coach.css');
+  assert.equal(manifest.build,'11.7.0');assert.equal(manifest.styles.at(-1),'runnerbear-v116-contextual-coach.css');
 });
 
 test('production gates accept only Gone or the private Access guard for retired chat',()=>{

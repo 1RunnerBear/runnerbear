@@ -1,6 +1,7 @@
 import legacy from './index-v11-legacy.js';
 import { auditBakkenPlan,processPendingSync,reconcileActiveSyncProjection,repairAccidentalGoalState,repairBakkenV11Plan } from './v11/routes.js';
 import { activePlan } from './v11/repository.js';
+import { BAKKEN_ENGINE_VERSION,BAKKEN_WORKOUT_BANK_VERSION } from './v11/bakken-engine.js';
 
 export { MigrationService } from './migration-service.js';
 
@@ -63,7 +64,7 @@ export default {
     if (request.method !== 'GET' || path !== '/health' || !response.ok) return response;
     try {
       const [body,audit,sync,goalGuard,bodyResponse] = await Promise.all([response.json(),historyAudit(env.DB),syncAudit(env.DB),goalGuardAudit(env.DB),bodyResponseAudit(env.DB)]);
-      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, bodyResponseEngine:true, bodyResponseEngineVersion:'body-response-1', bodyResponseAudit:bodyResponse, bakkenEngine:true, bakkenEngineVersion:'11.0.0', bakkenPlanAudit:bakkenRepair.afterAudit||bakkenRepair.beforeAudit||{ok:false}, bakkenRepair:{ok:bakkenRepair.ok===true,repaired:bakkenRepair.repaired===true,idempotent:bakkenRepair.idempotent===true,reason:bakkenRepair.reason||null,planRevisionId:bakkenRepair.planRevisionId||null}, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync, syncDrain, goalGuard, goalRepair:{ok:goalRepair.ok!==false,restored:goalRepair.restored===true,issues:Array.isArray(goalRepair.issues)?goalRepair.issues:[]} }, {
+      return Response.json({ ...body, build: BUILD, cloudBuild: BUILD, bodyResponseEngine:true, bodyResponseEngineVersion:'body-response-1', bodyResponseAudit:bodyResponse, bakkenEngine:true, bakkenEngineVersion:BAKKEN_ENGINE_VERSION, bakkenWorkoutBank:true, bakkenWorkoutBankVersion:BAKKEN_WORKOUT_BANK_VERSION, hillWorkoutsEnabled:false, bakkenPlanAudit:bakkenRepair.afterAudit||bakkenRepair.beforeAudit||{ok:false}, bakkenRepair:{ok:bakkenRepair.ok===true,repaired:bakkenRepair.repaired===true,idempotent:bakkenRepair.idempotent===true,reason:bakkenRepair.reason||null,planRevisionId:bakkenRepair.planRevisionId||null}, historyIntegrity:audit.ok, historyAudit:{activitiesPresent:audit.activities>0,duplicateExternalIds:audit.duplicateExternalIds}, durableSync:true, syncOutbox:sync, syncDrain, goalGuard, goalRepair:{ok:goalRepair.ok!==false,restored:goalRepair.restored===true,issues:Array.isArray(goalRepair.issues)?goalRepair.issues:[]} }, {
         status: response.status,
         headers: {
           'content-type': 'application/json; charset=utf-8',
