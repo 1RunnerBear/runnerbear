@@ -62,8 +62,9 @@ test('Coach Live receives One Decision but retains no plan-write authority',asyn
 test('v11.3 UI locks one primary decision, accessible confirmation and the four-request budget',()=>{
   const ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),css=fs.readFileSync('runnerbear-v113-one-decision.css','utf8'),html=fs.readFileSync('index.html','utf8'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
   assert.match(ui,/function oneDecisionHeroHtml/);
-  assert.doesNotMatch(ui,/Oppdater Garmin-data|if\(kind==='refresh_data'\)/);
-  assert.match(html,/runnerbear-ui-v11\.js\?v=11601/);
+  assert.doesNotMatch(ui,/Oppdater Garmin-data|stale:'Oppdater data'|if\(kind==='refresh_data'\)/);
+  assert.match(ui,/stale:'Oppdateres automatisk'/);
+  assert.match(html,/runnerbear-ui-v11\.js\?v=11602/);
   assert.match(ui,/aria-labelledby=\"rb113DecisionTitle\"/);
   assert.match(ui,/function oneDecisionProposalModalHtml/);
   assert.match(ui,/aria-labelledby=\"rb113ProposalTitle\"/);
@@ -93,5 +94,5 @@ test('release chain preserves the v11.3 contract without a new endpoint or schem
   assert.match(routes,/decision\.status!=='proposed'/);
   assert.match(routes,/reductionPercent>20/);
   assert.match(routes,/SAFE_ADJUSTMENT_REJECTED/);
-  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,8);
+  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,9);
 });

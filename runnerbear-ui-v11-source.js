@@ -656,7 +656,7 @@
   function contextualHealthStripHtml(){
     const body=bodyResponse(),surface=contextualCoach()?.surfaces?.health;
     if(!body)return `<section class="rb116-health-strip empty" aria-live="polite"><span>${icon('heartbeat')}</span><div><small>Form i dag</small><b>Helsebildet bygges</b><p>RunnerBear venter på nok ferske data til å tolke en personlig trend.</p></div></section>`;
-    const freshness={fresh:'Ferske data',partial:'Delvis ferske data',stale:'Oppdater data'}[body.freshness?.status]||'Datastatus ukjent',headline=surface?.headline||body.stateLabel,summary=surface?.summary||body.summary,attention=surface?.visible===true||body.state!=='as_planned';
+    const freshness={fresh:'Ferske data',partial:'Delvis ferske data',stale:'Oppdateres automatisk'}[body.freshness?.status]||'Datastatus ukjent',headline=surface?.headline||body.stateLabel,summary=surface?.summary||body.summary,attention=surface?.visible===true||body.state!=='as_planned';
     return `<button type="button" class="rb116-health-strip ${attention?'attention':'normal'}" data-rb111-body-open aria-label="Åpne helsebildet: ${esc(headline)}"><span>${icon(attention?'heartbeat':'heart')}</span><div><small>Form i dag · 7- og 28-dagerstrend</small><b>${esc(headline)}</b><p>${esc(summary)}</p></div><em>${esc(freshness)} ${icon('chevronRight')}</em></button>`;
   }
   function bodyMetricTrend(metric,kind){if(metric?.[kind]==null)return'–';return metric.unit==='seconds'?formatSleep(metric[kind]):`${Math.round(metric[kind])} ${metric.unit}`}

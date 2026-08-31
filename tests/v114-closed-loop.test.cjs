@@ -129,5 +129,5 @@ test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>
   assert.match(healthGate,/x\.cloudBuild==='11\.6\.0'/);
   assert.match(healthGate,/x\.oneDecisionVersion==='one-decision-2'/);
   assert.match(healthGate,/x\.coachContinuityVersion==='coach-continuity-1'/);
-  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,8);
+  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,9);
 });

@@ -119,11 +119,14 @@ async function storeHealth(env,cache){
   Object.keys(sleep).forEach(key=>put(key,{sleep:healthValue(sleep,key,0),sleepBaseline:healthValue(sleep,key,1)}));
   body.forEach(x=>put(x?.timestamp,{rhr:finite(x?.hrRestDynamic??x?.restingHeartrate)}));
   if(!rows.size)return 0;
-  const t=now(),id=owner(env),stmt=env.DB.prepare(`INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at)
+  const t=now(),id=owner(env),clear=env.DB.prepare(`DELETE FROM rb_health_observations
+    WHERE user_id=?1 AND local_date=?2 AND source='tredict' AND metric IN ('hrv','sleep','rhr')`),stmt=env.DB.prepare(`INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at)
     VALUES (?1,?2,?3,?4,?5,?6,?7)
     ON CONFLICT(user_id,date) DO UPDATE SET hrv_ms=excluded.hrv_ms,sleep_seconds=excluded.sleep_seconds,
       rhr_bpm=excluded.rhr_bpm,payload_json=excluded.payload_json,updated_at=excluded.updated_at`);
-  await batch(env.DB,[...rows].map(([date,x])=>stmt.bind(id,date,x.hrv??null,x.sleep??null,x.rhr??null,JSON.stringify(x),t)));
+  const statements=[];
+  for(const [date,x] of rows)statements.push(clear.bind(id,date),stmt.bind(id,date,x.hrv??null,x.sleep??null,x.rhr??null,JSON.stringify(x),t));
+  await batch(env.DB,statements);
   return rows.size;
 }
 
