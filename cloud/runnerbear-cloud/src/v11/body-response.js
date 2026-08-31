@@ -3,7 +3,7 @@ import { assessLoad } from './load-model.js';
 export const BODY_RESPONSE_VERSION='body-response-1';
 export const BODY_RESPONSE_POLICY='body-response-policy-1';
 const BASELINE_DAYS=28,MIN_BASELINE_DAYS=10;
-const finite=value=>{const number=Number(value);return Number.isFinite(number)?number:null};
+const finite=value=>{if(value===null||value===undefined||value==='')return null;const number=Number(value);return Number.isFinite(number)?number:null};
 const parse=(value,fallback)=>{try{return JSON.parse(value)}catch{return fallback}};
 const median=values=>{const rows=values.map(finite).filter(value=>value!=null).sort((a,b)=>a-b),middle=Math.floor(rows.length/2);return rows.length?(rows.length%2?rows[middle]:(rows[middle-1]+rows[middle])/2):null};
 const mad=(values,center=median(values))=>center==null?null:median(values.map(value=>Math.abs(Number(value)-center)));
