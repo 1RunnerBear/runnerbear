@@ -12,7 +12,7 @@
   const MIGRATE_QUERY='rb_migrate';
   const OUTBOUND='runnerbear_tredict_outbound_v1';
   const VO2_HISTORY='runfest26_vo2_history';
-  let hydrating=false,baseline='',uploadTimer=0,lastBootstrap=null,lastHomeAt=0,dirtyVersion=0,uploadedVersion=0,fullPromise=null,fullLoaded=false;
+  let hydrating=false,baseline='',uploadTimer=0,lastBootstrap=null,lastHomeAt=0,dirtyVersion=0,uploadedVersion=0,fullPromise=null,fullLoaded=false,backgroundSyncTimer=0,backgroundSyncPending=false;
 
   const qs=(s,r=document)=>r.querySelector(s);
   const readJson=(raw,fallback={})=>{try{return JSON.parse(raw)}catch{return fallback}};
@@ -149,6 +149,16 @@
       if(show)toast(error?.message||'Kunne ikke synkronisere data.','error');
       throw error;
     }
+  }
+
+  function scheduleBackgroundSync({immediate=false}={}){
+    if(!IS_CLOUD||backgroundSyncPending)return;
+    clearTimeout(backgroundSyncTimer);
+    backgroundSyncTimer=setTimeout(()=>{
+      if(document.hidden)return;
+      backgroundSyncPending=true;
+      cloudSync(false).catch(error=>console.warn(JSON.stringify({event:'runnerbear_background_sync_error',build:BUILD,message:error?.message||String(error)}))).finally(()=>{backgroundSyncPending=false});
+    },immediate?0:450);
   }
 
   function outboundBundle(queue){
@@ -318,7 +328,8 @@
       installBridgeAdapter();
       window.addEventListener('runnerbear:state-dirty',scheduleUpload);
       window.addEventListener('runnerbear:view',event=>{const view=String(event.detail?.view||'');if(view&&view!=='today')bootstrapFull(view).catch(error=>console.error(JSON.stringify({event:'runnerbear_lazy_bootstrap_error',build:BUILD,view,message:error?.message||String(error)})))});
-      document.addEventListener('visibilitychange',()=>{if(document.hidden)uploadLocal(false).catch(()=>{});else if(Date.now()-lastHomeAt>5*60*1000)bootstrapHome().catch(()=>{})});
+      document.addEventListener('visibilitychange',()=>{if(document.hidden){uploadLocal(false).catch(()=>{});return}bootstrapHome().catch(()=>{});scheduleBackgroundSync({immediate:true})});
+      window.addEventListener('online',()=>scheduleBackgroundSync({immediate:true}));
       window.addEventListener('pagehide',()=>{
         if(dirtyVersion===uploadedVersion)return;
         const snap=localSnapshot(),sig=signature(snap);
@@ -327,7 +338,8 @@
       const last=(home?.sync||[]).map(x=>Date.parse(x.last_synced_at||0)).filter(Number.isFinite).sort((a,b)=>b-a)[0]||0;
       const active=document.querySelector('.view.active')?.id||'today';
       if(active!=='today')bootstrapFull(active).catch(error=>console.error(JSON.stringify({event:'runnerbear_lazy_bootstrap_error',build:BUILD,view:active,message:error?.message||String(error)})));
-      if(!last||Date.now()-last>5*60*1000)cloudSync(false).catch(error=>console.warn(JSON.stringify({event:'runnerbear_background_sync_error',build:BUILD,message:error?.message||String(error)})));
+      if(!last||Date.now()-last>5*60*1000)scheduleBackgroundSync({immediate:true});
+      setInterval(()=>scheduleBackgroundSync(),5*60*1000);
     }).catch(error=>{
       console.error(JSON.stringify({event:'runnerbear_bootstrap_error',build:BUILD,message:error?.message||String(error)}));
       toast('Viser sist kjente data. Oppdatering fra RunnerBear Cloud feilet.','error');

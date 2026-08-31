@@ -1,4 +1,5 @@
 import previous, { MigrationService } from './index-v115.js';
+import { syncTredict } from './index-v11-legacy.js';
 import { buildContextualCoach, CONTEXTUAL_COACH_BUILD, CONTEXTUAL_COACH_VERSION, contextualCoachAudit, retiredCoachLiveResponse } from './v116/contextual-coach.js';
 
 export { MigrationService };
@@ -52,5 +53,11 @@ export default{
       return fallback;
     }
   },
-  async scheduled(controller,env,ctx){return previous.scheduled(controller,env,ctx)},
+  async scheduled(controller,env,ctx){
+    const refresh=syncTredict(env,{force:false,days:120}).catch(error=>{
+      console.error(JSON.stringify({event:'runnerbear_scheduled_health_sync_error',build:BUILD,message:String(error?.message||error)}));
+      return null;
+    });
+    await Promise.all([refresh,previous.scheduled(controller,env,ctx)]);
+  },
 };

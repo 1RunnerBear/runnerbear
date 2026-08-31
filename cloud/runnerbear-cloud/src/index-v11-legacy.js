@@ -271,7 +271,7 @@ async function reconcileOutbound(request,env){
   return savedOutboundResponse(env,next,{idempotent:false,awaitingActivation:!replacingActive});
 }
 
-async function syncTredict(env,{force=false,days=365}={}){
+export async function syncTredict(env,{force=false,days=365}={}){
   const started=performance.now();
   if(!env.DB)throw new Error('D1 binding missing');
   if(!env.TREDICT)throw new Error('Tredict service binding missing');
