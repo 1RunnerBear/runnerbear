@@ -172,6 +172,13 @@ jobs:
         continue-on-error: true
         run: npx wrangler d1 migrations apply DB --remote --config wrangler.release.jsonc
 
+      - name: Supersede inactive Tredict review work
+        id: sync_review_cleanup
+        if: steps.migrate.outcome == 'success'
+        continue-on-error: true
+        run: |
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="UPDATE rb_sync_operations SET status='superseded',next_retry_at=NULL,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE status IN ('queued','processing','failed_retryable','review_required') AND NOT EXISTS (SELECT 1 FROM rb_plan_revisions r WHERE r.user_id=rb_sync_operations.user_id AND r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.status='active')" --json
+
       - name: Smoke test v11.6 D1 schema
         id: smoke
         if: steps.migrate.outcome == 'success'
@@ -180,6 +187,15 @@ jobs:
           npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations','rb_sync_bindings','rb_health_observations','rb_health_baseline_snapshots','rb_body_response_snapshots','rb_subjective_checkins','rb_workout_response_links','rb_recovery_insights','rb_coach_live_threads','rb_coach_live_messages','rb_coach_live_runs')" --json > /tmp/runnerbear-schema-v116.json
           cat /tmp/runnerbear-schema-v116.json
           node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};if(Number(r.tables_found||0)!==14)throw new Error("RunnerBear v11.6 schema is incomplete")' /tmp/runnerbear-schema-v116.json
+
+      - name: Verify Tredict review queue belongs to the active revision
+        id: sync_review_audit
+        if: steps.sync_review_cleanup.outcome == 'success'
+        continue-on-error: true
+        run: |
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT COUNT(*) AS review_required,(SELECT COUNT(*) FROM rb_sync_operations o WHERE o.status='review_required' AND NOT EXISTS (SELECT 1 FROM rb_plan_revisions r WHERE r.user_id=o.user_id AND r.plan_revision_id=o.plan_revision_id AND r.status='active')) AS stale_review_required,(SELECT COUNT(*) FROM rb_sync_operations o WHERE o.status='superseded') AS superseded_total FROM rb_sync_operations WHERE status='review_required'" --json > /tmp/runnerbear-sync-review-audit.json
+          cat /tmp/runnerbear-sync-review-audit.json
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};if(Number(r.stale_review_required||0)!==0)throw new Error("Inactive plan revisions still own review-required sync operations")' /tmp/runnerbear-sync-review-audit.json
 
       - name: Build private RunnerBear static app
         id: assets
@@ -320,7 +336,9 @@ jobs:
           ASSETS_OUTCOME: ${{ steps.assets.outcome }}
           DEPLOY_OUTCOME: ${{ steps.deploy_cloud.outcome }}
           MIGRATE_OUTCOME: ${{ steps.migrate.outcome }}
+          SYNC_REVIEW_CLEANUP_OUTCOME: ${{ steps.sync_review_cleanup.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+          SYNC_REVIEW_AUDIT_OUTCOME: ${{ steps.sync_review_audit.outcome }}
           HEALTH_OUTCOME: ${{ steps.health.outcome }}
           COACH_LIVE_REMOVED_OUTCOME: ${{ steps.coach_live_removed.outcome }}
           SHADOW_OUTCOME: ${{ steps.shadow.outcome }}
@@ -344,7 +362,9 @@ jobs:
             "assets": os.environ.get("ASSETS_OUTCOME", ""),
             "deploy": os.environ.get("DEPLOY_OUTCOME", ""),
             "migrate": os.environ.get("MIGRATE_OUTCOME", ""),
+            "sync_review_cleanup": os.environ.get("SYNC_REVIEW_CLEANUP_OUTCOME", ""),
             "smoke": os.environ.get("SMOKE_OUTCOME", ""),
+            "sync_review_audit": os.environ.get("SYNC_REVIEW_AUDIT_OUTCOME", ""),
             "health": os.environ.get("HEALTH_OUTCOME", ""),
             "coach_live_removed": os.environ.get("COACH_LIVE_REMOVED_OUTCOME", ""),
             "shadow": os.environ.get("SHADOW_OUTCOME", ""),
@@ -356,7 +376,7 @@ jobs:
           }
           report = {
             "build": "11.6.0",
-            "status": "success" if all(outcomes[key] == "success" for key in ("d1", "backup", "recover_history", "history", "migrate", "smoke", "health", "coach_live_removed", "shadow", "flag_smoke", "guard")) else "failed",
+            "status": "success" if all(outcomes[key] == "success" for key in ("d1", "backup", "recover_history", "history", "migrate", "sync_review_cleanup", "smoke", "sync_review_audit", "health", "coach_live_removed", "shadow", "flag_smoke", "guard")) else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),
             "source_sha": os.environ.get("SHA"),
@@ -381,5 +401,5 @@ jobs:
           exit 1
 
       - name: Fail workflow when RunnerBear Cloud is not private, history-safe or rollout-safe
-        if: always() && (steps.d1.outcome != 'success' || steps.backup.outcome != 'success' || steps.recover_history.outcome != 'success' || steps.history.outcome != 'success' || steps.migrate.outcome != 'success' || steps.smoke.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.coach_live_removed.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
+        if: always() && (steps.d1.outcome != 'success' || steps.backup.outcome != 'success' || steps.recover_history.outcome != 'success' || steps.history.outcome != 'success' || steps.migrate.outcome != 'success' || steps.sync_review_cleanup.outcome != 'success' || steps.smoke.outcome != 'success' || steps.sync_review_audit.outcome != 'success' || steps.guard.outcome != 'success' || steps.health.outcome != 'success' || steps.coach_live_removed.outcome != 'success' || steps.shadow.outcome != 'success' || steps.flag_smoke.outcome != 'success')
         run: exit 1
