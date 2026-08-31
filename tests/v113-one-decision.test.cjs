@@ -36,7 +36,7 @@ test('unsafe, stale and revision-mismatched decisions fail closed',async()=>{
   for(const candidate of [unsafe,expired,mismatch]){
     const result=buildOneDecision({...bootstrap,coachDecision:candidate},{now:NOW});
     assert.equal(result.state,'refresh');
-    assert.equal(result.primaryAction.kind,'refresh_data');
+    assert.equal(result.primaryAction.kind,'open_workout');
     assert.equal(result.proposal,null);
   }
 });
@@ -62,6 +62,7 @@ test('Coach Live receives One Decision but retains no plan-write authority',asyn
 test('v11.3 UI locks one primary decision, accessible confirmation and the four-request budget',()=>{
   const ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),css=fs.readFileSync('runnerbear-v113-one-decision.css','utf8'),html=fs.readFileSync('index.html','utf8'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
   assert.match(ui,/function oneDecisionHeroHtml/);
+  assert.doesNotMatch(ui,/Oppdater Garmin-data|if\(kind==='refresh_data'\)/);
   assert.match(ui,/aria-labelledby=\"rb113DecisionTitle\"/);
   assert.match(ui,/function oneDecisionProposalModalHtml/);
   assert.match(ui,/aria-labelledby=\"rb113ProposalTitle\"/);

@@ -68,7 +68,7 @@ test('safe deterministic adjustment keeps priority over the follow-up loop',asyn
 test('plan-revision mismatch fails closed and the release audit locks safety limits',async()=>{
   const {buildCoachContinuity,buildOneDecisionV2,closedLoopAudit}=await import('../cloud/runnerbear-cloud/src/v114/closed-loop.js'),continuity={...buildCoachContinuity(bootstrap),planRevisionId:'pr-old'},result=buildOneDecisionV2(bootstrap,continuity),audit=closedLoopAudit();
   assert.equal(result.state,'refresh');
-  assert.equal(result.primaryAction.kind,'refresh_data');
+  assert.equal(result.primaryAction.kind,'open_workout');
   assert.equal(result.proposal,null);
   assert.equal(audit.ok,true);
   assert.equal(audit.oneDecisionVersion,'one-decision-2');

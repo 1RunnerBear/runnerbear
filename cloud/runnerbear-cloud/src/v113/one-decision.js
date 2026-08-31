@@ -2,7 +2,7 @@ export const ONE_DECISION_VERSION='one-decision-1';
 export const ONE_DECISION_BUILD='11.3.0';
 
 const TERMINAL_STATUSES=new Set(['completed','replaced','cancelled','skipped','expired']);
-const ACTION_KINDS=new Set(['open_workout','review_adjustment','complete_checkin','refresh_data','view_result','view_plan']);
+const ACTION_KINDS=new Set(['open_workout','review_adjustment','complete_checkin','view_result','view_plan']);
 const REASON_LABELS=Object.freeze({
   LOW_HRV:'HRV ligger lavere enn normalen din.',
   PERSISTENT_LOW_HRV:'HRV har ligget lavt flere netter.',
@@ -88,7 +88,7 @@ function baseEnvelope(bootstrap,now){
     summary:'RunnerBear viser ikke en eldre coachbeslutning som om den var gjeldende.',
     workout,
     evidence:[{id:'data:refresh',label:'Datagrunnlaget må kontrolleres på nytt.',source:'RunnerBear',tone:'watch'}],
-    primaryAction:{kind:'refresh_data',label:'Oppdater data'},
+    primaryAction:workout?{kind:'open_workout',label:'Åpne dagens økt'}:{kind:'view_plan',label:'Se planen'},
     secondaryActions:[{kind:'ask_coach',label:'Spør coach'}],
     proposal:null,
     safety:{planWritesByAi:false,confirmationRequired:true,undoAvailable:true,maximumReductionPercent:20},
@@ -104,15 +104,15 @@ export function buildOneDecision(bootstrap={},options={}){
   if(!decision)return envelope;
   const common={...envelope,inputCursor:bounded(decision.inputCursor,240),validUntil:decision.validUntil,freshness:'current',evidence:evidenceFor(bootstrap,decision)};
   if(decision.status==='rejected')return{...common,state:'follow',tone:'watch',headline:'Planen beholdes',summary:'Du valgte å beholde gjeldende dose. Følg økten med ekstra margin og uten bonusarbeid.',primaryAction:{kind:'open_workout',label:'Åpne dagens økt'}};
-  if(decision.type==='wait_for_data')return{...common,state:'refresh',tone:'quiet',headline:bounded(decision.explanation?.title,180)||'Oppdater datagrunnlaget',summary:bounded(decision.explanation?.summary,420)||'RunnerBear trenger ferskere data før dagens dose kan vurderes.',primaryAction:{kind:'refresh_data',label:'Oppdater Garmin-data'}};
+  if(decision.type==='wait_for_data')return{...common,state:'refresh',tone:'quiet',headline:bounded(decision.explanation?.title,180)||'Datagrunnlaget oppdateres',summary:bounded(decision.explanation?.summary,420)||'RunnerBear henter ferskere data automatisk. Dagens økt står med nødvendig margin.',primaryAction:workout?{kind:'open_workout',label:'Åpne dagens økt'}:{kind:'view_plan',label:'Se planen'}};
   if(decision.type==='needs_input')return{...common,state:'clarify',tone:'attention',headline:bounded(decision.explanation?.title,180)||'Svar på én kroppssjekk',summary:bounded(decision.explanation?.summary,420)||'RunnerBear trenger ett svar før dagens belastning kan avklares.',primaryAction:{kind:'complete_checkin',label:'Svar på kroppssjekken'}};
   const proposal=proposalFor(decision,workout);
   if(proposal)return{...common,state:'adjust',tone:'attention',headline:bounded(decision.explanation?.title,180)||'Juster dagens dose',summary:bounded(decision.explanation?.summary,420)||'Coachens verifiserte forslag reduserer bare dagens dose.',primaryAction:{kind:'review_adjustment',label:'Se redusert dose'},proposal};
-  if(decision.type==='reduce')return{...common,freshness:'unavailable',state:'refresh',tone:'quiet',headline:'Kontroller coachforslaget på nytt',summary:'Forslaget oppfyller ikke den låste sikkerhetskontrakten og kan ikke brukes.',primaryAction:{kind:'refresh_data',label:'Forny vurderingen'},proposal:null};
+  if(decision.type==='reduce')return{...common,freshness:'unavailable',state:'refresh',tone:'quiet',headline:'Coachforslaget fornyes',summary:'Forslaget oppfyller ikke den låste sikkerhetskontrakten og brukes ikke. RunnerBear fornyer vurderingen automatisk.',primaryAction:workout?{kind:'open_workout',label:'Åpne dagens økt'}:{kind:'view_plan',label:'Se planen'},proposal:null};
   return{...common,state:'follow',tone:decision.reasonCodes?.length?'watch':'calm',headline:bounded(decision.explanation?.title,180)||'Følg dagens økt',summary:bounded(decision.explanation?.summary,420)||'Dagens signaler støtter den planlagte dosen.',primaryAction:{kind:'open_workout',label:'Åpne dagens økt'}};
 }
 
 export function oneDecisionAudit(){
-  const required=['open_workout','review_adjustment','complete_checkin','refresh_data','view_result','view_plan'];
+  const required=['open_workout','review_adjustment','complete_checkin','view_result','view_plan'];
   return{ok:required.every(kind=>ACTION_KINDS.has(kind)),version:ONE_DECISION_VERSION,states:['follow','adjust','clarify','refresh','completed','rest'],planWritesByAi:false,maximumReductionPercent:20};
 }

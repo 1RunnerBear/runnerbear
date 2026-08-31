@@ -6,7 +6,7 @@ export const ONE_DECISION_V2_VERSION='one-decision-2';
 
 const RESOLVED_STATUSES=new Set(['accepted','rejected','auto_applied','undone']);
 const TERMINAL_STATUSES=new Set(['completed','replaced','cancelled','skipped','expired']);
-const ALLOWED_ACTIONS=new Set(['open_workout','review_adjustment','complete_checkin','complete_feedback','refresh_data','view_result','view_plan']);
+const ALLOWED_ACTIONS=new Set(['open_workout','review_adjustment','complete_checkin','complete_feedback','view_result','view_plan']);
 const bounded=(value,max=320)=>String(value??'').trim().slice(0,max);
 const localDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||'').slice(0,10))?String(value).slice(0,10):'';
 const addDays=(date,days)=>new Date(Date.parse(`${date}T12:00:00Z`)+days*86400000).toISOString().slice(0,10);
@@ -99,7 +99,7 @@ export function buildCoachContinuity(bootstrap={}){
 
 export function buildOneDecisionV2(bootstrap={},continuity=buildCoachContinuity(bootstrap)){
   const base=buildOneDecision(bootstrap,{now:bootstrap?.generatedAt||new Date().toISOString()}),common={...base,version:ONE_DECISION_V2_VERSION,confidence:continuity.confidence,memory:{status:continuity.memory.status,summary:continuity.memory.summary,observedDecisions:continuity.memory.observedDecisions,learnedResponses:continuity.memory.learnedResponses,recent:continuity.memory.recent},followUp:continuity.followUp};
-  if(!continuity.planRevisionId||continuity.planRevisionId!==base.planRevisionId)return{...common,freshness:'unavailable',state:'refresh',tone:'quiet',headline:'Forny dagens vurdering',summary:'Coachminnet tilhører ikke gjeldende planrevisjon.',primaryAction:{kind:'refresh_data',label:'Oppdater data'},proposal:null};
+  if(!continuity.planRevisionId||continuity.planRevisionId!==base.planRevisionId)return{...common,freshness:'unavailable',state:'refresh',tone:'quiet',headline:'Dagens vurdering fornyes',summary:'Coachminnet tilhører ikke gjeldende planrevisjon. RunnerBear oppdaterer vurderingen automatisk.',primaryAction:base.workout?{kind:'open_workout',label:'Åpne dagens økt'}:{kind:'view_plan',label:'Se planen'},proposal:null};
   if(['refresh','clarify','adjust'].includes(base.state))return common;
   if(continuity.followUp.required&&continuity.followUp.phase==='next_morning')return{...common,state:'clarify',tone:'watch',headline:'Ett svar før dagens råd',summary:continuity.followUp.prompt,primaryAction:{kind:'complete_checkin',label:continuity.followUp.label,workoutId:continuity.followUp.workoutId}};
   if(['completed','follow'].includes(base.state)&&continuity.followUp.required&&continuity.followUp.phase==='post_workout')return{...common,state:'reflect',tone:'calm',headline:'Lukk løkken etter økten',summary:continuity.followUp.prompt,primaryAction:{kind:'complete_feedback',label:continuity.followUp.label,workoutId:continuity.followUp.workoutId}};
@@ -107,6 +107,6 @@ export function buildOneDecisionV2(bootstrap={},continuity=buildCoachContinuity(
 }
 
 export function closedLoopAudit(){
-  const required=['open_workout','review_adjustment','complete_checkin','complete_feedback','refresh_data','view_result','view_plan'];
+  const required=['open_workout','review_adjustment','complete_checkin','complete_feedback','view_result','view_plan'];
   return{ok:required.every(kind=>ALLOWED_ACTIONS.has(kind)),continuityVersion:COACH_CONTINUITY_VERSION,oneDecisionVersion:ONE_DECISION_V2_VERSION,states:['follow','adjust','clarify','refresh','reflect','completed','rest'],planWritesByAi:false,maximumReductionPercent:20,historyLimit:3,rawHealthValuesExposed:false};
 }

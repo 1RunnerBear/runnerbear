@@ -33,7 +33,7 @@ function inferredSubjective(raw={}){
   return{state,reasons,illness,pain:hasPain?Math.max(3,pain||0):pain,stress:raw.stress===true||reasons.includes('stress'),poorSleep:raw.poor_sleep===true||reasons.includes('poor_sleep'),occurredAt:raw.occurredAt||raw.occurred_at||raw.updatedAt||raw.updated_at||null,sourceId:raw.sourceId||raw.source_id||''};
 }
 function actionFor(state,todayWorkout){
-  if(state==='wait_for_data')return{kind:'refresh_data',label:'Oppdater Garmin-data',maximumDose:'planned',reductionPercent:0};
+  if(state==='wait_for_data')return{kind:'wait_for_data',label:'Oppdateres automatisk',maximumDose:'planned',reductionPercent:0};
   if(state==='recover')return{kind:'needs_input',label:'Avklar kroppen før økten',maximumDose:'planned',reductionPercent:0};
   if(state==='adjust'){const quality=['quality','race'].includes(todayWorkout?.workoutType);return{kind:quality?'reduce_repetitions':'reduce_duration',label:quality?'Reduser dagens kvalitetsdose':'Kort ned dagens rolige økt',maximumDose:'planned',reductionPercent:20}}
   if(state==='watch')return{kind:'keep_with_margin',label:'Følg planen med ekstra margin',maximumDose:'planned',reductionPercent:0};
