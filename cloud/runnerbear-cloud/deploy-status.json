@@ -1,9 +1,9 @@
 {
   "build": "11.7.0",
   "status": "success",
-  "checked_at": "2026-08-31T13:06:21.272064+00:00",
-  "run_id": "33394812673",
-  "source_sha": "5f6ce9415977b63f8f3e3aa12d4d3cd7d90fca64",
+  "checked_at": "2026-09-01T06:27:31.559228+00:00",
+  "run_id": "33477613162",
+  "source_sha": "45da45e6ba5d2f30ba78ddbf17987a20937a1f0d",
   "steps": {
     "install": "success",
     "validate": "success",
@@ -14,7 +14,9 @@
     "assets": "success",
     "deploy": "success",
     "migrate": "success",
+    "sync_review_cleanup": "success",
     "smoke": "success",
+    "sync_review_audit": "success",
     "health": "success",
     "coach_live_removed": "success",
     "shadow": "success",
