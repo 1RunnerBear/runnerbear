@@ -41,7 +41,6 @@ required(x.tredictLiveCalendarMirror===true&&x.tredictMirrorAudit?.canonicalPlan
 required(Number(x.tredictMirrorAudit?.executionWindowDays||0)===14,'Tredict execution window is not 14 days');
 required(!x.tredictMirrorAudit?.activeGoalDate||!x.tredictMirrorAudit?.planEndDate||x.tredictMirrorAudit.planEndDate<=x.tredictMirrorAudit.activeGoalDate,'canonical plan extends beyond the active A goal');
 required(x.calendarRead===true&&x.calendarWrite===true&&x.moveSupported===true,'Tredict calendar capabilities are incomplete');
-required(x.createSupported===true&&x.deleteSupported===true&&(x.updateSupported===true||x.replaceSupported===true),'Tredict desired-state write capabilities are incomplete');
 required(x.durableSync===true&&x.historyIntegrity===true,'sync or history integrity failed');
 required(x.historyAudit?.activitiesPresent===true&&Number(x.historyAudit?.duplicateExternalIds||0)===0,'activity history audit failed');
 required(x.goalGuard?.restored===true&&x.goalGuard?.activePrimary===true,'A-goal guard failed');

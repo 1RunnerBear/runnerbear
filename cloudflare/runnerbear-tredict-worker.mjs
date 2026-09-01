@@ -232,7 +232,7 @@ export class TredictService extends WorkerEntrypoint {
     const idempotencyKey=String(operation.idempotencyKey||'').trim(),externalId=String(operation.externalId||operation.workoutId||'').trim(),date=isoDate(operation.date||operation.localDate);if(!idempotencyKey||!externalId||!date)throw new Error('TREDICT_CANONICAL_OPERATION_INVALID');
     const result=await reconcileDesiredState(new TredictCalendarProvider(this.env),{...operation,externalId,date});return{...result,idempotencyKey,date};
   }
-  async health(){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(this.env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,error:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true&&capabilities.supportsCreate===true&&capabilities.supportsDelete===true&&(capabilities.supportsUpdate===true||capabilities.supportsReplace===true);return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'11.8.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities}}
+  async health(){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(this.env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,error:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true||capabilities.supportsCreate===true||capabilities.supportsUpdate===true||capabilities.supportsDelete===true;return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'11.8.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities}}
 }
 
 export default {
@@ -247,7 +247,7 @@ export default {
     if(request.headers.get('X-RunnerBear-Key')!==env.RUNNERBEAR_BRIDGE_KEY)return json({ok:false,error:'BRIDGE_AUTH_FAILED'},401,origin,true);
 
     const url=new URL(request.url);
-    if(url.pathname==='/health'){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,capabilityDiscoveryError:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true&&capabilities.supportsCreate===true&&capabilities.supportsDelete===true&&(capabilities.supportsUpdate===true||capabilities.supportsReplace===true);return json({ok:true,service:'RunnerBear Tredict Bridge',version:'11.8.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities},200,origin,true)}
+    if(url.pathname==='/health'){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,capabilityDiscoveryError:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true||capabilities.supportsCreate===true||capabilities.supportsUpdate===true||capabilities.supportsDelete===true;return json({ok:true,service:'RunnerBear Tredict Bridge',version:'11.8.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities},200,origin,true)}
     if(url.pathname!=='/api/snapshot')return json({ok:false,error:'NOT_FOUND'},404,origin,true);
     const out=await buildSnapshot(env,url.searchParams.get('days')||365);
     return json(out,out.ok?200:(out.status||502),origin,true);

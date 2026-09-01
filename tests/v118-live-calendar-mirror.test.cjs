@@ -74,3 +74,8 @@ test('transient retries are capped and reuse the deterministic idempotency key',
 test('app bootstrap and cron both provide automatic reconciliation safety nets',()=>{
   const routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8'),entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v11.js','utf8');assert.match(routes,/ctx\?\.waitUntil\)ctx\.waitUntil\(reconcileActiveSyncProjection/);assert.match(entry,/reconcileActiveSyncProjection\(env,userId\).*processPendingSync\(env,userId\)/s);
 });
+
+test('missing provider writes fail closed without templates or destructive fallback',async()=>{
+  const {reconcileDesiredState}=await import('../cloudflare/tredict-calendar-sync.mjs'),capabilities={supportsMove:true,supportsCreate:false,supportsUpdate:false,supportsDelete:false,supportsReplace:false},existing=row('td-1','2026-09-03','rb-workout-w1','f1'),updateProvider=new FakeProvider([existing],capabilities),createProvider=new FakeProvider([],capabilities),updated=await reconcileDesiredState(updateProvider,operation({date:'2026-09-03'})),created=await reconcileDesiredState(createProvider,operation({operationType:'create',date:'2026-09-04'}));
+  assert.equal(updated.code,'CONTENT_UPDATE_UNSUPPORTED');assert.equal(created.code,'CREATE_UNSUPPORTED');assert.deepEqual(updateProvider.rows,[existing]);assert.deepEqual(updateProvider.calls,[]);assert.deepEqual(createProvider.calls,[]);
+});
