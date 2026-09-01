@@ -37,7 +37,7 @@ test('v11.6 keeps one accessible dialog contract and locks contextual coach auth
   assert.match(entry,/maximumReductionPercent:20/);
   assert.match(entry,/navigationTabs:4/);
   assert.match(entry,/coachLive:false/);
-  assert.match(config,/src\/index-v116\.js/);
+  assert.match(config,/src\/index-v118\.js/);
   assert.doesNotMatch(config,/COACH_LIVE_MODEL|"binding":\s*"AI"/);
   assert.match(workflow,/verify-v116-health\.mjs/);
   assert.match(workflow,/coach_live_removed/);

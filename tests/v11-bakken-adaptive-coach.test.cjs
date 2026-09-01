@@ -127,5 +127,5 @@ test('v11 release and production gates are locked to the Bakken audit',()=>{
   assert.match(healthGate,/x\.bakkenPlanAudit\?\.ok===true/);
   assert.match(healthGate,/x\.bakkenEngineVersion==='11\.7\.0'/);
   assert.match(healthGate,/x\.bakkenWorkoutBankVersion==='2\.0\.0'/);
-  assert.match(html,/runnerbear-core-v11\.js\?v=11700/);
+  assert.match(html,/runnerbear-core-v11\.js\?v=11800/);
 });

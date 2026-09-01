@@ -37,9 +37,9 @@ test('current assets and production configuration contain no chat client or AI b
   const ui=read('runnerbear-ui-v11-source.js'),config=read('cloud/runnerbear-cloud/wrangler.jsonc'),compat=read('cloud/runnerbear-cloud/src/index-v112.js'),reliability=read('cloud/runnerbear-cloud/src/index-v1141.js'),manifest=JSON.parse(read('runnerbear-v11-assets.json'));
   assert.doesNotMatch(ui,/Coach Live|coachLive|coach-live|data-rb112|rb112|COACH_LIVE|coach_live/);
   assert.match(ui,/surfaces\?\.postWorkout/);assert.match(ui,/context\.healthTrend/);assert.match(ui,/context\?\.whatWentWell/);
-  assert.match(config,/src\/index-v116\.js/);assert.doesNotMatch(config,/"binding":\s*"AI"|COACH_LIVE_MODEL|@cf\/zai-org/);
+  assert.match(config,/src\/index-v118\.js/);assert.doesNotMatch(config,/"binding":\s*"AI"|COACH_LIVE_MODEL|@cf\/zai-org/);
   assert.doesNotMatch(compat,/handleCoachLive|coachLiveAudit|DEFAULT_COACH_LIVE_MODEL|env\.AI|env\.DB/);assert.doesNotMatch(reliability,/\.\/v112\/coach-live\.js/);
-  assert.equal(manifest.build,'11.7.0');assert.equal(manifest.styles.at(-1),'runnerbear-v116-contextual-coach.css');
+  assert.equal(manifest.build,'11.8.0');assert.equal(manifest.styles.at(-1),'runnerbear-v116-contextual-coach.css');
 });
 
 test('production gates accept only Gone or the private Access guard for retired chat',()=>{

@@ -243,7 +243,7 @@ function reflowWeek(items, cfg, week, fromDate, trigger, priorHardDates = [], co
 }
 
 export function reflowFuturePlan(rows = [], rawConfig = {}, fromDate = new Date().toISOString().slice(0, 10), trigger = 'plan_adjustment') {
-  const cfg = normalizeConfig(rawConfig),source=applySecondaryRaces(rows,cfg,fromDate),groups = weekGroups(source), protectedRaceDates=source.filter(row=>row.workoutType==='race'&&row.localDate>=fromDate).map(row=>row.localDate),out = [];
+  const cfg = normalizeConfig(rawConfig),goalBound=cfg.goal.mode==='race'&&cfg.goal.date>=fromDate?cfg.goal.date:'',source=applySecondaryRaces(rows,cfg,fromDate).filter(row=>!goalBound||row.localDate<fromDate||row.localDate<=goalBound),groups = weekGroups(source), protectedRaceDates=source.filter(row=>row.workoutType==='race'&&row.localDate>=fromDate).map(row=>row.localDate),out = [];
   for (const [week, items] of [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     const priorHardDates = [...out.filter(row => countsVolume(row) && isHard(row)).map(row => row.localDate),...protectedRaceDates.filter(date=>weekKey(date)!==week)];
     out.push(...(items.some(row => row.localDate >= fromDate) ? reflowWeek(items, cfg, week, fromDate, trigger, priorHardDates, [...source, ...out]) : items));
@@ -260,7 +260,9 @@ export function generateGoalPlan(rawConfig = {}, fromDate = new Date().toISOStri
     for (let index = rows.length - 1; index >= 0; index--) if (rows[index].localDate === cfg.goal.date) rows.splice(index, 1);
     rows.push({ ...template('quality', cfg.goal.date, raceKm(cfg.goal.distance), 99, weekKey(cfg.goal.date)), workoutType: 'race', title: cfg.goal.name || 'Hovedmål', intent: 'race', plannedDistanceM: raceKm(cfg.goal.distance) * 1000, lockLevel: 'system' });
   }
-  const reflowed = reflowFuturePlan(rows, cfg, fromDate, 'goal_changed'); return { ...reflowed, goalDate };
+  const reflowed = reflowFuturePlan(rows, cfg, fromDate, 'goal_changed');
+  const boundedRows = reflowed.rows.filter(row => row.localDate <= goalDate);
+  return { ...reflowed, rows: boundedRows, validation: validatePlan(boundedRows, cfg, { fromDate }), goalDate };
 }
 export function previewPlan({ currentItems = [], historicalItems = null, config = {}, fromDate = '', goalChanged = false, trigger = 'plan_adjustment' } = {}) {
   const start = dateOnly(fromDate) || new Date().toISOString().slice(0, 10), authoritativeHistory = (historicalItems || currentItems).map(clone).filter(row => row.localDate < start), future = currentItems.map(clone).filter(row => row.localDate >= start), generated = goalChanged ? generateGoalPlan(config, start) : reflowFuturePlan(future, config, start, trigger), occupied = new Set(authoritativeHistory.map(row => `${row.localDate}:${row.slotIndex}`)), combined = [...authoritativeHistory, ...generated.rows.filter(row => !occupied.has(`${row.localDate}:${row.slotIndex}`))], result = reflowFuturePlan(combined, config, start, trigger);
