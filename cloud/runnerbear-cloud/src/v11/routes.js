@@ -102,6 +102,14 @@ export function auditBakkenPlan(plan={},today=new Date().toISOString().slice(0,1
   return{ok:missing.length===0&&generic.length===0&&futureHillWorkouts.length===0&&unknownWorkoutBankIds.length===0&&duplicateQualitySessionIds.length===0&&ordinaryWithoutThreshold.length===0&&pastGoalWorkouts.length===0,engineVersion:BAKKEN_ENGINE_VERSION,workoutBankVersion:BAKKEN_WORKOUT_BANK_VERSION,clientWorkoutBankVersion:BAKKEN_WORKOUT_BANK_VERSION,futureQuality:quality.length,programmedQuality:quality.length-missing.length,missingMetadata:missing.length,genericFallbacks:generic.length,futureHillWorkouts,unknownWorkoutBankIds,duplicateQualitySessionIds,duplicateDefaultVo2Weeks:[],ordinaryWeeksWithoutThreshold:ordinaryWithoutThreshold,pastGoalWorkouts};
 }
 
+export function clipPlanAtActiveGoal(items=[],config={},today=new Date().toISOString().slice(0,10)){
+  const goalDate=config?.goal?.mode==='race'?String(config.goal?.date||''):'';
+  if(!goalDate)return{rows:items,removedIds:[]};
+  const removedIds=items.filter(row=>row.status==='scheduled'&&row.localDate>=today&&row.localDate>goalDate).map(row=>row.workoutId);
+  const removed=new Set(removedIds);
+  return{rows:items.filter(row=>!removed.has(row.workoutId)),removedIds};
+}
+
 export async function repairBakkenV11Plan(env,userId,now=new Date().toISOString()){
   if(!env.DB)return{ok:false,repaired:false,reason:'DB_UNAVAILABLE'};
   const release=String(env.BAKKEN_ENGINE_RELEASE||'runnerbear-v11.0.0'),sourceId=`bakken-engine-release:${release}`,[current,config,replay]=await Promise.all([activePlan(env.DB,userId),athleteConfig(env.DB,userId),env.DB.prepare("SELECT payload_json FROM rb_training_events WHERE user_id=?1 AND source_id=?2 AND event_type='plan:auto-adjusted' LIMIT 1").bind(userId,sourceId).first()]);
@@ -109,7 +117,7 @@ export async function repairBakkenV11Plan(env,userId,now=new Date().toISOString(
   const timezone=config.timezone||'Europe/Oslo',today=new Intl.DateTimeFormat('en-CA',{timeZone:timezone}).format(new Date(now)),beforeAudit=auditBakkenPlan(current,today,config);
   if(replay){const afterAudit=auditBakkenPlan(current,today,config);return{ok:afterAudit.ok,repaired:false,idempotent:true,planRevisionId:current.planRevisionId,beforeAudit:afterAudit,afterAudit}}
   if(beforeAudit.ok)return{ok:true,repaired:false,idempotent:false,planRevisionId:current.planRevisionId,beforeAudit,afterAudit:beforeAudit};
-  const preview=previewPlan({currentItems:current.items,historicalItems:current.items,config,fromDate:today,goalChanged:false,trigger:'bakken_v117_release'}),repaired=repairFutureWorkoutBank({items:preview.rows,config,today});
+  const preview=previewPlan({currentItems:current.items,historicalItems:current.items,config,fromDate:today,goalChanged:false,trigger:'bakken_v117_release'}),clipped=clipPlanAtActiveGoal(preview.rows,config,today),repaired=repairFutureWorkoutBank({items:clipped.rows,config,today});repaired.changedIds=[...new Set([...clipped.removedIds,...repaired.changedIds])];
   if(!preview.validation?.valid)return{ok:false,repaired:false,reason:'CONSTRAINT_CONFLICT',issues:preview.validation?.issues||[],beforeAudit};
   if(!historicalRowsUnchanged(current.items,repaired.rows,today))return{ok:false,repaired:false,reason:'HISTORY_MUTATION_REJECTED',historyIntegrity:false,beforeAudit};
   const afterAudit=auditBakkenPlan({...current,items:repaired.rows},today,config);if(!afterAudit.ok)return{ok:false,repaired:false,reason:'BAKKEN_AUDIT_FAILED',historyIntegrity:true,beforeAudit,afterAudit};

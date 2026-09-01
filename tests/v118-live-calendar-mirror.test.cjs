@@ -62,8 +62,8 @@ test('A-goal plan reaches the active goal and UI has no manual Tredict activatio
 });
 
 test('release audit repairs scheduled rows beyond the active A goal',async()=>{
-  const {auditBakkenPlan}=await import('../cloud/runnerbear-cloud/src/v11/routes.js'),config={goal:{mode:'race',date:'2026-10-03'}},plan={items:[{workoutId:'race',localDate:'2026-10-03',status:'scheduled',sport:'running',workoutType:'race'},{workoutId:'after',localDate:'2026-10-04',status:'scheduled',sport:'rest',workoutType:'recovery'}]},audit=auditBakkenPlan(plan,'2026-09-01',config);
-  assert.equal(audit.ok,false);assert.deepEqual(audit.pastGoalWorkouts,['after']);
+  const {auditBakkenPlan,clipPlanAtActiveGoal}=await import('../cloud/runnerbear-cloud/src/v11/routes.js'),config={goal:{mode:'race',date:'2026-10-03'}},completed={workoutId:'history',localDate:'2026-10-04',status:'completed',sport:'running',workoutType:'easy'},plan={items:[{workoutId:'race',localDate:'2026-10-03',status:'scheduled',sport:'running',workoutType:'race'},{workoutId:'after',localDate:'2026-10-04',status:'scheduled',sport:'rest',workoutType:'recovery'},completed]},audit=auditBakkenPlan(plan,'2026-09-01',config),clipped=clipPlanAtActiveGoal(plan.items,config,'2026-09-01');
+  assert.equal(audit.ok,false);assert.deepEqual(audit.pastGoalWorkouts,['after']);assert.deepEqual(clipped.removedIds,['after']);assert.equal(clipped.rows.some(row=>row.workoutId==='after'),false);assert.equal(clipped.rows.includes(completed),true);assert.equal(auditBakkenPlan({items:clipped.rows},'2026-09-01',config).ok,true);
 });
 
 test('transient retries are capped and reuse the deterministic idempotency key',async()=>{
