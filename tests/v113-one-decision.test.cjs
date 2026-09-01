@@ -64,7 +64,7 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
   assert.match(ui,/function oneDecisionHeroHtml/);
   assert.doesNotMatch(ui,/Oppdater Garmin-data|stale:'Oppdater data'|if\(kind==='refresh_data'\)/);
   assert.match(ui,/stale:'Oppdateres automatisk'/);
-  assert.match(html,/runnerbear-ui-v11\.js\?v=11602/);
+  assert.match(html,/runnerbear-ui-v11\.js\?v=11800/);
   assert.match(ui,/aria-labelledby=\"rb113DecisionTitle\"/);
   assert.match(ui,/function oneDecisionProposalModalHtml/);
   assert.match(ui,/aria-labelledby=\"rb113ProposalTitle\"/);
@@ -82,7 +82,7 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
 
 test('release chain preserves the v11.3 contract without a new endpoint or schema',()=>{
   const entry=fs.readFileSync('cloud/runnerbear-cloud/src/index-v113.js','utf8'),release=fs.readFileSync('cloud/runnerbear-cloud/src/index-v1141.js','utf8'),current=fs.readFileSync('cloud/runnerbear-cloud/src/index-v114.js','utf8'),config=fs.readFileSync('cloud/runnerbear-cloud/wrangler.jsonc','utf8'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),repository=fs.readFileSync('cloud/runnerbear-cloud/src/v11/repository.js','utf8'),routes=fs.readFileSync('cloud/runnerbear-cloud/src/v11/routes.js','utf8');
-  assert.match(config,/src\/index-v116\.js/);
+  assert.match(config,/src\/index-v118\.js/);
   assert.match(entry,/path==='\/api\/v2\/bootstrap'/);
   assert.match(current,/\.\/index-v113\.js/);
   assert.match(release,/\.\/index-v114\.js/);
@@ -94,5 +94,5 @@ test('release chain preserves the v11.3 contract without a new endpoint or schem
   assert.match(routes,/decision\.status!=='proposed'/);
   assert.match(routes,/reductionPercent>20/);
   assert.match(routes,/SAFE_ADJUSTMENT_REJECTED/);
-  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,9);
+  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,10);
 });

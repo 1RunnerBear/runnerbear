@@ -1,5 +1,5 @@
 {
-  "build": "11.7.0",
+  "build": "11.8.0",
   "core": [
     "plan.js", "runnerbear-v100-plan-bootstrap.js", "runnerbear-v100-engine.js",
     "runnerbear-v1012-analysis.js", "runnerbear-v1020-coach-model.js", "runnerbear-v1022-readiness.js",

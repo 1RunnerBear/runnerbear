@@ -80,6 +80,7 @@ jobs:
           node --check src/index-v1141.js
           node --check src/index-v115.js
           node --check src/index-v116.js
+          node --check src/index-v118.js
           node --check src/v11/body-response.js
           node --check src/v112/coach-live.js
           node --check src/v113/one-decision.js
@@ -184,9 +185,9 @@ jobs:
         if: steps.migrate.outcome == 'success'
         continue-on-error: true
         run: |
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations','rb_sync_bindings','rb_health_observations','rb_health_baseline_snapshots','rb_body_response_snapshots','rb_subjective_checkins','rb_workout_response_links','rb_recovery_insights','rb_coach_live_threads','rb_coach_live_messages','rb_coach_live_runs')" --json > /tmp/runnerbear-schema-v116.json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations','rb_sync_bindings','rb_health_observations','rb_health_baseline_snapshots','rb_body_response_snapshots','rb_subjective_checkins','rb_workout_response_links','rb_recovery_insights','rb_coach_live_threads','rb_coach_live_messages','rb_coach_live_runs','rb_canonical_plans','rb_provider_capabilities','rb_reconciliation_state')" --json > /tmp/runnerbear-schema-v116.json
           cat /tmp/runnerbear-schema-v116.json
-          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};if(Number(r.tables_found||0)!==14)throw new Error("RunnerBear v11.6 schema is incomplete")' /tmp/runnerbear-schema-v116.json
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")),r=x.flatMap(v=>v.results||[])[0]||{};if(Number(r.tables_found||0)!==17)throw new Error("RunnerBear v11.8 schema is incomplete")' /tmp/runnerbear-schema-v116.json
 
       - name: Verify Tredict review queue belongs to the active revision
         id: sync_review_audit
@@ -265,7 +266,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
         run: |
           NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"11.7.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','${NOW}','${NOW}') ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at; INSERT INTO rb_feature_flags(user_id,flag,enabled,payload_json,updated_at) VALUES ('primary','coach_loop_shadow',1,'{\"release\":\"11.8.0\",\"runId\":\"${RUN_ID}\"}','${NOW}'),('primary','coach_loop_read',0,'{}','${NOW}'),('primary','coach_loop_ui',0,'{}','${NOW}'),('primary','coach_loop_write',0,'{}','${NOW}'),('primary','coach_loop_sync',0,'{}','${NOW}'),('primary','coach_loop_safe_auto',0,'{}','${NOW}'),('primary','coach_loop_goal_confidence',0,'{}','${NOW}') ON CONFLICT(user_id,flag) DO NOTHING;" --json
 
       - name: Verify persistent feature flags and dependencies
         id: flag_smoke
@@ -375,7 +376,7 @@ jobs:
             "guard": os.environ.get("GUARD_OUTCOME", ""),
           }
           report = {
-            "build": "11.7.0",
+            "build": "11.8.0",
             "status": "success" if all(outcomes[key] == "success" for key in ("d1", "backup", "recover_history", "history", "migrate", "sync_review_cleanup", "smoke", "sync_review_audit", "health", "coach_live_removed", "shadow", "flag_smoke", "guard")) else "failed",
             "checked_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             "run_id": os.environ.get("RUN_ID"),

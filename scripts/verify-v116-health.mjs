@@ -1,10 +1,10 @@
 const x=JSON.parse(process.argv[2]||'{}');
 
-const fail=message=>{throw new Error(`RunnerBear v11.7 health gate: ${message}`)};
+const fail=message=>{throw new Error(`RunnerBear v11.8 health gate: ${message}`)};
 const required=(condition,message)=>{if(!condition)fail(message)};
 
 required(x.ok===true&&x.assets===true&&x.database===true,'base health is not green');
-required(x.cloudBuild==='11.7.0'&&x.schemaVersion===4,'unexpected build or schema');
+required(x.cloudBuild==='11.8.0'&&x.schemaVersion===5,'unexpected build or schema');
 required(x.contextualCoach===true&&x.contextualCoachVersion==='contextual-coach-1','contextual coach is unavailable');
 required(x.contextualCoachAudit?.ok===true,'contextual coach audit failed');
 required(x.contextualCoachAudit?.mode==='background','coach is not background-first');
@@ -36,7 +36,12 @@ required(Number(x.bakkenPlanAudit?.futureHillWorkouts?.length||0)===0,'future hi
 required(Number(x.bakkenPlanAudit?.unknownWorkoutBankIds?.length||0)===0,'unknown workout bank IDs remain');
 required(Number(x.bakkenPlanAudit?.duplicateQualitySessionIds?.length||0)===0,'duplicate quality session IDs remain');
 required(x.tredictService===true&&x.tredictRpc===true,'Tredict transport is unavailable');
-required(['10.26.0','10.31.1'].includes(x.tredictRpcVersion),'unexpected Tredict RPC version');
+required(x.tredictRpcVersion==='11.8.0','unexpected Tredict RPC version');
+required(x.tredictLiveCalendarMirror===true&&x.tredictMirrorAudit?.canonicalPlanCount===1,'live calendar mirror is unavailable');
+required(Number(x.tredictMirrorAudit?.executionWindowDays||0)===14,'Tredict execution window is not 14 days');
+required(!x.tredictMirrorAudit?.activeGoalDate||!x.tredictMirrorAudit?.planEndDate||x.tredictMirrorAudit.planEndDate<=x.tredictMirrorAudit.activeGoalDate,'canonical plan extends beyond the active A goal');
+required(x.calendarRead===true&&x.calendarWrite===true&&x.moveSupported===true,'Tredict calendar capabilities are incomplete');
+required(x.createSupported===true&&x.deleteSupported===true&&(x.updateSupported===true||x.replaceSupported===true),'Tredict desired-state write capabilities are incomplete');
 required(x.durableSync===true&&x.historyIntegrity===true,'sync or history integrity failed');
 required(x.historyAudit?.activitiesPresent===true&&Number(x.historyAudit?.duplicateExternalIds||0)===0,'activity history audit failed');
 required(x.goalGuard?.restored===true&&x.goalGuard?.activePrimary===true,'A-goal guard failed');
