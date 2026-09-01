@@ -25,6 +25,19 @@ export function syncOperationStatements(db,userId,operations=[],now=new Date().t
     VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?9) ON CONFLICT(idempotency_key) DO NOTHING`).bind(op.operationId,userId,op.workoutId,op.planRevisionId,op.destination,op.operationType,op.idempotencyKey,op.status,now)));
   return statements;
 }
+export function supersedeInactiveSyncOperationsStatement(db,userId,activePlanRevisionId,now=new Date().toISOString()){
+  return db.prepare(`UPDATE rb_sync_operations
+    SET status='superseded',next_retry_at=NULL,updated_at=?1
+    WHERE user_id=?2
+      AND plan_revision_id<>?3
+      AND status IN ('queued','processing','failed_retryable','review_required')
+      AND NOT EXISTS (
+        SELECT 1 FROM rb_plan_revisions r
+        WHERE r.user_id=rb_sync_operations.user_id
+          AND r.plan_revision_id=rb_sync_operations.plan_revision_id
+          AND r.status='active'
+      )`).bind(now,userId,activePlanRevisionId);
+}
 export async function storeSyncOperations(db,userId,operations=[],now=new Date().toISOString()){
   if(!operations.length)return[];await db.batch(syncOperationStatements(db,userId,operations,now));return operations;
 }
