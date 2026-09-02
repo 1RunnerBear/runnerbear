@@ -27,10 +27,11 @@ test('rollback levels never leave an invalid dependency combination',async()=>{
   for(const level of ['safe_auto','sync','write','ui','full'])assert.deepEqual(validateFlagDependencies(rollbackFlags(level),true),[],level);
 });
 
-test('cloud deploy initializes missing flags without overwriting activated rollout state',()=>{
+test('cloud deploy verifies rollout flags without spending D1 row writes',()=>{
   const fs=require('node:fs'),workflow=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8');
-  assert.match(workflow,/ON CONFLICT\(user_id,flag\) DO NOTHING/);
-  assert.doesNotMatch(workflow,/ON CONFLICT\(user_id,flag\) DO UPDATE SET enabled=excluded\.enabled/);
+  assert.match(workflow,/Verify owner-only rollout flags exist/);
+  assert.match(workflow,/SELECT flag,enabled FROM rb_feature_flags/);
+  assert.doesNotMatch(workflow,/INSERT INTO rb_feature_flags/);
   assert.match(workflow,/Verify persistent feature flags and dependencies/);
 });
 
