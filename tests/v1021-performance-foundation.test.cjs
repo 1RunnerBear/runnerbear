@@ -35,7 +35,8 @@ test('v11 renders one active surface and lazy-renders inactive tabs',()=>{
   assert.match(ui,/function renderGoals\(\)/);
   assert.match(ui,/function renderMore\(\)/);
   assert.match(ui,/function renderAll\(\)\{return renderView\(activeView\(\)\)\}/);
-  assert.match(ui,/migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\);decorateNav\(\);decorateBrand\(\)/);
+  assert.match(ui,/decorateNav\(\);decorateBrand\(\);[\s\S]*await canonical\.start\(\)[\s\S]*prefsMigrated=migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\)/);
+  assert.match(ui,/window\.RunnerBearClientMigrating=true/);
   assert.match(ui,/await waitForCanonicalRuntime\(\)/);
   assert.match(ui,/runAutopilot\(\);renderToday\(\)/);
   assert.match(ui,/bind\(\$\(id\)\)/);
@@ -115,14 +116,14 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
   assert.match(ui,/Concept2/);
 });
 
-test('release metadata and production health gate agree on v11.8',()=>{
+test('release metadata and production health gate agree on v12.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'11.8.0');
-  assert.match(read('site.webmanifest'),/v11800/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'12.0.0');
+  assert.match(read('site.webmanifest'),/v12000/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v116.js'),/CONTEXTUAL_COACH_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v118\.js/);
-  assert.match(read('scripts/verify-v116-health.mjs'),/cloudBuild==='11\.8\.0'/);
+  assert.match(read('scripts/verify-v116-health.mjs'),/cloudBuild==='12\.0\.0'/);
   assert.match(bridgeWorkflow,/for attempt in 1 2 3 4 5 6 7 8 9 10 11 12/);
   assert.match(bridgeWorkflow,/git checkout -B runnerbear-bridge-report origin\/main/);
 });

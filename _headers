@@ -1,6 +1,24 @@
 /index.html
   Cache-Control: no-cache
 
+/runnerbear-version.json
+  Cache-Control: no-cache
+
+/site.webmanifest
+  Cache-Control: no-cache
+
+/runnerbear-core-v11.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/runnerbear-ui-v11.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/runnerbear-data-v11.js
+  Cache-Control: public, max-age=31536000, immutable
+
+/runnerbear-v11.css
+  Cache-Control: public, max-age=31536000, immutable
+
 /runnerbear-core-v1023.js
   Cache-Control: public, max-age=31536000, immutable
 

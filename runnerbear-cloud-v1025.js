@@ -1,7 +1,7 @@
-/* RunnerBear v10.25.1 · non-blocking Cloud state and Tredict transport client */
+/* RunnerBear v12.0 · compatibility state and Tredict transport client */
 (function(){
   'use strict';
-  const BUILD='10.25.1';
+  const BUILD=window.RunnerBearRelease?.build||'12.0.0';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
@@ -45,6 +45,12 @@
         if(safeKey(k)&&typeof v==='string'&&localStorage.getItem(k)!==v)localStorage.setItem(k,v);
       }
     }finally{hydrating=false}
+  }
+
+  function hydrateState(map={}){
+    applyLocalState(map);
+    baseline=signature(localSnapshot());uploadedVersion=dirtyVersion;
+    return map;
   }
 
   function applyTredict(cache,{merge=false}={}){
@@ -142,7 +148,9 @@
     if(!IS_CLOUD)return null;
     try{
       const result=await api('/api/sync/tredict?days=365',{method:'POST'});
-      if(fullLoaded)await bootstrapFull(document.querySelector('.view.active')?.id||'',true);else await bootstrapHome();
+      if(window.RunnerBearCloudV11?.refresh)await window.RunnerBearCloudV11.refresh('home');
+      else if(fullLoaded)await bootstrapFull(document.querySelector('.view.active')?.id||'',true);
+      else await bootstrapHome();
       if(show)toast('Garmin / Tredict er synkronisert.');
       return result;
     }catch(error){
@@ -233,7 +241,7 @@
   }
 
   function scheduleUpload(){
-    if(!IS_CLOUD||hydrating)return;
+    if(!IS_CLOUD||hydrating||window.RunnerBearClientMigrating===true)return;
     dirtyVersion++;
     clearTimeout(uploadTimer);
     uploadTimer=setTimeout(()=>uploadLocal(false).catch(()=>{}),900);
@@ -309,7 +317,7 @@
       received=true;clearInterval(timer);
       try{
         const result=await api('/api/migrate/local',{method:'POST',body:JSON.stringify({fromOrigin:event.data.fromOrigin||LEGACY_ORIGIN,localStorage:event.data.localStorage||{}})});
-        await bootstrapHome();
+        if(window.RunnerBearCloudV11?.refresh)await window.RunnerBearCloudV11.refresh('home');else await bootstrapHome();
         try{window.opener.postMessage({type:'runnerbear-migration-complete',storedKeys:result?.storedKeys||0,migratedAt:result?.migratedAt},LEGACY_ORIGIN)}catch{}
         const u=new URL(location.href);u.searchParams.delete(MIGRATE_QUERY);history.replaceState({},'',u.pathname+u.search+u.hash);
         toast('Lokale data er flyttet til RunnerBear Cloud.');
@@ -323,7 +331,21 @@
   function startCloud(){
     document.documentElement.classList.add('rb1021-cloud');
     installBridgeAdapter();
+    installTredictTransport();
     migrationReceiver();
+    if(window.RunnerBearCloudV11){
+      baseline=signature(localSnapshot());uploadedVersion=dirtyVersion;
+      window.addEventListener('runnerbear:state-dirty',scheduleUpload);
+      document.addEventListener('visibilitychange',()=>{if(document.hidden){uploadLocal(false).catch(()=>{});return}window.RunnerBearCloudV11.refresh?.('home').catch(error=>console.warn(JSON.stringify({event:'runnerbear_canonical_refresh_error',build:BUILD,message:error?.message||String(error)})))});
+      window.addEventListener('online',()=>window.RunnerBearCloudV11.refresh?.('home').catch(()=>{}));
+      window.addEventListener('pagehide',()=>{
+        if(dirtyVersion===uploadedVersion)return;
+        const snap=localSnapshot(),sig=signature(snap);
+        if(sig!==baseline)fetch('/api/state/localStorage',{method:'PUT',credentials:'same-origin',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({payload:snap})}).catch(()=>{});
+      });
+      console.info(JSON.stringify({event:'runnerbear_canonical_transport_ready',build:BUILD,legacyBootstrap:false,clientBackgroundSync:false}));
+      return;
+    }
     bootstrapHome().then((home)=>{
       installBridgeAdapter();
       window.addEventListener('runnerbear:state-dirty',scheduleUpload);
@@ -352,7 +374,7 @@
     const mo=new MutationObserver(()=>migrationCard());mo.observe(document.body,{childList:true,subtree:true});
   }
 
-  window.RunnerBearCloud={build:BUILD,origin:CLOUD_ORIGIN,bootstrap:bootstrapHome,bootstrapHome,bootstrapFull,loadView:bootstrapFull,cloudSync,uploadLocal,previewOutbound,publishOutbound,reconcileOutbound,outboundStatus,verifyOutbound,cachedOutbound,schedulePlanReconcile};
+  window.RunnerBearCloud={build:BUILD,origin:CLOUD_ORIGIN,bootstrap:bootstrapHome,bootstrapHome,bootstrapFull,loadView:bootstrapFull,cloudSync,uploadLocal,hydrateState,previewOutbound,publishOutbound,reconcileOutbound,outboundStatus,verifyOutbound,cachedOutbound,schedulePlanReconcile};
   window.addEventListener('load',()=>{
     if(IS_CLOUD)startCloud();
     else if(IS_LEGACY)startLegacy();
