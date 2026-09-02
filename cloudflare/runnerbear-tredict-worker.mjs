@@ -117,7 +117,7 @@ const normalizedToolName=value=>String(value||'').toLowerCase().replace(/[_\s]+/
 const toolFor=(tools,kind)=>{const patterns={create:[/planned.*(?:create|add)/,/create.*planned/,/calendar.*create/,/training.*create/],update:[/planned.*(?:update|edit)/,/(?:update|edit).*planned/,/calendar.*update/],delete:[/planned.*(?:delete|remove)/,/(?:delete|remove).*planned/,/calendar.*delete/],planApply:[/plan.*apply/,/apply.*plan/]}[kind]||[];return(tools||[]).find(tool=>normalizedToolName(tool?.name)!=='plan-creation'&&patterns.some(pattern=>pattern.test(normalizedToolName(tool?.name))))||null};
 async function mcpTools(env){
   if(capabilityCache&&capabilityCache.expiresAt>Date.now())return capabilityCache;
-  const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'11.8.0'}}}),sessionId=initialized.sessionId;await mcpPost(env,{jsonrpc:'2.0',method:'notifications/initialized'},sessionId);
+  const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'12.0.0'}}}),sessionId=initialized.sessionId;await mcpPost(env,{jsonrpc:'2.0',method:'notifications/initialized'},sessionId);
   const listed=await mcpPost(env,{jsonrpc:'2.0',id:'rb-tools',method:'tools/list',params:{}},sessionId),tools=listed.envelope?.result?.tools||[],selected={create:toolFor(tools,'create'),update:toolFor(tools,'update'),delete:toolFor(tools,'delete'),planApply:toolFor(tools,'planApply')};capabilityCache={sessionId,tools,selected,expiresAt:Date.now()+5*60000};return capabilityCache;
 }
 function toolArguments(tool,operation={},row={}){const properties=tool?.inputSchema?.properties||{},id=remoteId(row)||String(operation.remoteWorkoutId||''),date=`${isoDate(operation.date)}T15:00:00.000Z`,structuredWorkout=operation.structuredWorkout||{title:operation.title,notes:operation.notes},plannedTraining={id,trainingId:id,date,title:operation.title,notes:structuredWorkout.notes,structuredWorkout,sportType:'running'},args={};for(const key of Object.keys(properties)){const name=key.toLowerCase();if(/^(id|trainingid|plannedtrainingid|workoutid)$/.test(name))args[key]=id;else if(/date|starttime|scheduled/.test(name))args[key]=date;else if(name==='structuredworkout')args[key]=structuredWorkout;else if(/plannedtraining|training|workout/.test(name))args[key]=plannedTraining;else if(name==='title'||name==='name')args[key]=operation.title;else if(/note|description/.test(name))args[key]=structuredWorkout.notes;else if(/sport/.test(name))args[key]='running';else if(name==='externalid')args[key]=operation.externalId}return args}
@@ -132,7 +132,7 @@ class TredictCalendarProvider{
   async deleteWorkout(row,operation){const found=await mcpTools(this.env);return callCalendarTool(this.env,found.selected.delete,operation,row)}
 }
 async function createPlanViaMcp(env,payload){
-  const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'11.8.0'}}});
+  const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'12.0.0'}}});
   const sessionId=initialized.sessionId;
   await mcpPost(env,{jsonrpc:'2.0',method:'notifications/initialized'},sessionId);
   const listed=await mcpPost(env,{jsonrpc:'2.0',id:'rb-tools',method:'tools/list',params:{}},sessionId),tools=listed.envelope?.result?.tools||[],tool=tools.find(x=>x?.name==='plan-creation');
@@ -232,7 +232,7 @@ export class TredictService extends WorkerEntrypoint {
     const idempotencyKey=String(operation.idempotencyKey||'').trim(),externalId=String(operation.externalId||operation.workoutId||'').trim(),date=isoDate(operation.date||operation.localDate);if(!idempotencyKey||!externalId||!date)throw new Error('TREDICT_CANONICAL_OPERATION_INVALID');
     const result=await reconcileDesiredState(new TredictCalendarProvider(this.env),{...operation,externalId,date});return{...result,idempotencyKey,date};
   }
-  async health(){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(this.env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,error:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true||capabilities.supportsCreate===true||capabilities.supportsUpdate===true||capabilities.supportsDelete===true;return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'11.8.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities}}
+  async health(){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(this.env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,error:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true||capabilities.supportsCreate===true||capabilities.supportsUpdate===true||capabilities.supportsDelete===true;return{ok:!!this.env.TREDICT_TOKEN,service:'RunnerBear Tredict RPC',version:'12.0.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities}}
 }
 
 export default {
@@ -247,7 +247,7 @@ export default {
     if(request.headers.get('X-RunnerBear-Key')!==env.RUNNERBEAR_BRIDGE_KEY)return json({ok:false,error:'BRIDGE_AUTH_FAILED'},401,origin,true);
 
     const url=new URL(request.url);
-    if(url.pathname==='/health'){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,capabilityDiscoveryError:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true||capabilities.supportsCreate===true||capabilities.supportsUpdate===true||capabilities.supportsDelete===true;return json({ok:true,service:'RunnerBear Tredict Bridge',version:'11.8.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities},200,origin,true)}
+    if(url.pathname==='/health'){let capabilities={supportsMove:true};try{capabilities=await new TredictCalendarProvider(env).discoverCapabilities()}catch(error){capabilities={supportsMove:true,capabilityDiscoveryError:String(error?.message||error)}}const calendarWrite=capabilities.supportsMove===true||capabilities.supportsCreate===true||capabilities.supportsUpdate===true||capabilities.supportsDelete===true;return json({ok:true,service:'RunnerBear Tredict Bridge',version:'12.0.0',outbound:true,transport:'tredict-garmin',calendarRead:true,calendarWrite,canonicalIds:true,rollingMirror:true,...capabilities},200,origin,true)}
     if(url.pathname!=='/api/snapshot')return json({ok:false,error:'NOT_FOUND'},404,origin,true);
     const out=await buildSnapshot(env,url.searchParams.get('days')||365);
     return json(out,out.ok?200:(out.status||502),origin,true);

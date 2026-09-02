@@ -1,4 +1,4 @@
-/* RunnerBear v11.8.0 · deterministic canonical Tredict workout compiler */
+/* RunnerBear v12.0.0 · deterministic canonical Tredict workout compiler */
 (function(root,factory){
   const api=factory();
   if(typeof module==='object'&&module.exports)module.exports=api;
@@ -122,7 +122,7 @@
     if(!rows.length)throw new Error('No publishable running workouts');
     const start=rows[0].date,end=rows.at(-1).date;
     return{
-      source:{version:'11.8.0',startDate:start,endDate:end,workoutCount:rows.length,externalIds:rows.map(x=>x.externalId),canonicalPlanId:rows.map(x=>x.canonicalPlanId).find(Boolean)||'rb-plan-primary',planRevision:Math.max(0,...rows.map(x=>Number(x.planRevision||0))),planRevisionId:rows.map(x=>x.planRevisionId).find(Boolean)||''},
+      source:{version:'12.0.0',startDate:start,endDate:end,workoutCount:rows.length,externalIds:rows.map(x=>x.externalId),canonicalPlanId:rows.map(x=>x.canonicalPlanId).find(Boolean)||'rb-plan-primary',planRevision:Math.max(0,...rows.map(x=>Number(x.planRevision||0))),planRevisionId:rows.map(x=>x.planRevisionId).find(Boolean)||''},
       payload:{
         plan:{
           title:'RunnerBear',
@@ -140,5 +140,5 @@
     return`${(a>>>0).toString(16).padStart(8,'0')}${(b>>>0).toString(16).padStart(8,'0')}`;
   }
 
-  return{version:'11.8.0',paceSeconds,paceTarget,recoverySeconds,workout,plan,signature};
+  return{version:'12.0.0',paceSeconds,paceTarget,recoverySeconds,workout,plan,signature};
 });

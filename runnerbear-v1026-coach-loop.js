@@ -12,12 +12,26 @@
   const stable=value=>JSON.stringify(canonical(value));
   function assertRevision(snapshot={}){
     const revision=clean(snapshot.planRevisionId||snapshot.activePlan?.planRevisionId);
-    const decision=clean(snapshot.coachDecision?.planRevisionId);
-    const workout=clean(snapshot.todayWorkout?.planRevisionId||revision);
+    const activeRevision=clean(snapshot.activePlan?.planRevisionId||revision),decision=clean(snapshot.coachDecision?.planRevisionId),workout=clean(snapshot.todayWorkout?.planRevisionId||revision);
     if(!revision)return{ok:false,code:'MISSING_PLAN_REVISION'};
+    if(activeRevision!==revision)return{ok:false,code:'ACTIVE_PLAN_REVISION_MISMATCH'};
+    if(snapshot.activePlan?.status&&snapshot.activePlan.status!=='active')return{ok:false,code:'INACTIVE_PLAN_REVISION'};
     if(decision&&decision!==revision)return{ok:false,code:'DECISION_REVISION_MISMATCH'};
     if(workout&&workout!==revision)return{ok:false,code:'WORKOUT_REVISION_MISMATCH'};
-    return{ok:true,planRevisionId:revision};
+    for(const key of ['bodyResponse','oneDecision','contextualCoach','coachBrief','weeklyReview']){
+      const value=snapshot[key],bound=clean(value?.planRevisionId);
+      if(value&&bound&&bound!==revision)return{ok:false,code:`${key.replace(/([A-Z])/g,'_$1').toUpperCase()}_REVISION_MISMATCH`};
+    }
+    const ids=new Set(),slots=new Set();
+    for(const row of snapshot.activePlan?.items||[]){
+      const rowRevision=clean(row?.planRevisionId||revision),id=clean(row?.workoutId),date=dateOnly(row?.localDate||row?.local_date),slot=Number(row?.slotIndex??row?.slot_index??0);
+      if(rowRevision!==revision)return{ok:false,code:'PLAN_ITEM_REVISION_MISMATCH'};
+      if(!id||!date||!Number.isInteger(slot)||slot<0)return{ok:false,code:'INVALID_PLAN_ITEM_IDENTITY'};
+      if(ids.has(id))return{ok:false,code:'DUPLICATE_WORKOUT_ID'};
+      const slotKey=`${date}:${slot}`;if(slots.has(slotKey))return{ok:false,code:'DUPLICATE_PLAN_SLOT'};
+      ids.add(id);slots.add(slotKey);
+    }
+    return{ok:true,planRevisionId:revision,itemCount:ids.size};
   }
   function idempotency(prefix='rb'){
     const random=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
