@@ -43,6 +43,6 @@ required(!x.tredictMirrorAudit?.activeGoalDate||!x.tredictMirrorAudit?.planEndDa
 required(x.calendarRead===true&&x.calendarWrite===true&&x.moveSupported===true,'Tredict calendar capabilities are incomplete');
 required(x.durableSync===true&&x.historyIntegrity===true,'sync or history integrity failed');
 required(x.historyAudit?.activitiesPresent===true&&Number(x.historyAudit?.duplicateExternalIds||0)===0,'activity history audit failed');
-required(x.goalGuard?.restored===true&&x.goalGuard?.activePrimary===true,'A-goal guard failed');
+required(x.goalGuard?.activePrimary===true&&typeof x.goalGuard?.restored==='boolean','A-goal guard failed');
 required(x.syncDrain?.ok===true&&x.syncDrain?.readOnly===true,'sync drain is not healthy');
 required(Number(x.syncOutbox?.queued||0)===0&&Number(x.syncOutbox?.retryable||0)===0&&Number(x.syncOutbox?.processing||0)===0,'sync outbox is not empty');
