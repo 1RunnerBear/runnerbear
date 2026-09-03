@@ -1,10 +1,10 @@
 import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
-import {canEnableSafeAuto,coreFlags,evaluateCoreGates,evaluateObservation,FLAG_ORDER,rollbackFlags,validateFlagDependencies} from './coach-loop-rollout-lib.mjs';
+import {canEnableSafeAuto,coreFlags,evaluateCoreGates,evaluateObservation,FLAG_ORDER,isD1DailyWriteLimitError,rollbackFlags,validateFlagDependencies} from './coach-loop-rollout-lib.mjs';
 
 const USER_ID='primary';
-const RELEASE='10.26.0';
+const RELEASE=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version;
 const phase=process.argv[2]||'advance';
 const rollbackLevel=process.argv[3]||'full';
 const sourceSha=String(process.env.GITHUB_SHA||'local').slice(0,64);
@@ -94,8 +94,13 @@ function stabilizeShadowGate(){
       audit('shadow-bootstrap','blocked',currentFlags(),{sample,sameRevision,compatibilityProjectionClean:Number(state.row.compatibility_mismatch_count)===0});
       return coreGateState();
     }
-    const timestamp=now();
-    execute(`UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,${quote(json({consecutiveSuccesses:sample,lastMatch:true,lastPlanRevisionId:revision,lastReportedAt:timestamp,sampleSource:'production-atomic-bootstrap'}))}),updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_shadow';`);
+  }
+  const timestamp=now();
+  try{
+    execute(`UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,${quote(json({consecutiveSuccesses:checks.length,lastMatch:true,lastPlanRevisionId:revision,lastReportedAt:timestamp,sampleSource:'production-atomic-bootstrap'}))}),updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_shadow';`);
+  }catch(error){
+    if(!isD1DailyWriteLimitError(error))throw error;
+    return{...initial,deferred:{status:'deferred',phase,reason:'d1_daily_write_limit',retry:'next-scheduled-run',productionMutation:'none'}};
   }
   audit('shadow-bootstrap','passed',currentFlags(),{samples:checks.length,consecutiveSuccesses:20,planRevisionStable:checks.every(row=>row.sameRevision),compatibilityProjectionClean:checks.every(row=>row.clean)});
   return coreGateState();
@@ -103,6 +108,11 @@ function stabilizeShadowGate(){
 
 function activateCore(){
   const gate=stabilizeShadowGate();
+  if(gate.deferred){
+    process.stdout.write(`${json(gate.deferred)}\n`);
+    process.stdout.write('::warning title=Coach Loop rollout deferred::Cloudflare D1 daily row-write quota is exhausted. No rollout mutation was applied; the next scheduled rollout will retry.\n');
+    return false;
+  }
   if(!gate.evaluation.ok){audit('core','blocked',currentFlags(),gate.evaluation.checks);process.stdout.write(`${json({status:'blocked',phase:'core',...gate.evaluation,shadow:gate.shadowPayload})}\n`);return false}
 
   const base=coreFlags(),readUi={...base,coach_loop_write:false,coach_loop_sync:false};
