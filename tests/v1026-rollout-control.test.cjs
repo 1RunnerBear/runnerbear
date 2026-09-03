@@ -41,4 +41,19 @@ test('shadow compares like-for-like full plans and rollout samples one stable pr
   assert.match(rollout,/for\(let sample=1;sample<=20;sample\+\+\)/);
   assert.match(rollout,/sampleSource:'production-atomic-bootstrap'/);
   assert.match(rollout,/active_plan_revision_id===revision/);
+  assert.match(rollout,/consecutiveSuccesses:checks\.length/);
+  assert.doesNotMatch(rollout,/consecutiveSuccesses:sample/);
+});
+
+test('D1 daily row-write exhaustion is deferred without hiding unrelated rollout failures',async()=>{
+  const {isD1DailyWriteLimitError}=await import('../cloud/runnerbear-cloud/scripts/coach-loop-rollout-lib.mjs');
+  assert.equal(isD1DailyWriteLimitError({stdout:`{"error":{"notes":[{"text":"Your account has exceeded D1's free tier daily row write limit. [code: 7500]"}],"code":7500}}`}),true);
+  assert.equal(isD1DailyWriteLimitError({message:'A request failed',output:[null,'{"error":{"code":7500}}',null]}),true);
+  assert.equal(isD1DailyWriteLimitError(new Error('D1 syntax error')),false);
+  const fs=require('node:fs'),rollout=fs.readFileSync('cloud/runnerbear-cloud/scripts/coach-loop-rollout.mjs','utf8');
+  assert.match(rollout,/status:'deferred'.*reason:'d1_daily_write_limit'.*retry:'next-scheduled-run'.*productionMutation:'none'/);
+  assert.match(rollout,/if\(!isD1DailyWriteLimitError\(error\)\)throw error/);
+  assert.match(rollout,/if\(gate\.deferred\)/);
+  assert.match(rollout,/const RELEASE=JSON\.parse\(readFileSync\(new URL\('\.\.\/package\.json',import\.meta\.url\),'utf8'\)\)\.version/);
+  assert.doesNotMatch(rollout,/const RELEASE='10\.26\.0'/);
 });

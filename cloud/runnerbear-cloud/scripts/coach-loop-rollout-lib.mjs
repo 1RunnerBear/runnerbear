@@ -10,6 +10,14 @@ export const FLAG_ORDER=Object.freeze([
 
 const number=value=>Number(value||0);
 
+export function isD1DailyWriteLimitError(error){
+  const detail=[error?.message,error?.stdout,error?.stderr,...(Array.isArray(error?.output)?error.output:[])]
+    .filter(value=>value!==null&&value!==undefined)
+    .map(value=>String(value))
+    .join('\n');
+  return /exceeded D1's free tier daily row write limit|\[code:\s*7500\]|["']code["']\s*:\s*7500/i.test(detail);
+}
+
 export function validateFlagDependencies(flags={},migrationCommitted=false){
   const errors=[];
   if(flags.coach_loop_read&&!migrationCommitted)errors.push('read_requires_migration');
