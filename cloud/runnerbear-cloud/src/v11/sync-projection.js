@@ -38,7 +38,7 @@ export function supersedeInactiveSyncOperationsStatement(db,userId,activePlanRev
     SET status='superseded',next_retry_at=NULL,updated_at=?1
     WHERE user_id=?2
       AND plan_revision_id<>?3
-      AND status IN ('queued','processing','failed_retryable','review_required')
+      AND status IN ('queued','processing','failed_retryable','failed_terminal','review_required')
       AND NOT EXISTS (
         SELECT 1 FROM rb_plan_revisions r
         WHERE r.user_id=rb_sync_operations.user_id

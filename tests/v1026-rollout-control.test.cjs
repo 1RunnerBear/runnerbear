@@ -22,6 +22,15 @@ test('a rollout observation blocks on any plan, compatibility or sync integrity 
   for(const key of ['compatibility_mismatch_count','duplicate_sync_count','terminal_sync_error_count','retryable_sync_error_count','stale_decision_count'])assert.equal(evaluateObservation({...clean,[key]:1}).ok,false,key);
 });
 
+test('rollout sync integrity observes only the active plan revision',async()=>{
+  const {observationStateSql}=await import('../cloud/runnerbear-cloud/scripts/coach-loop-rollout-lib.mjs'),db=new (require('node:sqlite').DatabaseSync)(':memory:'),fs=require('node:fs');
+  db.exec(fs.readFileSync('cloud/runnerbear-cloud/migrations/0001_runnerbear_cloud.sql','utf8'));
+  db.exec(fs.readFileSync('cloud/runnerbear-cloud/migrations/0002_coach_loop.sql','utf8'));
+  db.exec("INSERT INTO rb_users(id,created_at,updated_at) VALUES('primary','2026-09-03T00:00:00Z','2026-09-03T00:00:00Z'); INSERT INTO rb_plan_revisions(plan_revision_id,user_id,status,reason_code,policy_version,created_at,activated_at,superseded_at) VALUES('pr-old','primary','superseded','old','coach-loop-1','2026-09-03T00:00:00Z','2026-09-03T00:00:00Z','2026-09-03T01:00:00Z'),('pr-active','primary','active','current','coach-loop-1','2026-09-03T01:00:00Z','2026-09-03T01:00:00Z',NULL); INSERT INTO rb_workouts(workout_id,user_id,lineage_id,created_at) VALUES('wo-old','primary','old','2026-09-03T00:00:00Z'),('wo-active','primary','active','2026-09-03T01:00:00Z'); INSERT INTO rb_plan_revision_items(plan_revision_id,workout_id,local_date,slot_index,status,sport,workout_type,title,intent,prescription_json,planned_distance_m,planned_load_json,source,lock_level,created_at) VALUES('pr-active','wo-active','2099-09-04',0,'scheduled','running','easy','Rolig tur','easy','{}',5000,'{}','runnerbear','none','2026-09-03T01:00:00Z'); INSERT INTO rb_plan_days(user_id,date,type,title,km,status,payload_json,updated_at) VALUES('primary','2099-09-04','easy','Rolig tur',5,'scheduled','{}','2026-09-03T01:00:00Z'); INSERT INTO rb_sync_operations(operation_id,user_id,workout_id,plan_revision_id,destination,operation_type,idempotency_key,status,last_error,created_at,updated_at) VALUES('old-terminal','primary','wo-old','pr-old','tredict','move','old-terminal','failed_terminal','OLD_ERROR','2026-09-03T02:00:00Z','2026-09-03T02:00:00Z'),('active-confirmed','primary','wo-active','pr-active','tredict','create','active-confirmed','confirmed',NULL,'2026-09-03T02:00:00Z','2026-09-03T02:00:00Z')");
+  const row=db.prepare(observationStateSql({userId:'primary',coreActivatedAt:'2026-09-03T01:00:00Z'})).get();
+  assert.equal(row.active_plan_count,1);assert.equal(row.terminal_sync_error_count,0);assert.equal(row.retryable_sync_error_count,0);assert.equal(row.duplicate_sync_count,0);db.close();
+});
+
 test('rollback levels never leave an invalid dependency combination',async()=>{
   const {rollbackFlags,validateFlagDependencies}=await import('../cloud/runnerbear-cloud/scripts/coach-loop-rollout-lib.mjs');
   for(const level of ['safe_auto','sync','write','ui','full'])assert.deepEqual(validateFlagDependencies(rollbackFlags(level),true),[],level);
@@ -54,6 +63,8 @@ test('D1 daily row-write exhaustion is deferred without hiding unrelated rollout
   assert.match(rollout,/status:'deferred'.*reason:'d1_daily_write_limit'.*retry:'next-scheduled-run'.*productionMutation:'none'/);
   assert.match(rollout,/if\(!isD1DailyWriteLimitError\(error\)\)throw error/);
   assert.match(rollout,/if\(gate\.deferred\)/);
+  assert.match(rollout,/if\(!evaluation\.ok\|\|!isD1DailyWriteLimitError\(error\)\)throw error/);
+  assert.match(rollout,/phase:'observation'.*reason:'d1_daily_write_limit'.*productionMutation:'none'/);
   assert.match(rollout,/const RELEASE=JSON\.parse\(readFileSync\(new URL\('\.\.\/package\.json',import\.meta\.url\),'utf8'\)\)\.version/);
   assert.doesNotMatch(rollout,/const RELEASE='10\.26\.0'/);
 });
