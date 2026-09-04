@@ -1,7 +1,7 @@
 import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {readFileSync,writeFileSync} from 'node:fs';
-import {canEnableSafeAuto,coreFlags,evaluateCoreGates,evaluateObservation,FLAG_ORDER,isD1DailyWriteLimitError,rollbackFlags,validateFlagDependencies} from './coach-loop-rollout-lib.mjs';
+import {canEnableSafeAuto,coreFlags,evaluateCoreGates,evaluateObservation,FLAG_ORDER,isD1DailyWriteLimitError,observationStateSql,rollbackFlags,validateFlagDependencies} from './coach-loop-rollout-lib.mjs';
 
 const USER_ID='primary';
 const RELEASE=JSON.parse(readFileSync(new URL('../package.json',import.meta.url),'utf8')).version;
@@ -140,19 +140,7 @@ function activateCore(){
 }
 
 function observationState(coreActivatedAt){
-  return one(`WITH active AS (SELECT plan_revision_id FROM rb_plan_revisions WHERE user_id=${quote(USER_ID)} AND status='active')
-    SELECT
-      (SELECT COUNT(*) FROM active) AS active_plan_count,
-      (SELECT COUNT(*) FROM rb_plan_revision_items WHERE plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1)) AS active_item_count,
-      ((SELECT COUNT(*) FROM rb_plan_revision_items i LEFT JOIN rb_plan_days d ON d.user_id=${quote(USER_ID)} AND d.date=i.local_date
-          WHERE i.plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1) AND i.local_date>=date('now') AND i.slot_index=0
-            AND (d.date IS NULL OR d.type<>i.workout_type OR d.title<>i.title OR ABS(COALESCE(d.km,0)*1000-COALESCE(i.planned_distance_m,0))>1 OR d.status<>i.status))
-       +(SELECT COUNT(*) FROM rb_plan_days d WHERE d.user_id=${quote(USER_ID)} AND d.date>=date('now')
-          AND NOT EXISTS(SELECT 1 FROM rb_plan_revision_items i WHERE i.plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1) AND i.local_date=d.date))) AS compatibility_mismatch_count,
-      (SELECT COUNT(*) FROM (SELECT workout_id,destination FROM rb_sync_operations WHERE user_id=${quote(USER_ID)} AND status='confirmed' AND updated_at>=${quote(coreActivatedAt)} GROUP BY workout_id,destination HAVING COUNT(DISTINCT COALESCE(external_id,''))>1)) AS duplicate_sync_count,
-      (SELECT COUNT(*) FROM rb_sync_operations WHERE user_id=${quote(USER_ID)} AND status='failed_terminal' AND updated_at>=${quote(coreActivatedAt)}) AS terminal_sync_error_count,
-      (SELECT COUNT(*) FROM rb_sync_operations WHERE user_id=${quote(USER_ID)} AND status='failed_retryable' AND updated_at>=${quote(coreActivatedAt)}) AS retryable_sync_error_count,
-      (SELECT COUNT(*) FROM rb_coach_decisions d JOIN rb_plan_revisions r ON r.plan_revision_id=d.plan_revision_id WHERE d.user_id=${quote(USER_ID)} AND d.status IN ('accepted','auto_applied') AND r.superseded_at IS NOT NULL AND d.resolved_at>r.superseded_at AND d.resolved_at>=${quote(coreActivatedAt)}) AS stale_decision_count`);
+  return one(observationStateSql({userId:USER_ID,coreActivatedAt}));
 }
 
 function recordObservation(){
@@ -160,17 +148,25 @@ function recordObservation(){
   const syncPayload=(()=>{try{return JSON.parse(syncFlag.payload_json||'{}')}catch{return{}}})(),safePayload=(()=>{try{return JSON.parse(safeFlag.payload_json||'{}')}catch{return{}}})(),coreActivatedAt=String(syncPayload.coreActivatedAt||safePayload.coreActivatedAt||'');
   if(!coreActivatedAt)return{status:'not-started'};
   const row=observationState(coreActivatedAt),evaluation=evaluateObservation(row),timestamp=now(),observedDate=timestamp.slice(0,10),status=evaluation.ok?'clean':'blocked';
-  execute(`INSERT INTO rb_rollout_observations(observation_id,user_id,observed_date,status,active_plan_count,compatibility_mismatch_count,duplicate_sync_count,terminal_sync_error_count,retryable_sync_error_count,stale_decision_count,detail_json,created_at)
-    VALUES(${quote(`rbo-${randomUUID()}`)},${quote(USER_ID)},${quote(observedDate)},${quote(status)},${Number(row.active_plan_count||0)},${Number(row.compatibility_mismatch_count||0)},${Number(row.duplicate_sync_count||0)},${Number(row.terminal_sync_error_count||0)},${Number(row.retryable_sync_error_count||0)},${Number(row.stale_decision_count||0)},${quote(json(evaluation.checks))},${quote(timestamp)})
-    ON CONFLICT(user_id,observed_date) DO UPDATE SET
-      status=CASE WHEN rb_rollout_observations.status='blocked' OR excluded.status='blocked' THEN 'blocked' ELSE 'clean' END,
-      active_plan_count=excluded.active_plan_count,
-      compatibility_mismatch_count=MAX(rb_rollout_observations.compatibility_mismatch_count,excluded.compatibility_mismatch_count),
-      duplicate_sync_count=MAX(rb_rollout_observations.duplicate_sync_count,excluded.duplicate_sync_count),
-      terminal_sync_error_count=MAX(rb_rollout_observations.terminal_sync_error_count,excluded.terminal_sync_error_count),
-      retryable_sync_error_count=MAX(rb_rollout_observations.retryable_sync_error_count,excluded.retryable_sync_error_count),
-      stale_decision_count=MAX(rb_rollout_observations.stale_decision_count,excluded.stale_decision_count),
-      detail_json=excluded.detail_json;`);
+  try{
+    execute(`INSERT INTO rb_rollout_observations(observation_id,user_id,observed_date,status,active_plan_count,compatibility_mismatch_count,duplicate_sync_count,terminal_sync_error_count,retryable_sync_error_count,stale_decision_count,detail_json,created_at)
+      VALUES(${quote(`rbo-${randomUUID()}`)},${quote(USER_ID)},${quote(observedDate)},${quote(status)},${Number(row.active_plan_count||0)},${Number(row.compatibility_mismatch_count||0)},${Number(row.duplicate_sync_count||0)},${Number(row.terminal_sync_error_count||0)},${Number(row.retryable_sync_error_count||0)},${Number(row.stale_decision_count||0)},${quote(json(evaluation.checks))},${quote(timestamp)})
+      ON CONFLICT(user_id,observed_date) DO UPDATE SET
+        status=CASE WHEN rb_rollout_observations.status='blocked' OR excluded.status='blocked' THEN 'blocked' ELSE 'clean' END,
+        active_plan_count=excluded.active_plan_count,
+        compatibility_mismatch_count=MAX(rb_rollout_observations.compatibility_mismatch_count,excluded.compatibility_mismatch_count),
+        duplicate_sync_count=MAX(rb_rollout_observations.duplicate_sync_count,excluded.duplicate_sync_count),
+        terminal_sync_error_count=MAX(rb_rollout_observations.terminal_sync_error_count,excluded.terminal_sync_error_count),
+        retryable_sync_error_count=MAX(rb_rollout_observations.retryable_sync_error_count,excluded.retryable_sync_error_count),
+        stale_decision_count=MAX(rb_rollout_observations.stale_decision_count,excluded.stale_decision_count),
+        detail_json=excluded.detail_json;`);
+  }catch(error){
+    if(!evaluation.ok||!isD1DailyWriteLimitError(error))throw error;
+    const deferred={status:'deferred',phase:'observation',reason:'d1_daily_write_limit',retry:'next-scheduled-run',productionMutation:'none',coreActivatedAt,evaluation};
+    process.stdout.write(`${json(deferred)}\n`);
+    process.stdout.write('::warning title=Coach Loop observation deferred::Cloudflare D1 daily row-write quota is exhausted. The clean read-only gate passed; no rollout mutation was applied.\n');
+    return deferred;
+  }
   audit('observation',status,currentFlags(),evaluation.checks);
   if(!evaluation.ok){
     const rolledBack=rollbackFlags('full');
@@ -202,9 +198,9 @@ function rollback(){
 
 resolveProductionConfig();
 if(phase==='rollback')rollback();
-else if(phase==='safe-auto'){recordObservation();maybeEnableSafeAuto()}
+else if(phase==='safe-auto'){const observation=recordObservation();if(observation.status!=='deferred')maybeEnableSafeAuto()}
 else{
   const flags=currentFlags(),coreActive=flags.coach_loop_read&&flags.coach_loop_ui&&flags.coach_loop_write&&flags.coach_loop_sync;
   if(!coreActive)activateCore();
-  if(currentFlags().coach_loop_sync){recordObservation();maybeEnableSafeAuto()}
+  if(currentFlags().coach_loop_sync){const observation=recordObservation();if(observation.status!=='deferred')maybeEnableSafeAuto()}
 }

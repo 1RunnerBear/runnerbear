@@ -173,12 +173,12 @@ jobs:
         continue-on-error: true
         run: npx wrangler d1 migrations apply DB --remote --config wrangler.release.jsonc
 
-      - name: Supersede inactive Tredict review work
+      - name: Supersede inactive Tredict sync work
         id: sync_review_cleanup
         if: steps.migrate.outcome == 'success'
         continue-on-error: true
         run: |
-          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="UPDATE rb_sync_operations SET status='superseded',next_retry_at=NULL,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE status IN ('queued','processing','failed_retryable','review_required') AND NOT EXISTS (SELECT 1 FROM rb_plan_revisions r WHERE r.user_id=rb_sync_operations.user_id AND r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.status='active')" --json
+          npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --command="UPDATE rb_sync_operations SET status='superseded',next_retry_at=NULL,updated_at=strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE status IN ('queued','processing','failed_retryable','failed_terminal','review_required') AND NOT EXISTS (SELECT 1 FROM rb_plan_revisions r WHERE r.user_id=rb_sync_operations.user_id AND r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.status='active')" --json
 
       - name: Smoke test v11.6 D1 schema
         id: smoke
