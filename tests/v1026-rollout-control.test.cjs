@@ -68,3 +68,12 @@ test('D1 daily row-write exhaustion is deferred without hiding unrelated rollout
   assert.match(rollout,/const RELEASE=JSON\.parse\(readFileSync\(new URL\('\.\.\/package\.json',import\.meta\.url\),'utf8'\)\)\.version/);
   assert.doesNotMatch(rollout,/const RELEASE='10\.26\.0'/);
 });
+
+test('blocked rollout observations report safe aggregates, roll back and fail the workflow',()=>{
+  const fs=require('node:fs'),rollout=fs.readFileSync('cloud/runnerbear-cloud/scripts/coach-loop-rollout.mjs','utf8');
+  assert.match(rollout,/terminalSyncErrors=evaluation\.ok\?\[\]:activeTerminalSummary\(coreActivatedAt\)/);
+  assert.match(rollout,/operationType,errorCode,count/);
+  assert.match(rollout,/automatic flag rollback completed/);
+  assert.match(rollout,/status:'already-active',phase:'safe-auto'/);
+  assert.doesNotMatch(rollout,/terminalSyncErrors.*last_error/);
+});

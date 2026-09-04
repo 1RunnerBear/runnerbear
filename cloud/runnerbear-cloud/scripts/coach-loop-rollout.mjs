@@ -143,11 +143,29 @@ function observationState(coreActivatedAt){
   return one(observationStateSql({userId:USER_ID,coreActivatedAt}));
 }
 
+function terminalErrorCode(value){
+  const text=String(value||'').toUpperCase();
+  for(const code of ['CREATE_UNSUPPORTED','CONTENT_UPDATE_UNSUPPORTED','DELETE_UNSUPPORTED','MOVE_UNSUPPORTED','OWNERSHIP_REQUIRED','AUTH','CONFIG','INVALID'])if(text.includes(code))return code;
+  return text?'OTHER':'UNKNOWN';
+}
+
+function activeTerminalSummary(coreActivatedAt){
+  const grouped=new Map();
+  for(const row of rows(`WITH active AS (SELECT plan_revision_id FROM rb_plan_revisions WHERE user_id=${quote(USER_ID)} AND status='active')
+    SELECT o.operation_type,o.last_error
+    FROM rb_sync_operations o JOIN active a ON a.plan_revision_id=o.plan_revision_id
+    WHERE o.user_id=${quote(USER_ID)} AND o.status='failed_terminal' AND o.updated_at>=${quote(coreActivatedAt)}`)){
+    const operationType=String(row.operation_type||'unknown'),errorCode=terminalErrorCode(row.last_error),key=`${operationType}:${errorCode}`;
+    grouped.set(key,{operationType,errorCode,count:Number(grouped.get(key)?.count||0)+1});
+  }
+  return[...grouped.values()].sort((a,b)=>a.operationType.localeCompare(b.operationType)||a.errorCode.localeCompare(b.errorCode));
+}
+
 function recordObservation(){
   const syncFlag=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_sync'`),safeFlag=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto'`);
   const syncPayload=(()=>{try{return JSON.parse(syncFlag.payload_json||'{}')}catch{return{}}})(),safePayload=(()=>{try{return JSON.parse(safeFlag.payload_json||'{}')}catch{return{}}})(),coreActivatedAt=String(syncPayload.coreActivatedAt||safePayload.coreActivatedAt||'');
   if(!coreActivatedAt)return{status:'not-started'};
-  const row=observationState(coreActivatedAt),evaluation=evaluateObservation(row),timestamp=now(),observedDate=timestamp.slice(0,10),status=evaluation.ok?'clean':'blocked';
+  const row=observationState(coreActivatedAt),evaluation=evaluateObservation(row),timestamp=now(),observedDate=timestamp.slice(0,10),status=evaluation.ok?'clean':'blocked',terminalSyncErrors=evaluation.ok?[]:activeTerminalSummary(coreActivatedAt);
   try{
     execute(`INSERT INTO rb_rollout_observations(observation_id,user_id,observed_date,status,active_plan_count,compatibility_mismatch_count,duplicate_sync_count,terminal_sync_error_count,retryable_sync_error_count,stale_decision_count,detail_json,created_at)
       VALUES(${quote(`rbo-${randomUUID()}`)},${quote(USER_ID)},${quote(observedDate)},${quote(status)},${Number(row.active_plan_count||0)},${Number(row.compatibility_mismatch_count||0)},${Number(row.duplicate_sync_count||0)},${Number(row.terminal_sync_error_count||0)},${Number(row.retryable_sync_error_count||0)},${Number(row.stale_decision_count||0)},${quote(json(evaluation.checks))},${quote(timestamp)})
@@ -168,19 +186,22 @@ function recordObservation(){
     return deferred;
   }
   audit('observation',status,currentFlags(),evaluation.checks);
+  const result={status,coreActivatedAt,evaluation,terminalSyncErrors};
+  process.stdout.write(`${json(result)}\n`);
   if(!evaluation.ok){
     const rolledBack=rollbackFlags('full');
     setFlags(rolledBack,{phase:'automatic-safety-rollback',failedAt:timestamp,reactivationRequired:true});
     execute(`UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,'{"consecutiveSuccesses":0,"lastMatch":false,"reactivationRequired":true}'),updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_shadow';`);
     audit('automatic-safety-rollback','activate',rolledBack,evaluation.checks);
+    throw new Error(`Coach Loop observation blocked; automatic flag rollback completed. Active terminal sync errors: ${json(terminalSyncErrors)}`);
   }
-  return{status,coreActivatedAt,evaluation};
+  return result;
 }
 
 function maybeEnableSafeAuto(){
   const flags=currentFlags();
-  if(!(flags.coach_loop_read&&flags.coach_loop_ui&&flags.coach_loop_write&&flags.coach_loop_sync))return{status:'core-not-active'};
-  if(flags.coach_loop_safe_auto)return{status:'already-active'};
+  if(!(flags.coach_loop_read&&flags.coach_loop_ui&&flags.coach_loop_write&&flags.coach_loop_sync)){const result={status:'core-not-active',phase:'safe-auto'};process.stdout.write(`${json(result)}\n`);return result}
+  if(flags.coach_loop_safe_auto){const result={status:'already-active',phase:'safe-auto'};process.stdout.write(`${json(result)}\n`);return result}
   const safeRow=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto'`),syncRow=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_sync'`),safePayload=(()=>{try{return JSON.parse(safeRow.payload_json||'{}')}catch{return{}}})(),syncPayload=(()=>{try{return JSON.parse(syncRow.payload_json||'{}')}catch{return{}}})(),coreActivatedAt=String(syncPayload.coreActivatedAt||safePayload.coreActivatedAt||''),cleanDates=rows(`SELECT observed_date FROM rb_rollout_observations WHERE user_id=${quote(USER_ID)} AND status='clean' AND created_at>=${quote(coreActivatedAt)} ORDER BY observed_date`).map(row=>row.observed_date),gate=canEnableSafeAuto({coreActivatedAt,now:now(),cleanObservationDates:cleanDates,explicitOptIn:safePayload.explicitOptIn===true});
   if(!gate.ok){process.stdout.write(`${json({status:'waiting',phase:'safe-auto',...gate})}\n`);return{status:'waiting',gate}}
   const enabledFlags={...flags,coach_loop_safe_auto:true},activatedAt=now();
