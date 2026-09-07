@@ -72,7 +72,8 @@ test('D1 daily row-write exhaustion is deferred without hiding unrelated rollout
 test('blocked rollout observations report safe aggregates, roll back and fail the workflow',()=>{
   const fs=require('node:fs'),rollout=fs.readFileSync('cloud/runnerbear-cloud/scripts/coach-loop-rollout.mjs','utf8');
   assert.match(rollout,/terminalSyncErrors=evaluation\.ok\?\[\]:activeTerminalSummary\(\)/);
-  assert.match(rollout,/operation_type='create'.*status='failed_terminal'.*attempt_count<2.*CREATE_UNSUPPORTED/s);
+  assert.match(rollout,/operation_type='create'.*status='failed_terminal'.*CREATE_UNSUPPORTED/s);
+  assert.match(rollout,/CONTENT_UPDATE_UNSUPPORTED.*current\.prescription_json=previous\.prescription_json/s);
   assert.match(rollout,/operationType,errorCode,count/);
   assert.match(rollout,/automatic flag rollback completed/);
   assert.match(rollout,/status:'already-active',phase:'safe-auto'/);
