@@ -21,7 +21,7 @@ export function rowRevisionId(row={}){return markerValue(row,'REV')}
 export function rowFingerprint(row={}){return markerValue(row,'FPR').toLowerCase()}
 export function remoteId(row={}){return String(row.id||row.trainingId||row.plannedTrainingId||'')}
 export function remoteDate(row={}){return isoDate(row.date||row.startDate||row.scheduledDate)}
-export function isCompletedWorkout(row={}){return row.completed===true||row.isCompleted===true||['completed','done'].includes(String(row.status||row.state||'').toLowerCase())||!!row.activityId}
+export function isCompletedWorkout(row={}){return row.completed===true||row.isCompleted===true||['completed','done'].includes(String(row.status||row.state||'').toLowerCase())||!!row.activityId||!!row.executedTrainingId}
 export function isRunnerBearOwned(row={},bindingRemoteId=''){return!!rowExternalId(row)||!!bindingRemoteId&&remoteId(row)===String(bindingRemoteId)}
 
 const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined&&key!=='remoteWorkoutId').map(key=>[key,canonical(value[key])])):value;
@@ -53,6 +53,24 @@ export function chooseDuplicateKeeper(rows=[],desired={},bindingRemoteId=''){
     const score=row=>(remoteId(row)===String(bindingRemoteId||'')?16:0)+(rowRevisionId(row)===String(desired.planRevisionId||'')?8:0)+(remoteDate(row)===isoDate(desired.date)?4:0)+(rowFingerprint(row)===String(desired.fingerprint||'').toLowerCase()?2:0)+(isCompletedWorkout(row)?1:0);
     return score(b)-score(a)||remoteId(a).localeCompare(remoteId(b));
   })[0]||null;
+}
+
+const rowTitle=row=>String(row?.title||row?.workoutName||row?.structuredWorkout?.title||row?.training?.title||'');
+const plainEasy=value=>{
+  const title=String(value?.title||value?.structuredWorkout?.title||value?.intent||value?.stimulus||'').toLowerCase();
+  const stimulus=String(value?.stimulus||markerValue(value,'STIMULUS')||'').toLowerCase();
+  return(stimulus==='easy'||/\b(?:easy|rolig)\b/.test(title))&&!/(?:langtur|long|stride|stigning|terskel|threshold|intervall|interval|gate|bakke|hill|tempo|fartlek|progressiv|race|konkurranse|\bx\b|\u00d7)/i.test(title);
+};
+
+export function chooseOwnedRelinkCandidate(rows=[],operation={}){
+  if(String(operation.operationType||operation.operation_type||'').toLowerCase()!=='create'||!plainEasy(operation))return null;
+  const reserved=new Set((operation.reservedRemoteWorkoutIds||[]).map(String).filter(Boolean)),today=isoDate(operation.today||new Date().toISOString()),target=isoDate(operation.date||operation.localDate),hasReservedSibling=row=>(rows||[]).some(other=>other!==row&&remoteDate(other)===remoteDate(row)&&reserved.has(remoteId(other)));
+  const candidates=(rows||[]).filter(row=>{
+    const id=remoteId(row),externalId=rowExternalId(row);
+    return id&&externalId.startsWith('runnerbear-')&&!reserved.has(id)&&!isCompletedWorkout(row)&&remoteDate(row)>=today&&plainEasy(row)&&hasReservedSibling(row);
+  }).map(row=>({row,distance:Math.abs((Date.parse(`${remoteDate(row)}T12:00:00Z`)-Date.parse(`${target}T12:00:00Z`))/86400000)})).sort((a,b)=>a.distance-b.distance||remoteId(a.row).localeCompare(remoteId(b.row)));
+  if(!candidates.length||candidates[1]?.distance===candidates[0].distance)return null;
+  return candidates[0].row;
 }
 
 export function classifyDesiredState(operation={},rows=[]){
@@ -96,7 +114,14 @@ export async function reconcileDesiredState(provider,rawOperation={}){
     return matches.length?{status:'failed_retryable',code:'DELETE_VERIFY_FAILED',action:'DELETE',externalId:operation.externalId,capabilities}:{status:'confirmed',code:'DELETED',action:'DELETE',externalId:operation.externalId,capabilities};
   }
   if(classified.action==='CREATE'){
-    if(!capabilities.supportsCreate)return{status:'failed_terminal',code:'CREATE_UNSUPPORTED',externalId:operation.externalId,capabilities};
+    if(!capabilities.supportsCreate){
+      const candidate=capabilities.supportsOwnedRelink?chooseOwnedRelinkCandidate(initialRows,operation):null;
+      if(!candidate)return{status:'failed_terminal',code:'CREATE_UNSUPPORTED',externalId:operation.externalId,capabilities};
+      await provider.updateOwnedMetadata(candidate,operation);
+      await provider.moveWorkout(candidate,operation);
+      const verification=await verifyExactlyOne(provider,{...operation,remoteWorkoutId:remoteId(candidate)});
+      return verification.ok?{...confirmed(operation,verification.row,'OWNED_RELINKED'),action:'RELINK',capabilities}:{status:'failed_retryable',code:'OWNED_RELINK_VERIFY_FAILED',action:'RELINK',externalId:operation.externalId,capabilities};
+    }
     current=await provider.createWorkout(operation);const verification=await verifyExactlyOne(provider,{...operation,remoteWorkoutId:remoteId(current)});
     return verification.ok?{...confirmed(operation,verification.row,'CREATED'),action:'CREATE',capabilities}:{status:'failed_retryable',code:'CREATE_VERIFY_FAILED',action:'CREATE',externalId:operation.externalId,capabilities};
   }

@@ -23,8 +23,8 @@ export function observationStateSql({userId='primary',coreActivatedAt=''}={}){
        +(SELECT COUNT(*) FROM rb_plan_days d WHERE d.user_id=${user} AND d.date>=date('now')
           AND NOT EXISTS(SELECT 1 FROM rb_plan_revision_items i WHERE i.plan_revision_id=(SELECT plan_revision_id FROM active LIMIT 1) AND i.local_date=d.date))) AS compatibility_mismatch_count,
       (SELECT COUNT(*) FROM (SELECT o.workout_id,o.destination FROM rb_sync_operations o JOIN active a ON a.plan_revision_id=o.plan_revision_id WHERE o.user_id=${user} AND o.status='confirmed' AND o.updated_at>=${activatedAt} GROUP BY o.workout_id,o.destination HAVING COUNT(DISTINCT COALESCE(o.external_id,''))>1)) AS duplicate_sync_count,
-      (SELECT COUNT(*) FROM rb_sync_operations o JOIN active a ON a.plan_revision_id=o.plan_revision_id WHERE o.user_id=${user} AND o.status='failed_terminal' AND o.updated_at>=${activatedAt}) AS terminal_sync_error_count,
-      (SELECT COUNT(*) FROM rb_sync_operations o JOIN active a ON a.plan_revision_id=o.plan_revision_id WHERE o.user_id=${user} AND o.status='failed_retryable' AND o.updated_at>=${activatedAt}) AS retryable_sync_error_count,
+      (SELECT COUNT(*) FROM rb_sync_operations o JOIN active a ON a.plan_revision_id=o.plan_revision_id WHERE o.user_id=${user} AND o.status='failed_terminal') AS terminal_sync_error_count,
+      (SELECT COUNT(*) FROM rb_sync_operations o JOIN active a ON a.plan_revision_id=o.plan_revision_id WHERE o.user_id=${user} AND o.status='failed_retryable') AS retryable_sync_error_count,
       (SELECT COUNT(*) FROM rb_coach_decisions d JOIN rb_plan_revisions r ON r.plan_revision_id=d.plan_revision_id WHERE d.user_id=${user} AND d.status IN ('accepted','auto_applied') AND r.superseded_at IS NOT NULL AND d.resolved_at>r.superseded_at AND d.resolved_at>=${activatedAt}) AS stale_decision_count`;
 }
 

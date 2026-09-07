@@ -11,7 +11,8 @@ class FakeProvider{
   async listPlannedWorkouts(){return this.rows}
   async createWorkout(op){this.calls.push('create');if(this.failCreate)throw new Error('create failed');const created=row(`td-${this.next++}`,op.date,op.externalId,op.fingerprint);created.notes=op.structuredWorkout.notes;this.rows.push(created);return created}
   async moveWorkout(remote,op){this.calls.push('move');remote.date=`${op.date}T15:00:00.000Z`;return remote}
-  async updateWorkout(remote,op){this.calls.push('update');remote.notes=op.structuredWorkout.notes;return remote}
+  async updateWorkout(remote,op){this.calls.push('update');remote.title=op.title;remote.notes=op.structuredWorkout.notes;return remote}
+  async updateOwnedMetadata(remote,op){this.calls.push('metadata-update');remote.title=op.title;remote.notes=op.structuredWorkout.notes;return remote}
   async deleteWorkout(remote){this.calls.push(`delete:${remote.id}`);this.rows=this.rows.filter(item=>item!==remote)}
 }
 
@@ -42,8 +43,8 @@ test('duplicate cleanup removes only safe future RunnerBear copies',async()=>{
 });
 
 test('completed and user-created workouts are immutable',async()=>{
-  const {classifyDesiredState}=await import('../cloudflare/tredict-calendar-sync.mjs'),completed=classifyDesiredState(operation({date:'2026-09-03'}),[row('td-1','2026-09-03','rb-workout-w1','f2',{completed:true})]),manual=classifyDesiredState(operation({date:'2026-09-03'}),[{id:'manual',date:'2026-09-03T15:00:00.000Z',title:'Quality',notes:'my own workout'}]);
-  assert.equal(completed.code,'IMMUTABLE_HISTORY');assert.equal(manual.code,'OWNERSHIP_REQUIRED');
+  const {classifyDesiredState,isCompletedWorkout}=await import('../cloudflare/tredict-calendar-sync.mjs'),completed=classifyDesiredState(operation({date:'2026-09-03'}),[row('td-1','2026-09-03','rb-workout-w1','f2',{completed:true})]),manual=classifyDesiredState(operation({date:'2026-09-03'}),[{id:'manual',date:'2026-09-03T15:00:00.000Z',title:'Quality',notes:'my own workout'}]);
+  assert.equal(completed.code,'IMMUTABLE_HISTORY');assert.equal(isCompletedWorkout({executedTrainingId:'activity-1'}),true);assert.equal(manual.code,'OWNERSHIP_REQUIRED');
 });
 
 test('identical desired state is idempotent with zero writes',async()=>{
@@ -67,8 +68,9 @@ test('release audit repairs scheduled rows beyond the active A goal',async()=>{
 });
 
 test('transient retries are capped and reuse the deterministic idempotency key',async()=>{
-  const [{syncErrorDisposition,syncRetryDelaySeconds},{projectRollingSync}]=await Promise.all([import('../cloud/runnerbear-cloud/src/v11/routes.js'),import('../cloud/runnerbear-cloud/src/v11/sync-projection.js')]),item={workoutId:'retry-stable',lineageId:'retry-stable',localDate:'2026-09-03',status:'scheduled',sport:'running',workoutType:'easy',title:'Easy',intent:'easy',prescription:{}},first=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0],again=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0];
+  const [{canRetryOwnedRelink,syncErrorDisposition,syncRetryDelaySeconds},{projectRollingSync}]=await Promise.all([import('../cloud/runnerbear-cloud/src/v11/routes.js'),import('../cloud/runnerbear-cloud/src/v11/sync-projection.js')]),item={workoutId:'retry-stable',lineageId:'retry-stable',localDate:'2026-09-03',status:'scheduled',sport:'running',workoutType:'easy',title:'Easy',intent:'easy',prescription:{}},first=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0],again=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0];
   assert.deepEqual([1,2,3,4,8].map(syncRetryDelaySeconds),[30,120,600,1800,1800]);assert.deepEqual(syncErrorDisposition({status:429},1),{status:'failed_retryable',delaySeconds:30});assert.deepEqual(syncErrorDisposition({status:500},2),{status:'failed_retryable',delaySeconds:120});assert.deepEqual(syncErrorDisposition({status:401},1),{status:'failed_terminal',delaySeconds:null});assert.equal(first.idempotencyKey,again.idempotencyKey);
+  const terminal={operation_type:'create',status:'failed_terminal',attempt_count:1,last_error:'CREATE_UNSUPPORTED'};assert.equal(canRetryOwnedRelink(terminal,{supportsOwnedRelink:true}),true);assert.equal(canRetryOwnedRelink({...terminal,attempt_count:2},{supportsOwnedRelink:true}),false);assert.equal(canRetryOwnedRelink(terminal,{supportsOwnedRelink:false}),false);
 });
 
 test('app bootstrap and cron both provide automatic reconciliation safety nets',()=>{
@@ -76,6 +78,20 @@ test('app bootstrap and cron both provide automatic reconciliation safety nets',
 });
 
 test('missing provider writes fail closed without templates or destructive fallback',async()=>{
-  const {reconcileDesiredState}=await import('../cloudflare/tredict-calendar-sync.mjs'),capabilities={supportsMove:true,supportsCreate:false,supportsUpdate:false,supportsDelete:false,supportsReplace:false},existing=row('td-1','2026-09-03','rb-workout-w1','f1'),updateProvider=new FakeProvider([existing],capabilities),createProvider=new FakeProvider([],capabilities),updated=await reconcileDesiredState(updateProvider,operation({date:'2026-09-03'})),created=await reconcileDesiredState(createProvider,operation({operationType:'create',date:'2026-09-04'}));
+  const {reconcileDesiredState}=await import('../cloudflare/tredict-calendar-sync.mjs'),capabilities={supportsMove:true,supportsCreate:false,supportsUpdate:false,supportsDelete:false,supportsReplace:false,supportsOwnedRelink:false},existing=row('td-1','2026-09-03','rb-workout-w1','f1'),updateProvider=new FakeProvider([existing],capabilities),createProvider=new FakeProvider([],capabilities),updated=await reconcileDesiredState(updateProvider,operation({date:'2026-09-03'})),created=await reconcileDesiredState(createProvider,operation({operationType:'create',date:'2026-09-04'}));
   assert.equal(updated.code,'CONTENT_UPDATE_UNSUPPORTED');assert.equal(created.code,'CREATE_UNSUPPORTED');assert.deepEqual(updateProvider.rows,[existing]);assert.deepEqual(updateProvider.calls,[]);assert.deepEqual(createProvider.calls,[]);
+});
+
+test('unsupported create safely relinks one unbound legacy easy duplicate',async()=>{
+  const {reconcileDesiredState}=await import('../cloudflare/tredict-calendar-sync.mjs'),capabilities={supportsMove:true,supportsCreate:false,supportsUpdate:true,supportsDelete:false,supportsReplace:true,supportsOwnedRelink:true},bound=row('td-bound','2026-09-09','rb-workout-current','current',{title:'5,5 km rolig'}),legacy=row('td-legacy','2026-09-09','runnerbear-2026-09-09-rolig','legacy',{title:'7 km rolig'}),provider=new FakeProvider([bound,legacy],capabilities),result=await reconcileDesiredState(provider,operation({operationType:'create',externalId:'rb-workout-new',date:'2026-09-19',title:'5 km rolig',stimulus:'easy',fingerprint:'new',reservedRemoteWorkoutIds:['td-bound'],structuredWorkout:{title:'5 km rolig',notes:'[RB:rb-workout-new] [PLAN:rb-plan-primary] [REV:pr-2] [STIMULUS:easy] [FPR:new]'}}));
+  assert.equal(result.status,'confirmed');assert.equal(result.code,'OWNED_RELINKED');assert.equal(result.action,'RELINK');assert.deepEqual(provider.calls,['metadata-update','move']);assert.equal(legacy.id,'td-legacy');assert.equal(legacy.date.slice(0,10),'2026-09-19');assert.equal(legacy.title,'5 km rolig');assert.match(legacy.notes,/\[RB:rb-workout-new\]/);assert.equal(bound.date.slice(0,10),'2026-09-09');
+});
+
+test('owned relink never consumes quality workouts or ambiguous easy duplicates',async()=>{
+  const {chooseOwnedRelinkCandidate}=await import('../cloudflare/tredict-calendar-sync.mjs'),bound=row('td-bound','2026-09-09','rb-workout-current','current',{title:'5 km rolig'}),quality=row('td-quality','2026-09-09','runnerbear-quality','old',{title:'4 × 8 min terskel'}),left=row('td-left','2026-09-08','runnerbear-left','old',{title:'6 km rolig'}),leftBound=row('td-left-bound','2026-09-08','rb-workout-left','current',{title:'Kvalitet'}),right=row('td-right','2026-09-10','runnerbear-right','old',{title:'7 km rolig'}),rightBound=row('td-right-bound','2026-09-10','rb-workout-right','current',{title:'Kvalitet'}),op=operation({operationType:'create',date:'2026-09-09',title:'5 km rolig',stimulus:'easy',reservedRemoteWorkoutIds:['td-bound','td-left-bound','td-right-bound']});
+  assert.equal(chooseOwnedRelinkCandidate([bound,quality],op),null);assert.equal(chooseOwnedRelinkCandidate([left,leftBound,right,rightBound],op),null);
+});
+
+test('rollback bootstrap preserves a non-canonical client snapshot for legacy rendering',()=>{
+  const client=fs.readFileSync('runnerbear-cloud-v11.js','utf8');assert.match(client,/coach_loop_read!==true.*snapshot=data;localStorage\.removeItem\(CACHE\).*return data/s);
 });
