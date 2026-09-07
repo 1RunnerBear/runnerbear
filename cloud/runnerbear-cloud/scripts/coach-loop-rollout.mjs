@@ -133,8 +133,9 @@ function activateCore(){
 
   const activatedAt=now(),core={...writes,coach_loop_sync:true};
   setFlags(core,{phase:'canonical-sync',coreActivatedAt:activatedAt,monitoringStartedAt:activatedAt,syncShadowPassed:true});
+  execute(`UPDATE rb_sync_operations SET status='queued',last_error='CREATE_RELINK_RETRY',next_retry_at=NULL,updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)} AND operation_type='create' AND status='failed_terminal' AND attempt_count<2 AND last_error LIKE '%CREATE_UNSUPPORTED%' AND EXISTS(SELECT 1 FROM rb_plan_revisions r WHERE r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.user_id=rb_sync_operations.user_id AND r.status='active');`);
   execute(`UPDATE rb_athlete_config SET profile_json=json_set(CASE WHEN json_valid(profile_json) THEN profile_json ELSE '{}' END,'$.coachControl','autopilot','$.safeAutoOptIn',json('true'),'$.safeAutoOptInAt',${quote(activatedAt)}),updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)}; INSERT INTO rb_state(user_id,namespace,payload_json,updated_at) VALUES(${quote(USER_ID)},'localStorage','{"runnerbear_v107_coach_control":"autopilot"}',${quote(activatedAt)}) ON CONFLICT(user_id,namespace) DO UPDATE SET payload_json=json_set(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,'$.runnerbear_v107_coach_control','autopilot'),updated_at=excluded.updated_at; UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,${quote(json({explicitOptIn:true,optInSource:'owner-command-2026-08-21',optInAt:activatedAt,coreActivatedAt:activatedAt}))}),updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto';`);
-  audit('canonical-sync','activate',core,{syncShadow:true,idempotentCreateMoveReplaceCancel:true,explicitOwnerOptInRecorded:true});
+  audit('canonical-sync','activate',core,{syncShadow:true,idempotentCreateMoveReplaceCancel:true,ownedRelinkRetry:true,explicitOwnerOptInRecorded:true});
   process.stdout.write(`${json({status:'activated',phase:'core',flags:assertCurrentFlags(core),coreActivatedAt:activatedAt})}\n`);
   return true;
 }
@@ -149,12 +150,12 @@ function terminalErrorCode(value){
   return text?'OTHER':'UNKNOWN';
 }
 
-function activeTerminalSummary(coreActivatedAt){
+function activeTerminalSummary(){
   const grouped=new Map();
   for(const row of rows(`WITH active AS (SELECT plan_revision_id FROM rb_plan_revisions WHERE user_id=${quote(USER_ID)} AND status='active')
     SELECT o.operation_type,o.last_error
     FROM rb_sync_operations o JOIN active a ON a.plan_revision_id=o.plan_revision_id
-    WHERE o.user_id=${quote(USER_ID)} AND o.status='failed_terminal' AND o.updated_at>=${quote(coreActivatedAt)}`)){
+    WHERE o.user_id=${quote(USER_ID)} AND o.status='failed_terminal'`)){
     const operationType=String(row.operation_type||'unknown'),errorCode=terminalErrorCode(row.last_error),key=`${operationType}:${errorCode}`;
     grouped.set(key,{operationType,errorCode,count:Number(grouped.get(key)?.count||0)+1});
   }
@@ -165,7 +166,7 @@ function recordObservation(){
   const syncFlag=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_sync'`),safeFlag=one(`SELECT payload_json FROM rb_feature_flags WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto'`);
   const syncPayload=(()=>{try{return JSON.parse(syncFlag.payload_json||'{}')}catch{return{}}})(),safePayload=(()=>{try{return JSON.parse(safeFlag.payload_json||'{}')}catch{return{}}})(),coreActivatedAt=String(syncPayload.coreActivatedAt||safePayload.coreActivatedAt||'');
   if(!coreActivatedAt)return{status:'not-started'};
-  const row=observationState(coreActivatedAt),evaluation=evaluateObservation(row),timestamp=now(),observedDate=timestamp.slice(0,10),status=evaluation.ok?'clean':'blocked',terminalSyncErrors=evaluation.ok?[]:activeTerminalSummary(coreActivatedAt);
+  const row=observationState(coreActivatedAt),evaluation=evaluateObservation(row),timestamp=now(),observedDate=timestamp.slice(0,10),status=evaluation.ok?'clean':'blocked',terminalSyncErrors=evaluation.ok?[]:activeTerminalSummary();
   try{
     execute(`INSERT INTO rb_rollout_observations(observation_id,user_id,observed_date,status,active_plan_count,compatibility_mismatch_count,duplicate_sync_count,terminal_sync_error_count,retryable_sync_error_count,stale_decision_count,detail_json,created_at)
       VALUES(${quote(`rbo-${randomUUID()}`)},${quote(USER_ID)},${quote(observedDate)},${quote(status)},${Number(row.active_plan_count||0)},${Number(row.compatibility_mismatch_count||0)},${Number(row.duplicate_sync_count||0)},${Number(row.terminal_sync_error_count||0)},${Number(row.retryable_sync_error_count||0)},${Number(row.stale_decision_count||0)},${quote(json(evaluation.checks))},${quote(timestamp)})
