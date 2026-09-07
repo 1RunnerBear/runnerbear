@@ -118,6 +118,7 @@ const toolFor=(tools,kind)=>{
   const patterns={
     create:[/planned.*(?:create|add)/,/create.*planned/,/calendar.*create/,/training.*create/],
     update:[/planned.*(?:update|edit)/,/(?:update|edit).*planned/,/calendar.*update/],
+    metadataUpdate:[/^activity-update$/],
     delete:[/planned.*(?:delete|remove)/,/(?:delete|remove).*planned/,/calendar.*delete/],
     planApply:[/plan.*apply/,/apply.*plan/],
   }[kind]||[];
@@ -127,7 +128,7 @@ async function mcpTools(env){
   if(capabilityCache&&capabilityCache.expiresAt>Date.now())return capabilityCache;
   const initialized=await mcpPost(env,{jsonrpc:'2.0',id:'rb-init',method:'initialize',params:{protocolVersion:'2025-06-18',capabilities:{},clientInfo:{name:'RunnerBear',version:'12.0.0'}}}),sessionId=initialized.sessionId;
   await mcpPost(env,{jsonrpc:'2.0',method:'notifications/initialized'},sessionId);
-  const listed=await mcpPost(env,{jsonrpc:'2.0',id:'rb-tools',method:'tools/list',params:{}},sessionId),tools=listed.envelope?.result?.tools||[],selected={create:toolFor(tools,'create'),update:toolFor(tools,'update'),delete:toolFor(tools,'delete'),planApply:toolFor(tools,'planApply')};
+  const listed=await mcpPost(env,{jsonrpc:'2.0',id:'rb-tools',method:'tools/list',params:{}},sessionId),tools=listed.envelope?.result?.tools||[],selected={create:toolFor(tools,'create'),update:toolFor(tools,'update'),metadataUpdate:toolFor(tools,'metadataUpdate'),delete:toolFor(tools,'delete'),planApply:toolFor(tools,'planApply')};
   capabilityCache={sessionId,tools,selected,expiresAt:Date.now()+5*60000};return capabilityCache;
 }
 function toolArguments(tool,operation={},row={}){
@@ -135,7 +136,7 @@ function toolArguments(tool,operation={},row={}){
   const args={};
   for(const key of Object.keys(properties)){
     const name=key.toLowerCase();
-    if(/^(id|trainingid|plannedtrainingid|workoutid)$/.test(name))args[key]=id;
+    if(/^(id|activityid|trainingid|plannedtrainingid|workoutid)$/.test(name))args[key]=id;
     else if(/date|starttime|scheduled/.test(name))args[key]=date;
     else if(name==='structuredworkout')args[key]=structuredWorkout;
     else if(/plannedtraining|training|workout/.test(name))args[key]=plannedTraining;
@@ -156,13 +157,14 @@ async function callCalendarTool(env,tool,operation,row={}){
 class TredictCalendarProvider{
   constructor(env){this.env=env}
   async discoverCapabilities(){
-    const found=await mcpTools(this.env),capabilities={supportsMove:true,supportsCreate:!!found.selected.create,supportsUpdate:!!found.selected.update,supportsDelete:!!found.selected.delete,supportsReplace:!!found.selected.update||!!found.selected.create&&!!found.selected.delete,supportsPlanApply:!!found.selected.planApply,discoveredAt:new Date().toISOString(),tools:Object.values(found.selected).filter(Boolean).map(tool=>tool.name)};
+    const found=await mcpTools(this.env),capabilities={supportsMove:true,supportsCreate:!!found.selected.create,supportsUpdate:!!found.selected.update,supportsDelete:!!found.selected.delete,supportsReplace:!!found.selected.update||!!found.selected.create&&!!found.selected.delete,supportsOwnedRelink:!!found.selected.metadataUpdate,supportsPlanApply:!!found.selected.planApply,discoveredAt:new Date().toISOString(),tools:Object.values(found.selected).filter(Boolean).map(tool=>tool.name)};
     console.log(JSON.stringify({event:'tredict.capabilities',provider:'tredict',result:capabilities}));return capabilities;
   }
   async listPlannedWorkouts(startDate,endDate){return plannedRows(await td(this.env,'plannedTrainingList',{startDate:`${isoDate(startDate)}T00:00:00.000Z`,endDate:`${isoDate(endDate)}T23:59:59.999Z`,sportType:'running'}))}
   async createWorkout(operation){const found=await mcpTools(this.env),result=await callCalendarTool(this.env,found.selected.create,operation);return{id:String(result?.id||result?.trainingId||result?.plannedTrainingId||''),date:`${operation.date}T15:00:00.000Z`,notes:operation.structuredWorkout?.notes||''}}
   async moveWorkout(row,operation){return tdPost(this.env,'plannedTraining/changeDate',{trainingId:remoteId(row),date:scheduledDateTime(row,operation.date)})}
   async updateWorkout(row,operation){const found=await mcpTools(this.env);return callCalendarTool(this.env,found.selected.update,operation,row)}
+  async updateOwnedMetadata(row,operation){const found=await mcpTools(this.env);return callCalendarTool(this.env,found.selected.metadataUpdate,operation,row)}
   async deleteWorkout(row,operation){const found=await mcpTools(this.env);return callCalendarTool(this.env,found.selected.delete,operation,row)}
 }
 async function createPlanViaMcp(env,payload){
