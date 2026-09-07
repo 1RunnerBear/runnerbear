@@ -18,8 +18,8 @@ class FakeProvider{
 
 test('canonical identity and fingerprint survive date and structure revisions',async()=>{
   const {canonicalWorkoutProjection}=await import('../cloud/runnerbear-cloud/src/v11/sync-projection.js'),item={workoutId:'stable',lineageId:'stable',localDate:'2026-09-02',status:'scheduled',sport:'running',workoutType:'quality',title:'5 × 6 min',intent:'threshold',prescription:{repetitions:5,workSeconds:360}};
-  const first=canonicalWorkoutProjection(item,'pr-1','rb-plan-primary'),moved=canonicalWorkoutProjection({...item,localDate:'2026-09-03'},'pr-2','rb-plan-primary'),changed=canonicalWorkoutProjection({...item,title:'4 × 8 min',prescription:{repetitions:4,workSeconds:480}},'pr-3','rb-plan-primary');
-  assert.equal(first.externalId,moved.externalId);assert.equal(first.externalId,changed.externalId);assert.notEqual(first.fingerprint,moved.fingerprint);assert.notEqual(first.fingerprint,changed.fingerprint);assert.match(changed.structuredWorkout.notes,/\[PLAN:rb-plan-primary\].*\[FPR:/);
+  const first=canonicalWorkoutProjection(item,'pr-1','rb-plan-primary'),same=canonicalWorkoutProjection(item,'pr-2','rb-plan-primary'),moved=canonicalWorkoutProjection({...item,localDate:'2026-09-03'},'pr-2','rb-plan-primary'),changed=canonicalWorkoutProjection({...item,title:'4 × 8 min',prescription:{repetitions:4,workSeconds:480}},'pr-3','rb-plan-primary');
+  assert.equal(first.externalId,moved.externalId);assert.equal(first.externalId,changed.externalId);assert.equal(first.fingerprint,same.fingerprint);assert.notEqual(first.fingerprint,moved.fingerprint);assert.notEqual(first.fingerprint,changed.fingerprint);assert.match(same.structuredWorkout.notes,/\[REV:pr-2\]/);assert.match(changed.structuredWorkout.notes,/\[PLAN:rb-plan-primary\].*\[FPR:/);
 });
 
 test('move and content update preserve exactly one remote workout',async()=>{
@@ -68,9 +68,15 @@ test('release audit repairs scheduled rows beyond the active A goal',async()=>{
 });
 
 test('transient retries are capped and reuse the deterministic idempotency key',async()=>{
-  const [{canRetryOwnedRelink,syncErrorDisposition,syncRetryDelaySeconds},{projectRollingSync}]=await Promise.all([import('../cloud/runnerbear-cloud/src/v11/routes.js'),import('../cloud/runnerbear-cloud/src/v11/sync-projection.js')]),item={workoutId:'retry-stable',lineageId:'retry-stable',localDate:'2026-09-03',status:'scheduled',sport:'running',workoutType:'easy',title:'Easy',intent:'easy',prescription:{}},first=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0],again=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0];
+  const [{canRetryOwnedRelink,sameCanonicalWorkoutContent,syncErrorDisposition,syncRetryDelaySeconds},{projectRollingSync}]=await Promise.all([import('../cloud/runnerbear-cloud/src/v11/routes.js'),import('../cloud/runnerbear-cloud/src/v11/sync-projection.js')]),item={workoutId:'retry-stable',lineageId:'retry-stable',localDate:'2026-09-03',status:'scheduled',sport:'running',workoutType:'easy',title:'Easy',intent:'easy',prescription:{}},first=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0],again=projectRollingSync([item],'pr-2','2026-09-01','tredict',[],'rb-plan-primary')[0];
   assert.deepEqual([1,2,3,4,8].map(syncRetryDelaySeconds),[30,120,600,1800,1800]);assert.deepEqual(syncErrorDisposition({status:429},1),{status:'failed_retryable',delaySeconds:30});assert.deepEqual(syncErrorDisposition({status:500},2),{status:'failed_retryable',delaySeconds:120});assert.deepEqual(syncErrorDisposition({status:401},1),{status:'failed_terminal',delaySeconds:null});assert.equal(first.idempotencyKey,again.idempotencyKey);
   const terminal={operation_type:'create',status:'failed_terminal',attempt_count:1,last_error:'CREATE_UNSUPPORTED'};assert.equal(canRetryOwnedRelink(terminal,{supportsOwnedRelink:true}),true);assert.equal(canRetryOwnedRelink({...terminal,attempt_count:2},{supportsOwnedRelink:true}),false);assert.equal(canRetryOwnedRelink(terminal,{supportsOwnedRelink:false}),false);
+  const payload={date:'2026-09-03',title:'Easy',stimulus:'easy',prescription:{},plannedDurationSeconds:null,plannedDistanceM:5000,plannedLoad:{}},previous={local_date:'2026-09-03',title:'Easy',intent:'easy',prescription_json:'{}',planned_duration_seconds:null,planned_distance_m:5000,planned_load_json:'{}'};assert.equal(sameCanonicalWorkoutContent(payload,previous),true);assert.equal(sameCanonicalWorkoutContent({...payload,title:'Changed'},previous),false);
+});
+
+test('metadata-only update refreshes ownership without claiming structure support',async()=>{
+  const {reconcileDesiredState}=await import('../cloudflare/tredict-calendar-sync.mjs'),existing=row('td-1','2026-09-03','rb-workout-w1','old'),provider=new FakeProvider([existing],{supportsMove:true,supportsCreate:false,supportsUpdate:false,supportsDelete:false,supportsReplace:false,supportsOwnedRelink:true}),result=await reconcileDesiredState(provider,operation({date:'2026-09-03',metadataOnly:true}));
+  assert.equal(result.status,'confirmed');assert.equal(result.code,'METADATA_REFRESHED');assert.deepEqual(provider.calls,['metadata-update']);assert.match(existing.notes,/\[FPR:f2\]/);
 });
 
 test('app bootstrap and cron both provide automatic reconciliation safety nets',()=>{

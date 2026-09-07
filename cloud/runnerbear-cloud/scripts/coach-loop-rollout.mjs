@@ -133,7 +133,6 @@ function activateCore(){
 
   const activatedAt=now(),core={...writes,coach_loop_sync:true};
   setFlags(core,{phase:'canonical-sync',coreActivatedAt:activatedAt,monitoringStartedAt:activatedAt,syncShadowPassed:true});
-  execute(`UPDATE rb_sync_operations SET status='queued',last_error='CREATE_RELINK_RETRY',next_retry_at=NULL,updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)} AND operation_type='create' AND status='failed_terminal' AND attempt_count<2 AND last_error LIKE '%CREATE_UNSUPPORTED%' AND EXISTS(SELECT 1 FROM rb_plan_revisions r WHERE r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.user_id=rb_sync_operations.user_id AND r.status='active');`);
   execute(`UPDATE rb_athlete_config SET profile_json=json_set(CASE WHEN json_valid(profile_json) THEN profile_json ELSE '{}' END,'$.coachControl','autopilot','$.safeAutoOptIn',json('true'),'$.safeAutoOptInAt',${quote(activatedAt)}),updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)}; INSERT INTO rb_state(user_id,namespace,payload_json,updated_at) VALUES(${quote(USER_ID)},'localStorage','{"runnerbear_v107_coach_control":"autopilot"}',${quote(activatedAt)}) ON CONFLICT(user_id,namespace) DO UPDATE SET payload_json=json_set(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,'$.runnerbear_v107_coach_control','autopilot'),updated_at=excluded.updated_at; UPDATE rb_feature_flags SET payload_json=json_patch(CASE WHEN json_valid(payload_json) THEN payload_json ELSE '{}' END,${quote(json({explicitOptIn:true,optInSource:'owner-command-2026-08-21',optInAt:activatedAt,coreActivatedAt:activatedAt}))}),updated_at=${quote(activatedAt)} WHERE user_id=${quote(USER_ID)} AND flag='coach_loop_safe_auto';`);
   audit('canonical-sync','activate',core,{syncShadow:true,idempotentCreateMoveReplaceCancel:true,ownedRelinkRetry:true,explicitOwnerOptInRecorded:true});
   process.stdout.write(`${json({status:'activated',phase:'core',flags:assertCurrentFlags(core),coreActivatedAt:activatedAt})}\n`);
@@ -142,6 +141,12 @@ function activateCore(){
 
 function observationState(coreActivatedAt){
   return one(observationStateSql({userId:USER_ID,coreActivatedAt}));
+}
+
+function prepareRecoverableSync(){
+  const timestamp=now();
+  execute(`UPDATE rb_sync_operations SET status='superseded',next_retry_at=NULL,updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND status IN ('failed_terminal','failed_retryable') AND EXISTS(SELECT 1 FROM rb_plan_revisions r JOIN rb_plan_revision_items i ON i.plan_revision_id=r.plan_revision_id AND i.workout_id=rb_sync_operations.workout_id WHERE r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.user_id=rb_sync_operations.user_id AND r.status='active' AND i.local_date<date('now'));`);
+  execute(`UPDATE rb_sync_operations SET status='queued',last_error='OWNED_RELINK_RETRY',next_retry_at=NULL,updated_at=${quote(timestamp)} WHERE user_id=${quote(USER_ID)} AND attempt_count<2 AND ((operation_type='create' AND status='failed_terminal' AND last_error LIKE '%CREATE_UNSUPPORTED%') OR (operation_type='update' AND status='failed_terminal' AND last_error LIKE '%CONTENT_UPDATE_UNSUPPORTED%' AND EXISTS(SELECT 1 FROM rb_plan_revisions r JOIN rb_plan_revision_items current ON current.plan_revision_id=r.plan_revision_id JOIN rb_plan_revision_items previous ON previous.plan_revision_id=r.parent_revision_id AND previous.workout_id=current.workout_id WHERE r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.user_id=rb_sync_operations.user_id AND r.status='active' AND current.workout_id=rb_sync_operations.workout_id AND current.local_date=previous.local_date AND current.title=previous.title AND current.intent=previous.intent AND current.prescription_json=previous.prescription_json AND COALESCE(current.planned_duration_seconds,0)=COALESCE(previous.planned_duration_seconds,0) AND COALESCE(current.planned_distance_m,0)=COALESCE(previous.planned_distance_m,0) AND current.planned_load_json=previous.planned_load_json))) AND EXISTS(SELECT 1 FROM rb_plan_revisions r WHERE r.plan_revision_id=rb_sync_operations.plan_revision_id AND r.user_id=rb_sync_operations.user_id AND r.status='active');`);
 }
 
 function terminalErrorCode(value){
@@ -222,6 +227,7 @@ resolveProductionConfig();
 if(phase==='rollback')rollback();
 else if(phase==='safe-auto'){const observation=recordObservation();if(observation.status!=='deferred')maybeEnableSafeAuto()}
 else{
+  prepareRecoverableSync();
   const flags=currentFlags(),coreActive=flags.coach_loop_read&&flags.coach_loop_ui&&flags.coach_loop_write&&flags.coach_loop_sync;
   if(!coreActive)activateCore();
   if(currentFlags().coach_loop_sync){const observation=recordObservation();if(observation.status!=='deferred')maybeEnableSafeAuto()}
