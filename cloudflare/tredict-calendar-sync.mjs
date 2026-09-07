@@ -56,18 +56,27 @@ export function chooseDuplicateKeeper(rows=[],desired={},bindingRemoteId=''){
 }
 
 const rowTitle=row=>String(row?.title||row?.workoutName||row?.structuredWorkout?.title||row?.training?.title||'');
+const finite=value=>Number.isFinite(Number(value))?Number(value):0;
 const plainEasy=value=>{
   const title=String(value?.title||value?.structuredWorkout?.title||value?.intent||value?.stimulus||'').toLowerCase();
   const stimulus=String(value?.stimulus||markerValue(value,'STIMULUS')||'').toLowerCase();
   return(stimulus==='easy'||/\b(?:easy|rolig)\b/.test(title))&&!/(?:langtur|long|stride|stigning|terskel|threshold|intervall|interval|gate|bakke|hill|tempo|fartlek|progressiv|race|konkurranse|\bx\b|\u00d7)/i.test(title);
 };
+const prescribedCore=operation=>{const main=operation?.structuredWorkout?.prescription?.main||operation?.prescription?.main||{},repetitions=finite(main.repetitions),workSeconds=finite(main.workSeconds||main.workDurationSeconds),recoverySeconds=finite(main.recoverySeconds||main.recoveryDurationSeconds),workDistance=finite(main.workDistanceM||main.distanceM||main.workMeters);return{duration:repetitions&&workSeconds?repetitions*(workSeconds+recoverySeconds):0,distance:repetitions&&workDistance?repetitions*workDistance:0}};
+function listedStructureMatches(row,operation){
+  if(remoteDate(row)!==isoDate(operation.date||operation.localDate)||rowTitle(row)!==String(operation.title||operation.structuredWorkout?.title||''))return false;
+  const remoteDuration=finite(row.duration),remoteDistance=finite(row.distance),expected=prescribedCore(operation);
+  if(!remoteDuration&&!remoteDistance)return plainEasy(row)&&plainEasy(operation);
+  return(!remoteDuration||expected.duration===remoteDuration)&&(!remoteDistance||expected.distance===remoteDistance)&&(!!remoteDuration||!!remoteDistance);
+}
 
 export function chooseOwnedRelinkCandidate(rows=[],operation={}){
   if(String(operation.operationType||operation.operation_type||'').toLowerCase()!=='create'||!plainEasy(operation))return null;
-  const reserved=new Set((operation.reservedRemoteWorkoutIds||[]).map(String).filter(Boolean)),today=isoDate(operation.today||new Date().toISOString()),target=isoDate(operation.date||operation.localDate),hasReservedSibling=row=>(rows||[]).some(other=>other!==row&&remoteDate(other)===remoteDate(row)&&reserved.has(remoteId(other)));
+  const reserved=new Set((operation.reservedRemoteWorkoutIds||[]).map(String).filter(Boolean)),desiredDates=new Set((operation.desiredCalendarDates||[]).map(isoDate).filter(Boolean)),today=isoDate(operation.today||new Date().toISOString()),target=isoDate(operation.date||operation.localDate),hasReservedSibling=row=>(rows||[]).some(other=>other!==row&&remoteDate(other)===remoteDate(row)&&reserved.has(remoteId(other)));
   const candidates=(rows||[]).filter(row=>{
     const id=remoteId(row),externalId=rowExternalId(row);
-    return id&&externalId.startsWith('runnerbear-')&&!reserved.has(id)&&!isCompletedWorkout(row)&&remoteDate(row)>=today&&plainEasy(row)&&hasReservedSibling(row);
+    const structurallyReusable=plainEasy(row)&&!finite(row.duration)&&!finite(row.distance)||listedStructureMatches(row,operation);
+    return id&&externalId.startsWith('runnerbear-')&&!reserved.has(id)&&!isCompletedWorkout(row)&&remoteDate(row)>=today&&structurallyReusable&&(hasReservedSibling(row)||!desiredDates.has(remoteDate(row)));
   }).map(row=>({row,distance:Math.abs((Date.parse(`${remoteDate(row)}T12:00:00Z`)-Date.parse(`${target}T12:00:00Z`))/86400000)})).sort((a,b)=>a.distance-b.distance||remoteId(a.row).localeCompare(remoteId(b.row)));
   if(!candidates.length||candidates[1]?.distance===candidates[0].distance)return null;
   return candidates[0].row;
@@ -108,6 +117,9 @@ export async function reconcileDesiredState(provider,rawOperation={}){
     if(!current)return{status:'confirmed',code:classified.code,action:'UNCHANGED',externalId:operation.externalId,date:operation.date,capabilities};
     const verification=await verifyExactlyOne(provider,operation);return verification.ok?{...confirmed(operation,verification.row,classified.code),action:'UNCHANGED',capabilities,duplicatesRemoved:safeDuplicates.length}:{status:'failed_retryable',code:'VERIFY_EXACTLY_ONE_FAILED',action:'UNCHANGED',externalId:operation.externalId,capabilities};
   }
+  const rawType=String(operation.operationType||operation.operation_type||'').toLowerCase(),reserved=new Set((operation.reservedRemoteWorkoutIds||[]).map(String)),claimableLegacy=rawType==='create'&&current&&rowExternalId(current).startsWith('runnerbear-')&&!reserved.has(remoteId(current))&&!isCompletedWorkout(current)&&remoteDate(current)>=operation.today&&listedStructureMatches(current,operation);
+  if(claimableLegacy&&capabilities.supportsOwnedRelink){await provider.updateOwnedMetadata(current,operation);const verification=await verifyExactlyOne(provider,{...operation,remoteWorkoutId:remoteId(current)});return verification.ok?{...confirmed(operation,verification.row,'OWNED_RELINKED'),action:'RELINK',capabilities}:{status:'failed_retryable',code:'OWNED_RELINK_VERIFY_FAILED',action:'RELINK',externalId:operation.externalId,capabilities}}
+  if(classified.action==='UPDATE'&&operation.metadataOnly===true&&capabilities.supportsOwnedRelink){await provider.updateOwnedMetadata(current,operation);const verification=await verifyExactlyOne(provider,{...operation,remoteWorkoutId:remoteId(current)});return verification.ok?{...confirmed(operation,verification.row,'METADATA_REFRESHED'),action:'UPDATE_METADATA',capabilities}:{status:'failed_retryable',code:'METADATA_REFRESH_VERIFY_FAILED',action:'UPDATE_METADATA',externalId:operation.externalId,capabilities}}
   if(classified.action==='DELETE'){
     if(!capabilities.supportsDelete)return{status:'failed_terminal',code:'DELETE_UNSUPPORTED',externalId:operation.externalId,capabilities};
     await provider.deleteWorkout(current,operation);const rows=await provider.listPlannedWorkouts(operation.windowStart||operation.previousDate||operation.date,operation.windowEnd||operation.date),matches=findPlannedWorkouts(rows,{externalId:operation.externalId,remoteWorkoutId:operation.remoteWorkoutId},[operation.previousDate,operation.date]);
