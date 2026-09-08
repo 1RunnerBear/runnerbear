@@ -101,36 +101,6 @@
     return[...groups.values()].sort((a,b)=>b.length-a.length||String(b.at(-1)?.date||'').localeCompare(String(a.at(-1)?.date||'')))[0]||[];
   }
 
-  function activeShoes(shoes=[]){return(Array.isArray(shoes)?shoes:[]).filter(shoe=>shoe&&shoe.active!==false)}
-  const normalized=value=>clean(value).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g,' ');
-  function workoutShoeCategory(plan={}){
-    const text=normalized(`${plan.type||''} ${plan.title||''} ${plan.desc||''}`);
-    if(plan.type==='quality'||plan.type==='race'||/terskel|tempo|intervall|gate|konkurranse/.test(text))return'Terskel-/temposko';
-    return'Komfortabel roligsko';
-  }
-  function shoeScore(shoe={},plan={}){
-    const text=normalized(`${shoe.role||''} ${shoe.surface||''} ${shoe.plate||''}`),target=workoutShoeCategory(plan);let score=0;
-    if(target==='Terskel-/temposko'){
-      if(/terskel|tempo|kvalitet|konkurranse/.test(text))score+=5;
-      if(/plate/.test(text))score+=1;
-      if(/rolig|restitusjon/.test(text))score-=2;
-    }else{
-      if(/rolig|langtur|restitusjon|komfort/.test(text))score+=5;
-      if(/uten plate/.test(text))score+=1;
-      if(/konkurranse/.test(text))score-=2;
-    }
-    if(/terreng|grus/.test(normalized(`${plan.title||''} ${plan.desc||''}`))&&/terreng|grus/.test(text))score+=3;
-    return score;
-  }
-  function ensureActiveShoe(plan={},shoes=[],options={}){
-    const current=clean(plan.shoe),rows=Array.isArray(shoes)?shoes:[];
-    if(options.historical===true||!current||!rows.length)return{shoe:current,replaced:false,previous:'',fallback:false};
-    const referenced=rows.find(row=>normalized(current).includes(normalized(row?.name)));
-    if(!referenced||referenced.active!==false)return{shoe:current,replaced:false,previous:'',fallback:false};
-    const candidates=activeShoes(rows).map(row=>({row,score:shoeScore(row,plan)})).sort((a,b)=>b.score-a.score||clean(a.row.name).localeCompare(clean(b.row.name)));
-    const selected=candidates.find(x=>x.score>0)?.row||null;
-    return{shoe:selected?.name||workoutShoeCategory(plan),replaced:true,previous:referenced.name,fallback:!selected};
-  }
 
-  return{BUILD,isoDate,vo2Sample,mergeVo2History,latestVo2,thresholdEvidenceFromSessions,comparableThresholdEvidence,activeShoes,workoutShoeCategory,ensureActiveShoe};
+  return{BUILD,isoDate,vo2Sample,mergeVo2History,latestVo2,thresholdEvidenceFromSessions,comparableThresholdEvidence};
 });

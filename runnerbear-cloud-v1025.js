@@ -1,7 +1,7 @@
 /* RunnerBear v12.0 · compatibility state and Tredict transport client */
 (function(){
   'use strict';
-  const BUILD=window.RunnerBearRelease?.build||'12.0.0';
+  const BUILD=window.RunnerBearRelease?.build||'12.1.0';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;

@@ -11,6 +11,7 @@
   const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().filter(key=>value[key]!==undefined).map(key=>[key,canonical(value[key])])):value;
   const stable=value=>JSON.stringify(canonical(value));
   function assertRevision(snapshot={}){
+    if(!snapshot||typeof snapshot!=='object')return{ok:false,code:'MISSING_PLAN_REVISION'};
     const revision=clean(snapshot.planRevisionId||snapshot.activePlan?.planRevisionId);
     const activeRevision=clean(snapshot.activePlan?.planRevisionId||revision),decision=clean(snapshot.coachDecision?.planRevisionId),workout=clean(snapshot.todayWorkout?.planRevisionId||revision);
     if(!revision)return{ok:false,code:'MISSING_PLAN_REVISION'};

@@ -108,7 +108,7 @@ test('Closed Loop UI stays inside One Decision with accessible disclosure and fo
   assert.match(css,/locked Concept 1 \/ Premium calm/);
   assert.match(css,/:focus-visible/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
-  assert.ok(manifest.styles.includes('runnerbear-v114-closed-loop.css'));
+  assert.ok(JSON.parse(fs.readFileSync('tests/fixtures/v121-css-pruning.json','utf8')).sources.includes('runnerbear-v114-closed-loop.css'));
   assert.doesNotMatch(html,/data-tab="coach"|data-tab="health"/);
   assert.equal((html.match(/<(?:link|script)\b[^>]+(?:runnerbear-v11\.css|runnerbear-(?:core|ui|data)-v11\.js)/g)||[]).length,4);
 });
@@ -126,7 +126,7 @@ test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>
   assert.match(readModel,/ORDER BY occurred_at DESC LIMIT 30/);
   assert.match(workflow,/verify-v116-health\.mjs/);
   const healthGate=fs.readFileSync('scripts/verify-v116-health.mjs','utf8');
-  assert.match(healthGate,/x\.cloudBuild==='12\.0\.0'/);
+  assert.match(healthGate,/x\.cloudBuild==='12\.1\.0'/);
   assert.match(healthGate,/x\.oneDecisionVersion==='one-decision-2'/);
   assert.match(healthGate,/x\.coachContinuityVersion==='coach-continuity-1'/);
   assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,10);

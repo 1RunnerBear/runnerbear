@@ -105,7 +105,7 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
   const ui=read('runnerbear-ui-v11.js');
   const core=read('runnerbear-core-v11.js');
   const data=read('runnerbear-data-v11.js');
-  for(const key of ['runfest26_week_adjustments','runnerbear_v107_plan_moves','runnerbear_v107_plan_locks','runnerbear_v108_shoes','runnerbear_v109_goals','runfest26_training_profile_v10'])assert.match(ui,new RegExp(key));
+  for(const key of ['runfest26_week_adjustments','runnerbear_v107_plan_moves','runnerbear_v107_plan_locks','runnerbear_v109_goals','runfest26_training_profile_v10'])assert.match(ui,new RegExp(key));
   assert.match(core,/RunnerBearCoachEngine/);
   assert.match(core,/RunnerBearV1012/);
   assert.match(core,/RunnerBearV1020/);
@@ -118,12 +118,12 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
 
 test('release metadata and production health gate agree on v12.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build,'12.0.0');
-  assert.match(read('site.webmanifest'),/v12000/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'12.1.0');
+  assert.match(read('site.webmanifest'),/v12100/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v116.js'),/CONTEXTUAL_COACH_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v118\.js/);
-  assert.match(read('scripts/verify-v116-health.mjs'),/cloudBuild==='12\.0\.0'/);
+  assert.match(read('scripts/verify-v116-health.mjs'),/cloudBuild==='12\.1\.0'/);
   assert.match(bridgeWorkflow,/for attempt in 1 2 3 4 5 6 7 8 9 10 11 12/);
   assert.match(bridgeWorkflow,/git checkout -B runnerbear-bridge-report origin\/main/);
 });

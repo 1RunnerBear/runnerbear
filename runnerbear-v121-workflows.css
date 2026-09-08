@@ -1,0 +1,67 @@
+/* Concept 1 · workflows · ordered cascade, no specificity changes. */
+.rb1022-recommendation.accepted{border-color:#164c34;background:#edf6f0}
+.rb1022-recommendation-actions button.primary:disabled{border-color:#0d3f2b;background:#0d3f2b;color:#fff;opacity:1;box-shadow:0 0 0 2px rgba(13,63,43,.14)}
+.rb1025-week-so-far>footer{margin-top:12px;padding-top:10px;border-top:1px solid #dbe3dd;display:grid;gap:3px}
+.rb1025-week-so-far>footer span{color:#68736c;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.rb1025-week-so-far>footer b{color:#274b37;font-size:.78rem;line-height:1.45}
+.rb119c-long button>span:first-child>small+small{display:block;max-width:42ch;margin-top:4px;color:#667269;line-height:1.35}
+.rb1020-day-view.completed .rb1020-day-actual{margin-top:4px}
+@media (prefers-contrast:more){.rb1022-recommendation-actions button.primary:disabled{outline:3px solid #071f15;outline-offset:2px}}
+.rb1028-sync-banner{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin:0 0 14px;padding:12px 14px;border:1px solid #d8e1db;border-radius:14px;background:#f7faf8;color:#193f2d}
+.rb1028-sync-banner>i,.rb1023-garmin-status>i{width:9px;height:9px;border-radius:50%;background:#708078;box-shadow:0 0 0 4px rgba(112,128,120,.12)}
+.rb1028-sync-banner>span{display:grid;gap:2px;min-width:0}
+.rb1028-sync-banner b{font-size:.82rem;line-height:1.25}
+.rb1028-sync-banner small{color:#667269;font-size:.72rem;line-height:1.35}
+.rb1028-sync-banner button{border:0;background:transparent;color:#0d4b31;font:inherit;font-size:.76rem;font-weight:800;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.rb1028-sync-banner.confirmed>i,.rb1023-garmin-status.confirmed>i{background:#26845b;box-shadow:0 0 0 4px rgba(38,132,91,.13)}
+.rb1028-sync-banner.busy>i,.rb1028-sync-banner.queued>i,.rb1028-sync-banner.processing>i,.rb1023-garmin-status.queued>i,.rb1023-garmin-status.processing>i{background:#b87b17;box-shadow:0 0 0 4px rgba(184,123,23,.14)}
+.rb1028-sync-banner.action>i,.rb1028-sync-banner.retry>i,.rb1028-sync-banner.review>i,.rb1023-garmin-status.failed_retryable>i,.rb1023-garmin-status.review_required>i{background:#a44c3b;box-shadow:0 0 0 4px rgba(164,76,59,.14)}
+.rb10251-bank-modal,.rb10251-move-modal{z-index:12010}
+.rb10251-move-actions button:disabled,.rb10251-move-preview header button:disabled{cursor:wait;opacity:.65}
+@media(max-width:560px){.rb1028-sync-banner{grid-template-columns:auto minmax(0,1fr)}.rb1028-sync-banner button{grid-column:2;justify-self:start;padding:2px 0}}
+@media(prefers-contrast:more){.rb1028-sync-banner{border-width:2px}.rb1028-sync-banner>i,.rb1023-garmin-status>i{outline:1px solid currentColor}}
+.rb1029-profile-intro{display:grid;gap:5px;margin:0;padding:14px 15px;border:1px solid rgba(35,91,59,.14);border-radius:14px;background:linear-gradient(145deg,rgba(232,241,235,.82),rgba(248,250,248,.92));color:#405048;line-height:1.5}
+.rb1029-profile-intro b{color:#142119;font-size:13px}
+.rb1029-profile-intro span{font-size:12px}
+.rb1029-volume{display:grid;gap:12px;padding:14px 15px;border:1px solid #dfe6e1;border-radius:14px;background:#f8faf8}
+.rb1029-volume>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.rb1029-volume>header div{display:grid;gap:4px}
+.rb1029-volume>header b{color:#142119;font-size:13px}
+.rb1029-volume>header span{color:#66736b;font-size:11px;line-height:1.4}
+.rb1029-volume>header strong{flex:0 0 auto;padding:5px 8px;border-radius:999px;background:#e2efe6;color:#235b3b;font-size:10px;letter-spacing:.05em;text-transform:uppercase}
+.rb1029-volume>details{border-top:1px solid #e1e7e3;padding-top:10px}
+.rb1029-volume summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;color:#235b3b;font-size:12px;font-weight:800;list-style:none}
+.rb1029-volume summary::-webkit-details-marker{display:none}
+.rb1029-volume summary svg{width:15px;height:15px;transition:transform .2s ease}
+.rb1029-volume details[open] summary svg{transform:rotate(90deg)}
+.rb1029-volume-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:11px}
+.rb1029-volume-grid div{display:grid;gap:3px;min-width:0;padding:9px;border:1px solid #e1e7e3;border-radius:11px;background:#fff}
+.rb1029-volume-grid span{color:#718078;font-size:9px;font-weight:750;line-height:1.25;text-transform:uppercase}
+.rb1029-volume-grid b{color:#142119;font-size:13px}
+.rb1029-volume ul{display:grid;gap:7px;margin:11px 0 0;padding-left:17px;color:#59675f;font-size:11px;line-height:1.45}
+.rb1029-days-note{display:block;margin-top:7px;color:#6a756d;font-size:11px;line-height:1.45}
+.rb118-preferences>.rb107-button[type="submit"]{margin-top:2px;color:#fff}
+@media(max-width:560px){.rb1029-volume-grid{grid-template-columns:1fr}.rb1029-volume-grid div{grid-template-columns:1fr auto;align-items:center}.rb1029-volume-grid b{text-align:right}}
+@media(prefers-reduced-motion:reduce){.rb1029-volume summary svg{transition:none}}
+.rb1030-plan-effect{grid-template-columns:auto minmax(0,1fr)!important;align-items:start;padding:13px 14px;border:1px solid #e0e7e2;border-radius:14px;background:#f7f9f7}
+.rb1030-plan-effect>span{display:grid;width:32px;height:32px;place-items:center;border-radius:50%;background:#e5ebe5;color:#3e674e}
+.rb1030-plan-effect>span svg{width:16px;height:16px}
+.rb1030-plan-effect>div{display:grid;gap:3px}
+.rb1030-plan-effect small,.rb1030-next-review b{color:#738078;font-size:.55rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.rb1030-plan-effect b{color:#20372b;font-size:.76rem}
+.rb1030-plan-effect p,.rb1030-next-review{margin:0;color:#59665e;font-size:.68rem;line-height:1.5}
+.rb1030-next-review{display:grid;gap:5px;padding:12px 14px;border-radius:13px;background:#f5f3ed}
+.rb1030-goal-insight-modal{z-index:12500}
+.rb1030-goal-insight{max-width:570px}
+.rb1030-goal-lead{margin:0;color:#26392f;font-family:var(--rb19b-display);font-size:1.02rem;line-height:1.55}
+.rb1030-goal-insight .rb1020-sheet-body>section{display:grid;gap:5px;padding:13px 14px;border:1px solid #e1e7e3;border-radius:14px;background:#f8faf8}
+.rb1030-goal-insight .rb1020-sheet-body>section small{color:#65736a;font-size:.56rem;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
+.rb1030-goal-insight .rb1020-sheet-body>section p{margin:0;color:#4e5e54;font-size:.72rem;line-height:1.55}
+.rb1031-week-review{margin:18px 0;padding:22px;border:1px solid rgba(34,68,50,.13);border-radius:22px;background:linear-gradient(150deg,#fbfaf6,#f1f4ee);box-shadow:0 12px 32px rgba(31,57,43,.06)}
+.rb1031-week-review>header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.rb1031-week-review h2{margin:4px 0 0;font:600 clamp(1.25rem,3vw,1.65rem)/1.15 var(--rb-font-display,serif);color:#173e2d}.rb1031-week-review>header>span{padding:7px 10px;border-radius:999px;background:#e4eee5;color:#315c43;font-size:.73rem;font-weight:750}.rb1031-week-review.watch>header>span{background:#f3e8d5;color:#76532f}
+.rb1031-week-review>div{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0}.rb1031-week-review>div>span{display:flex;min-width:0;flex-direction:column;padding:13px;border-radius:15px;background:rgba(255,255,255,.72)}.rb1031-week-review small{color:#738078;font-size:.72rem}.rb1031-week-review b{margin-top:3px;color:#183c2c}.rb1031-week-review em{overflow:hidden;color:#6f7a73;font-size:.7rem;font-style:normal;text-overflow:ellipsis;white-space:nowrap}.rb1031-week-review>p{margin:0;color:#526258;line-height:1.5}.rb1031-week-review>p>b{display:block;margin:0 0 4px;font-size:.72rem;letter-spacing:.055em;text-transform:uppercase}.rb1031-week-review>button{display:flex;min-height:44px;align-items:center;gap:7px;margin:12px 0 -8px;padding:8px 0;border:0;background:transparent;color:#214f38;font-weight:750}.rb1031-week-review>button svg{width:16px}
+.rb1031-review-modal{z-index:12600}.rb1031-review-sheet,.rb1031-sync-sheet{max-width:680px}.rb1031-review-sheet .rb1020-sheet-body{display:grid;gap:12px}.rb1031-review-sheet .rb1020-sheet-body>section{padding:16px;border:1px solid rgba(34,68,50,.11);border-radius:16px;background:#fbfaf6}.rb1031-review-sheet section>small{display:block;margin-bottom:5px;color:#6c7b72;font-weight:750;text-transform:uppercase;letter-spacing:.07em}.rb1031-review-sheet ul{display:grid;gap:6px;margin:12px 0 0;padding:0;list-style:none}.rb1031-review-sheet li{display:grid;grid-template-columns:90px 1fr;gap:10px;color:#526258;font-size:.86rem}.rb1031-review-sheet li span{color:#78837c}
+.rb1031-sync-sheet .rb1020-sheet-body>p{font-size:1.02rem;line-height:1.55}.rb1031-sync-sheet ol{display:grid;gap:11px;margin:18px 0;padding-left:23px;color:#42564a}.rb1031-sync-sheet .rb1020-sheet-body>small{display:block;color:#738078;line-height:1.45}
+@media(max-width:720px){.rb1031-week-review>div{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.rb1031-week-review{padding:18px}.rb1031-week-review>div>span{min-height:82px}.rb1031-review-sheet li{grid-template-columns:76px 1fr}}
+@media(prefers-reduced-motion:reduce){.rb1031-week-review,.rb1031-review-sheet,.rb1031-sync-sheet{scroll-behavior:auto}}

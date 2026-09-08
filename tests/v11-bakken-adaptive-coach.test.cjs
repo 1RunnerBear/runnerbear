@@ -105,7 +105,7 @@ test('manual quality-bank choices stay explicit while release repair supersedes 
 
 test('v11 UI exposes coach rationale and the five calm Workout Bank groups',()=>{
   const ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),browser=fs.readFileSync('runnerbear-v11-bakken-engine.js','utf8'),model=require('../runnerbear-v11-bakken-engine.js'),ranked=model.rankWorkoutBank({intendedStimulus:'race_specific',phase:'specific',goalDistance:'half',weekMode:'NORMAL'});
-  assert.match(ui,/Bakken Adaptive Coach/);
+  assert.match(ui,/Hvorfor denne økten/);
   assert.match(ui,/Hovedterskel/);
   assert.match(ui,/Støtteterskel/);
   assert.match(ui,/Løpsspesifikt/);
@@ -127,5 +127,5 @@ test('v11 release and production gates are locked to the Bakken audit',()=>{
   assert.match(healthGate,/x\.bakkenPlanAudit\?\.ok===true/);
   assert.match(healthGate,/x\.bakkenEngineVersion==='11\.7\.0'/);
   assert.match(healthGate,/x\.bakkenWorkoutBankVersion==='2\.0\.0'/);
-  assert.match(html,/runnerbear-core-v11\.js\?v=12000/);
+  assert.match(html,/runnerbear-core-v11\.js\?v=12100/);
 });

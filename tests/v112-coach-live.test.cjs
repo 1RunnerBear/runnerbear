@@ -46,7 +46,7 @@ test('Cloudflare SSE deltas are extracted without storing protocol frames',async
 
 test('Concept 1 UI replaces Coach Live with contextual guidance and four navigation tabs',()=>{
   const ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8'),css=fs.readFileSync('runnerbear-v116-contextual-coach.css','utf8'),html=fs.readFileSync('index.html','utf8'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
-  assert.match(ui,/function contextualCoach\(/);assert.match(ui,/function contextualHealthStripHtml\(/);assert.match(ui,/function contextualWorkoutCoachHtml\(/);assert.match(ui,/Coachens råd/);assert.match(ui,/Dette betyr for uka/);assert.doesNotMatch(ui,/Coach Live|coachLive|coach-live|data-rb112|rb112/);assert.match(css,/Contextual Coach/);assert.match(css,/The coach speaks once, in context/);assert.match(css,/@media\(max-width:680px\)/);assert.ok(manifest.styles.includes('runnerbear-v116-contextual-coach.css'));assert.doesNotMatch(html,/data-tab="coach"|>Coach Live<\/button>/);
+  assert.match(ui,/function contextualCoach\(/);assert.match(ui,/function contextualHealthStripHtml\(/);assert.match(ui,/function contextualWorkoutCoachHtml\(/);assert.match(ui,/Dagens råd/);assert.match(ui,/Dette betyr for uka/);assert.doesNotMatch(ui,/Coach Live|coachLive|coach-live|data-rb112|rb112/);assert.match(css,/Contextual Coach/);assert.match(css,/The coach speaks once, in context/);assert.match(css,/@media\(max-width:680px\)/);assert.ok(JSON.parse(fs.readFileSync('tests/fixtures/v121-css-pruning.json','utf8')).sources.includes('runnerbear-v116-contextual-coach.css'));assert.doesNotMatch(html,/data-tab="coach"|>Coach Live<\/button>/);
 });
 
 test('production retires Coach Live routes, inference and plan mutation authority',()=>{

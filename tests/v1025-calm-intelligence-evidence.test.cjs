@@ -35,19 +35,12 @@ test('moved threshold workout uses the actual Garmin work section without manual
   assert.equal(rows[0].activityId,'garmin-42');
 });
 
-test('retired shoes never enter future prescriptions but remain in history',()=>{
-  const shoes=[
-    {name:'Old Tempo',role:'Terskel · tempo',active:false},
-    {name:'Daily Soft',role:'Rolig · langtur',active:true},
-    {name:'Fast Active',role:'Terskel · kvalitet',active:true}
-  ];
-  const plan={type:'quality',title:'Terskel 4 × 10 min',shoe:'Old Tempo'};
-  assert.deepEqual(model.activeShoes(shoes).map(row=>row.name),['Daily Soft','Fast Active']);
-  assert.equal(model.ensureActiveShoe(plan,shoes).shoe,'Fast Active');
-  assert.equal(model.ensureActiveShoe(plan,shoes,{historical:true}).shoe,'Old Tempo');
-  const fallback=model.ensureActiveShoe(plan,shoes.map(row=>({...row,active:false})));
-  assert.equal(fallback.shoe,'Terskel-/temposko');
-  assert.equal(fallback.fallback,true);
+test('shoe administration is retired without changing historical plan data',()=>{
+  assert.equal(model.activeShoes,undefined);assert.equal(model.ensureActiveShoe,undefined);
+  const ui=read('runnerbear-ui-v11-source.js');
+  assert.doesNotMatch(ui,/shoesState|shoeKm|classifyShoe|replaceRetiredShoeInFuturePlan|data-rb108-shoe/);
+  assert.doesNotMatch(ui,/runnerbear_v108_shoes/);
+  assert.match(read('plan.js'),/Nike Zoom Fly 6/);
 });
 
 test('v10.25 UI is calm by default and exposes honest evidence and settings',()=>{
@@ -69,7 +62,7 @@ test('v10.25 UI is calm by default and exposes honest evidence and settings',()=
 
 test('PWA manifest ships installable PNG and maskable icon sizes',()=>{
   const manifest=JSON.parse(read('site.webmanifest'));
-  assert.equal(manifest.start_url,'/?app=v12000');
+  assert.equal(manifest.start_url,'/?app=v12100');
   const expected=new Map([['rb-icon-192.png','192x192'],['rb-icon-512.png','512x512'],['rb-icon-maskable-512.png','512x512']]);
   for(const [name,size] of expected){
     const icon=manifest.icons.find(row=>row.src.startsWith(name));

@@ -1,28 +1,37 @@
 {
-  "build": "12.0.0",
+  "build": "12.1.0",
   "core": [
-    "runnerbear-v12-release.js", "runnerbear-v12-decision-contract.js", "plan.js", "runnerbear-v100-plan-bootstrap.js", "runnerbear-v100-engine.js",
-    "runnerbear-v1012-analysis.js", "runnerbear-v1020-coach-model.js", "runnerbear-v1022-readiness.js",
-    "runnerbear-v1023-plan-integrity.js", "runnerbear-v1024-tredict-transport.js",
-    "runnerbear-v1025-intelligence.js", "runnerbear-v10251-adaptive-plan.js", "runnerbear-v11-bakken-engine.js",
-    "runnerbear-runtime-v1021.js", "runnerbear-v1026-coach-loop.js", "runnerbear-v1026-plan-read-model.js",
-    "runnerbear-v1026-feedback.js", "runnerbear-v1029-training-profile.js"
+    "runnerbear-v12-release.js",
+    "runnerbear-v12-decision-contract.js",
+    "runnerbear-v121-calm-flow.js",
+    "plan.js",
+    "runnerbear-v100-plan-bootstrap.js",
+    "runnerbear-v100-engine.js",
+    "runnerbear-v1012-analysis.js",
+    "runnerbear-v1020-coach-model.js",
+    "runnerbear-v1022-readiness.js",
+    "runnerbear-v1023-plan-integrity.js",
+    "runnerbear-v1024-tredict-transport.js",
+    "runnerbear-v1025-intelligence.js",
+    "runnerbear-v10251-adaptive-plan.js",
+    "runnerbear-v11-bakken-engine.js",
+    "runnerbear-runtime-v1021.js",
+    "runnerbear-v1026-coach-loop.js",
+    "runnerbear-v1026-plan-read-model.js",
+    "runnerbear-v1026-feedback.js",
+    "runnerbear-v1029-training-profile.js"
   ],
-  "data": ["runnerbear-tredict-outbound.js", "runnerbear-cloud-v1025.js", "runnerbear-cloud-v11.js"],
+  "data": [
+    "runnerbear-tredict-outbound.js",
+    "runnerbear-cloud-v1025.js",
+    "runnerbear-cloud-v11.js"
+  ],
   "ui": "runnerbear-ui-v11-source.js",
   "styles": [
-    "runnerbear-v5.css", "runnerbear-v107-coach-os.css", "runnerbear-v1013-coach-ui.css",
-    "runnerbear-v1014-premium-polish.css", "runnerbear-v1016-goals-more.css", "runnerbear-v1017-ux.css",
-    "runnerbear-v1018-plan-preferences.css", "runnerbear-v1019-design-system.css",
-    "runnerbear-v1019b-screen-fidelity.css", "runnerbear-v1019c-final-fidelity.css",
-    "runnerbear-v1020-coaching-clarity.css", "runnerbear-v1021-foundation.css",
-    "runnerbear-v1022-readiness-intensity.css", "runnerbear-v1023-plan-integrity.css",
-    "runnerbear-v1025-calm-intelligence.css", "runnerbear-v10251-coach-first.css",
-    "runnerbear-v1026-coach-loop.css", "runnerbear-v1027-plan-integrity-history.css",
-    "runnerbear-v1028-trust-flow.css", "runnerbear-v1029-training-profile.css",
-    "runnerbear-v1030-proactive-coach.css", "runnerbear-v1031-coach-package.css",
-    "runnerbear-v111-body-response.css", "runnerbear-v113-one-decision.css",
-    "runnerbear-v114-closed-loop.css", "runnerbear-v116-contextual-coach.css",
-    "runnerbear-v12-concept-one.css"
+    "runnerbear-v121-baseline.css",
+    "runnerbear-v121-components.css",
+    "runnerbear-v121-workflows.css",
+    "runnerbear-v121-decisions.css",
+    "runnerbear-v121-concept-one.css"
   ]
 }
