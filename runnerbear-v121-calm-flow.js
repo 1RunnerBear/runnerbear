@@ -9,7 +9,7 @@
   function records(storage){try{const value=JSON.parse(storage.getItem(key)||'[]');return Array.isArray(value)?value.filter(r=>r&&typeof r==='object'):[]}catch{return[]}}
   function hasSeen(storage,kind,content){return records(storage).some(r=>r.kind===kind&&r.content===fingerprint(content))}
   function markSeen(storage,kind,content,revision=''){const value=fingerprint(content),rows=records(storage).filter(r=>!(r.kind===kind&&r.content===value));rows.push({kind,content:value,revision,seenAt:new Date().toISOString()});try{storage.setItem(key,JSON.stringify(rows.slice(-50)))}catch{}}
-  function chooseSupport({transport,change,review,priority}){return transport||change||review||priority||''}
+  function chooseSupport({transport,change,race,review,priority}){return transport||change||race||review||priority||''}
   function exceptionalSync(status){return ['failed_retryable','failed_terminal','review_required','error','retry','action'].includes(status)}
   function syncDelayed(timestamp,now=Date.now()){const at=Date.parse(timestamp);return Number.isFinite(at)&&now-at>10*60*1000}
   return {reviewContent,fingerprint,hasSeen,markSeen,chooseSupport,exceptionalSync,syncDelayed};

@@ -1,9 +1,10 @@
 {
-  "build": "12.1.0",
+  "build": "12.2.0",
   "core": [
     "runnerbear-v12-release.js",
     "runnerbear-v12-decision-contract.js",
     "runnerbear-v121-calm-flow.js",
+    "runnerbear-v122-race-focus.js",
     "plan.js",
     "runnerbear-v100-plan-bootstrap.js",
     "runnerbear-v100-engine.js",

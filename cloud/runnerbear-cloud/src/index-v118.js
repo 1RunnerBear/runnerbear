@@ -1,7 +1,7 @@
 import previous, { MigrationService } from './index-v116.js';
 
 export { MigrationService };
-const BUILD='12.1.0';
+const BUILD='12.2.0';
 
 const jsonResponse=(response,body)=>{const headers=new Headers(response.headers);headers.set('content-type','application/json; charset=utf-8');headers.set('cache-control','no-store');return new Response(JSON.stringify(body),{status:response.status,statusText:response.statusText,headers})};
 

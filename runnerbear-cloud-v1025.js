@@ -1,7 +1,7 @@
 /* RunnerBear v12.0 · compatibility state and Tredict transport client */
 (function(){
   'use strict';
-  const BUILD=window.RunnerBearRelease?.build||'12.1.0';
+  const BUILD=window.RunnerBearRelease?.build||'12.2.0';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
@@ -19,6 +19,7 @@
 
   function safeKey(key){
     const k=String(key||'');
+    if(k==='runnerbear_v122_race_checklist')return false; // Device-local logistics, never uploaded or hydrated.
     if(!/^(runnerbear_|runfest26_|rb)/i.test(k))return false;
     if(/(?:token|secret|bridge_key|api_key|access_aud|access_team|cloudflare)/i.test(k))return false;
     if(k==='runnerbear_bridge_url'||k===CACHE||k===LAST)return false;
