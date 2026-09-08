@@ -1,0 +1,40 @@
+name: Diagnose RunnerBear bootstrap
+on:
+  push:
+    branches: ['diagnostic/mobile-bootstrap-1221']
+    paths: ['.github/workflows/runnerbear-bootstrap-diagnostic.yml']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: cloud/runnerbear-cloud
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Observe bootstrap failure
+        run: |
+          cat > /tmp/rb-bootstrap-tail.mjs <<'NODE'
+          const {spawn}=await import('node:child_process');
+          let buffer='',found=0;
+          const child=spawn('npx',['wrangler','tail','app','--format=json'],{stdio:['ignore','pipe','pipe']});
+          console.log('Listening for the bootstrap error; request data and health values are excluded.');
+          function consume(){
+           let start=buffer.indexOf('{');if(start<0){buffer='';return}buffer=buffer.slice(start);let depth=0,quoted=false,escape=false;
+           for(let i=0;i<buffer.length;i++){const c=buffer[i];if(quoted){if(escape)escape=false;else if(c==='\\')escape=true;else if(c==='"')quoted=false}else if(c==='"')quoted=true;else if(c==='{')depth++;else if(c==='}'&&--depth===0){try{const packet=JSON.parse(buffer.slice(0,i+1));for(const row of packet.logs||[])for(const raw of row.message||[]){let value;try{value=JSON.parse(raw)}catch{continue}if(value.event==='runnerbear_cloud_error'&&value.path==='/api/v2/bootstrap'){found++;console.log(JSON.stringify({event:value.event,error:String(value.message).slice(0,800)}))}}}catch{}buffer=buffer.slice(i+1);return consume()}}
+          }
+          child.stdout.on('data',chunk=>{buffer+=chunk.toString();consume()});
+          child.stderr.on('data',chunk=>{if(/authentication|10000|permission|403/i.test(chunk.toString()))console.log('Tail service reports an authentication or permission error.')});
+          child.on('error',()=>{console.log('Tail could not start');process.exit(2)});
+          setTimeout(()=>{child.kill('SIGTERM');console.log(JSON.stringify({bootstrapErrorsObserved:found}));process.exit(found?0:2)},90000);
+          NODE
+          node /tmp/rb-bootstrap-tail.mjs
