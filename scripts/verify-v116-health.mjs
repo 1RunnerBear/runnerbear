@@ -1,4 +1,5 @@
 const x=JSON.parse(process.argv[2]||'{}');
+const allowPendingSync=process.argv.slice(3).includes('--allow-pending-sync');
 
 const fail=message=>{throw new Error(`RunnerBear v12.0 health gate: ${message}`)};
 const required=(condition,message)=>{if(!condition)fail(message)};
@@ -45,4 +46,6 @@ required(x.durableSync===true&&x.historyIntegrity===true,'sync or history integr
 required(x.historyAudit?.activitiesPresent===true&&Number(x.historyAudit?.duplicateExternalIds||0)===0,'activity history audit failed');
 required(x.goalGuard?.activePrimary===true&&typeof x.goalGuard?.restored==='boolean','A-goal guard failed');
 required(x.syncDrain?.ok===true&&x.syncDrain?.readOnly===true,'sync drain is not healthy');
-required(Number(x.syncOutbox?.queued||0)===0&&Number(x.syncOutbox?.retryable||0)===0&&Number(x.syncOutbox?.processing||0)===0,'sync outbox is not empty');
+const queued=Number(x.syncOutbox?.queued||0),retryable=Number(x.syncOutbox?.retryable||0),processing=Number(x.syncOutbox?.processing||0),reviewRequired=Number(x.syncOutbox?.reviewRequired||0);
+if(allowPendingSync)required(retryable===0&&processing===0&&reviewRequired===0,'sync outbox has unsafe pre-Coach work');
+else required(queued===0&&retryable===0&&processing===0&&reviewRequired===0,'sync outbox is not empty');

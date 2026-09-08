@@ -229,7 +229,10 @@ jobs:
           for attempt in $(seq 1 96); do
             BODY="$(curl --fail --silent --show-error --retry 3 --retry-delay 2 https://app.runnerbear.workers.dev/health)"
             echo "attempt=$attempt $BODY"
-            if node ../../scripts/verify-v116-health.mjs "$BODY"; then
+            # A freshly deployed Worker may inherit safe queued work from a
+            # previous Coach rollback. Coach Loop activates sync and drains it;
+            # retryable, processing and review-required work still fail here.
+            if node ../../scripts/verify-v116-health.mjs "$BODY" --allow-pending-sync; then
               exit 0
             fi
             sleep 5
