@@ -44,6 +44,19 @@ test('cloud deploy verifies rollout flags without spending D1 row writes',()=>{
   assert.match(workflow,/Verify persistent feature flags and dependencies/);
 });
 
+test('deploy and Coach use a two-phase sync gate around reconciliation',()=>{
+  const fs=require('node:fs'),deploy=fs.readFileSync('.github/workflows/runnerbear-cloud-deploy.yml','utf8'),rollout=fs.readFileSync('.github/workflows/runnerbear-coach-loop-rollout.yml','utf8'),health=fs.readFileSync('scripts/verify-v116-health.mjs','utf8');
+  assert.match(deploy,/verify-v116-health\.mjs "\$BODY" --allow-pending-sync/);
+  assert.match(health,/allowPendingSync=process\.argv\.slice\(3\)\.includes\('--allow-pending-sync'\)/);
+  assert.match(health,/allowPendingSync\)required\(retryable===0&&processing===0&&reviewRequired===0/);
+  assert.match(health,/else required\(queued===0&&retryable===0&&processing===0&&reviewRequired===0/);
+  assert.match(rollout,/Wait for canonical Tredict queue to drain/);
+  assert.match(rollout,/Re-audit rollout after Tredict reconciliation/);
+  assert.match(rollout,/coach-loop-rollout\.mjs safe-auto/);
+  assert.match(rollout,/Verify one confirmed Tredict binding per canonical workout/);
+  assert.match(rollout,/missing_bindings.*duplicate_remote_bindings.*unresolved_operations/s);
+});
+
 test('shadow compares like-for-like full plans and rollout samples one stable production revision',()=>{
   const fs=require('node:fs'),client=fs.readFileSync('runnerbear-cloud-v1026.js','utf8'),rollout=fs.readFileSync('cloud/runnerbear-cloud/scripts/coach-loop-rollout.mjs','utf8');
   assert.match(client,/scope==='full'\?data:await api\('\/api\/v2\/bootstrap\?scope=full'\)/);
