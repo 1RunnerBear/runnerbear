@@ -63,20 +63,26 @@ const plainEasy=value=>{
   return(stimulus==='easy'||/\b(?:easy|rolig)\b/.test(title))&&!/(?:langtur|long|stride|stigning|terskel|threshold|intervall|interval|gate|bakke|hill|tempo|fartlek|progressiv|race|konkurranse|\bx\b|\u00d7)/i.test(title);
 };
 const prescribedCore=operation=>{const main=operation?.structuredWorkout?.prescription?.main||operation?.prescription?.main||{},repetitions=finite(main.repetitions),workSeconds=finite(main.workSeconds||main.workDurationSeconds),recoverySeconds=finite(main.recoverySeconds||main.recoveryDurationSeconds),workDistance=finite(main.workDistanceM||main.distanceM||main.workMeters);return{duration:repetitions&&workSeconds?repetitions*(workSeconds+recoverySeconds):0,distance:repetitions&&workDistance?repetitions*workDistance:0}};
+const unstructuredContinuous=(row,operation)=>{const main=operation?.structuredWorkout?.prescription?.main||operation?.prescription?.main||{},title=rowTitle(row);return(main.kind==='continuous'||plainEasy(operation))&&!finite(row.duration)&&!finite(row.distance)&&/\b(?:easy|rolig|langtur|long)\b/i.test(title)&&!/(?:stride|stigning|progressiv|tempo|fartlek)/i.test(title)};
+const distanceIntervalSignature=value=>{const match=String(value||'').match(/(\d+)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(km|m)\b/i);if(!match)return null;return{repetitions:Number(match[1]),workMeters:Number(match[2].replace(',','.'))*(match[3].toLowerCase()==='km'?1000:1)}};
+const recoverySeconds=value=>{const match=String(value||'').match(/\b(\d+(?:[.,]\d+)?)\s*(sek(?:und)?|s|min(?:utt)?)\b/i);if(!match)return 0;return Number(match[1].replace(',','.'))*(match[2].toLowerCase().startsWith('m')?60:1)};
+function distanceIntervalsMatch(row,operation){const main=operation?.structuredWorkout?.prescription?.main||operation?.prescription?.main||{},signature=distanceIntervalSignature(rowTitle(row)),wantedRecovery=finite(main.recoverySeconds||main.recoveryDurationSeconds);if(!signature||signature.repetitions!==finite(main.repetitions)||signature.workMeters!==finite(main.workDistanceM||main.distanceM||main.workMeters)||finite(row.distance)!==signature.repetitions*signature.workMeters)return false;const describedRecovery=recoverySeconds(row?.notes||row?.description||'');return!wantedRecovery||describedRecovery===wantedRecovery}
 function listedStructureMatches(row,operation){
-  if(remoteDate(row)!==isoDate(operation.date||operation.localDate)||rowTitle(row)!==String(operation.title||operation.structuredWorkout?.title||''))return false;
+  if(remoteDate(row)!==isoDate(operation.date||operation.localDate))return false;
+  if(unstructuredContinuous(row,operation)||distanceIntervalsMatch(row,operation))return true;
+  if(rowTitle(row)!==String(operation.title||operation.structuredWorkout?.title||''))return false;
   const remoteDuration=finite(row.duration),remoteDistance=finite(row.distance),expected=prescribedCore(operation);
   if(!remoteDuration&&!remoteDistance)return plainEasy(row)&&plainEasy(operation);
   return(!remoteDuration||expected.duration===remoteDuration)&&(!remoteDistance||expected.distance===remoteDistance)&&(!!remoteDuration||!!remoteDistance);
 }
 
 export function chooseOwnedRelinkCandidate(rows=[],operation={}){
-  if(String(operation.operationType||operation.operation_type||'').toLowerCase()!=='create'||!plainEasy(operation))return null;
+  if(String(operation.operationType||operation.operation_type||'').toLowerCase()!=='create')return null;
   const reserved=new Set((operation.reservedRemoteWorkoutIds||[]).map(String).filter(Boolean)),desiredDates=new Set((operation.desiredCalendarDates||[]).map(isoDate).filter(Boolean)),today=isoDate(operation.today||new Date().toISOString()),target=isoDate(operation.date||operation.localDate),hasReservedSibling=row=>(rows||[]).some(other=>other!==row&&remoteDate(other)===remoteDate(row)&&reserved.has(remoteId(other)));
   const candidates=(rows||[]).filter(row=>{
     const id=remoteId(row),externalId=rowExternalId(row);
-    const structurallyReusable=plainEasy(row)&&!finite(row.duration)&&!finite(row.distance)||listedStructureMatches(row,operation);
-    return id&&externalId.startsWith('runnerbear-')&&!reserved.has(id)&&!isCompletedWorkout(row)&&remoteDate(row)>=today&&structurallyReusable&&(hasReservedSibling(row)||!desiredDates.has(remoteDate(row)));
+    const structurallyReusable=unstructuredContinuous(row,operation)||distanceIntervalsMatch(row,operation)||listedStructureMatches(row,operation);
+    return id&&externalId.startsWith('runnerbear-')&&!reserved.has(id)&&!isCompletedWorkout(row)&&remoteDate(row)>=today&&structurallyReusable&&(remoteDate(row)===target||hasReservedSibling(row)||!desiredDates.has(remoteDate(row)));
   }).map(row=>({row,distance:Math.abs((Date.parse(`${remoteDate(row)}T12:00:00Z`)-Date.parse(`${target}T12:00:00Z`))/86400000)})).sort((a,b)=>a.distance-b.distance||remoteId(a.row).localeCompare(remoteId(b.row)));
   if(!candidates.length||candidates[1]?.distance===candidates[0].distance)return null;
   return candidates[0].row;
