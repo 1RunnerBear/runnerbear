@@ -7,6 +7,7 @@ import { activePlan,activateDraft,athleteConfig,createDraft,flagConfigurationErr
 import { bootstrapV2,compatibilityBootstrap } from './read-model.js';
 import { projectRollingSync,projectSync,stableExternalId,syncOperationStatements } from './sync-projection.js';
 import { buildRealignmentProposal } from './review-engine.js';
+import { activityHistory } from './history-status.js';
 import { buildSyncRepair,canExplicitlyVerify } from './sync-repair.js';
 import { createReleaseGoalRepairState,restorePausedPrimaryGoalState } from './goal-model.js';
 import { ACTIVE_WORKOUT_BANK_IDS,BAKKEN_ENGINE_VERSION,BAKKEN_WORKOUT_BANK_VERSION,isExplicitHillWorkout,repairFutureWorkoutBank } from './bakken-engine.js';
@@ -60,11 +61,12 @@ async function commitPlanRequest(request,env,userId,body,headers,ctx){
   const plan=await activePlan(env.DB,userId),decision=await coachForActive(env,userId,plan,correlationId);if(syncOperations.length&&ctx?.waitUntil)ctx.waitUntil(processPendingSync(env,userId).catch(error=>console.error(JSON.stringify({event:'coach_loop_sync_background_error',build:BUILD,planRevisionId,message:String(error?.message||error)}))));console.log(JSON.stringify({event:reason==='undo'?'coach_loop_undo':reason==='safe-autopilot'?'coach_loop_auto_applied':'coach_loop_revision_created',build:BUILD,policyVersion:POLICY_VERSION,correlationId,userScope:userId==='primary'?'owner':'user',planRevisionId,parentRevisionId:current.planRevisionId,status:'active',reasonCode:reason,syncOperations:syncOperations.length}));return json({ok:true,idempotent:false,planRevisionId,activePlan:plan,coachDecision:decision,syncQueued:syncOperations.length},200,headers);
 }
 async function realignmentInputs(db,userId,today){
-  const start=addDays(today,-7),[activities,events]=await Promise.all([
+  const start=addDays(today,-7),[activities,events,sync]=await Promise.all([
     db.prepare('SELECT source,source_id,date,sport_type,sub_sport_type,title,duration_seconds,distance_m,avg_hr,payload_json,updated_at FROM rb_activities WHERE user_id=?1 AND date>=?2 ORDER BY date DESC,updated_at DESC LIMIT 50').bind(userId,start).all(),
     db.prepare("SELECT event_id,event_type,occurred_at,local_date,source_id,payload_json FROM rb_training_events WHERE user_id=?1 AND event_type='feedback:workout' AND local_date>=?2 ORDER BY occurred_at DESC LIMIT 50").bind(userId,start).all(),
+    db.prepare("SELECT last_synced_at,status FROM rb_sync_sources WHERE user_id=?1 AND source IN ('tredict','garmin') ORDER BY updated_at DESC LIMIT 1").bind(userId).first(),
   ]);
-  return{activities:activities.results||[],events:(events.results||[]).map(row=>({...row,payload:parse(row.payload_json,{})}))};
+  return{activities:activities.results||[],activityHistory:activityHistory({rows:activities.results||[],limit:50,sync}),events:(events.results||[]).map(row=>({...row,payload:parse(row.payload_json,{})}))};
 }
 async function applyRealignmentRequest(request,env,userId,body,headers,ctx){
   const idempotencyKey=String(request.headers.get('Idempotency-Key')||''),replay=await env.DB.prepare("SELECT payload_json FROM rb_training_events WHERE user_id=?1 AND source_id=?2 AND event_type='plan:auto-adjusted' LIMIT 1").bind(userId,idempotencyKey).first();

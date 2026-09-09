@@ -15,7 +15,7 @@
   function identity(goal){return JSON.stringify([goal.id||'',String(goal.name||'').trim(),goal.date,goal.distance])}
   function goalMatches(canonical,local){return !!local&&(!local.status||local.status==='active')&&canonical?.mode==='race'&&['name','date','distance'].every(k=>String(canonical[k]||'').trim()===String(local[k]||'').trim())&&Number(canonical.targetSeconds||0)===Number(local.targetSeconds||0)}
   function target(goal){const meters=distances[goal.distance],seconds=Number(goal.targetSeconds);if(!meters||!Number.isFinite(seconds)||seconds<=0||seconds>86400)return null;const marks={five:[1000,2000,3000,4000],ten:[2000,4000,6000,8000],half:[5000,10000,15000,20000],marathon:[10000,20000,30000,40000]}[goal.distance];return {seconds:Math.round(seconds),paceSeconds:seconds/(meters/1000),splits:[...marks,meters].map(m=>({meters:m,finish:m===meters,seconds:Math.round(seconds*m/meters)}))}}
-  function model({snapshot,goal,now=Date.now()}={}){
+  function model({snapshot,goal,now=Date.now(),practicalOnly=false}={}){
     const unavailable=reason=>({available:false,reason});
     const canonical=snapshot?.config?.goal,timezone=snapshot?.config?.timezone;
     if(!goalMatches(canonical,goal))return unavailable('Løpsforberedelsene venter til målet og den gjeldende planen stemmer overens.');
@@ -24,7 +24,8 @@
     const days=raceDay-currentDay;
     if(days<0)return unavailable('Løpsdatoen er passert. Resultat og neste mål håndteres under Administrer mål.');
     const revision=snapshot?.planRevisionId,plan=snapshot?.activePlan;
-    if(!revision||snapshot?.flags?.coach_loop_ui!==true||plan?.planRevisionId!==revision||plan?.status!=='active'||!Array.isArray(plan.items)||plan.items.some(item=>!item||item.planRevisionId!==revision))return unavailable('Gjeldende plan kunne ikke verifiseres. Løpsforberedelsene åpnes når planen er klar.');
+    if(!revision||!practicalOnly&&snapshot?.flags?.coach_loop_ui!==true||plan?.planRevisionId!==revision||plan?.status!=='active'||!Array.isArray(plan.items)||plan.items.some(item=>!item||item.planRevisionId!==revision))return unavailable('Gjeldende plan kunne ikke verifiseres. Løpsforberedelsene åpnes når planen er klar.');
+    if(practicalOnly){const age=now-Date.parse(snapshot.generatedAt);if(snapshot.ok!==true||age< -60000||!(age<=6*3600000))return unavailable('Målet oppdateres før sjekklisten åpnes.');return{available:true,practicalOnly:true,key:identity(goal),phase:'preview',days,date,raceDate:canonical.date,name:canonical.name,revision,headline:'Løpsforberedelser',summary:'Gjør det praktiske klart litt etter litt. Øktene finner du i Plan.',todayVisible:false,blocked:true,target:null,items:[]}}
     const decision=snapshot.oneDecision,body=snapshot.bodyResponse,generated=Date.parse(decision?.generatedAt);
     // Canonical rest/result envelopes intentionally have no decision expiry. Bound their display cache.
     const expires=decision?.validUntil==null&&['rest','completed','reflect'].includes(decision?.state)?generated+15*60000:Date.parse(decision?.validUntil);
@@ -45,5 +46,5 @@
   function records(storage){try{const value=JSON.parse(storage.getItem(storageKey)||'[]');return Array.isArray(value)?value.filter(row=>row&&typeof row.key==='string'&&Array.isArray(row.checked)).slice(-12):[]}catch{return []}}
   function checked(storage,key){return new Set((records(storage).find(row=>row.key===key)?.checked||[]).filter(id=>checklist.some(item=>item.id===id)))}
   function setChecked(storage,key,id,value){if(typeof key!=='string'||!key||!checklist.some(item=>item.id===id)||typeof value!=='boolean')return false;const rows=records(storage),set=checked(storage,key);if(value)set.add(id);else set.delete(id);try{storage.setItem(storageKey,JSON.stringify([...rows.filter(row=>row.key!==key),{key,checked:[...set]}].slice(-12)));return true}catch{return false}}
-  return {model,localDate,day,target,identity,checklist,checked,setChecked,storageKey};
+  return {model,preparation:options=>model({...options,practicalOnly:true}),localDate,day,target,identity,checklist,checked,setChecked,storageKey};
 });

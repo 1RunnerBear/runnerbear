@@ -1,7 +1,7 @@
 {
   "name": "runnerbear-release-harness",
   "private": true,
-  "version": "12.2.1",
+  "version": "12.2.2",
   "type": "commonjs",
   "scripts": {
     "dev": "node scripts/preview-v121.mjs",

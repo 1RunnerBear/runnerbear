@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=12201/);
+  assert.match(html,/runnerbear-v11\.css\?v=12202/);
   const migration=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/v121-css-pruning.json'),'utf8'));
   assert.ok(migration.sources.includes(source),`${source} was consolidated in original cascade order`);
   assert.equal(assets.styles.length,5);
@@ -56,16 +56,16 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v12201');
-  assert.equal(version.build ,'12.2.1');
+  assert.equal(manifest.start_url,'/?app=v12202');
+  assert.equal(version.build ,'12.2.2');
   assert.equal(version.channel,'live');
 });
 
 test('v10.16 presents goals as evidence gates instead of misleading progress',()=>{
   assertCanonicalStyle('runnerbear-v1016-goals-more.css');
-  assert.match(app,/Veien mot målet/);
+  assert.match(app,/Retning mot målet/);
   assert.match(app,/data-rb116-open-gate/);
-  assert.match(app,/Godkjennes bare med stabil pust/);
+  assert.match(app,/En gate godkjennes ikke hvis reaksjonen dagen etter er dårligere/);
   assert.match(app,/Trend vises når grunnlaget er sammenlignbart/);
   assert.doesNotMatch(goalsMore,/rb115-goal-track/);
 });

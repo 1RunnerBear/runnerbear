@@ -95,3 +95,17 @@ test('first paint completes before an automatic plan update can stall',async()=>
   const loaded=await api.start();assert.equal(loaded.planRevisionId,'pr-synthetic');assert.equal(requests.length,1);
   for(const timer of timers.values())timer.fn();await Promise.resolve();await Promise.resolve();assert.equal(requests.at(-1),'/api/v2/coach/realign/apply');
 });
+
+test('v12.2.2 real bootstrap exposes activity history and calendar receipts with production rollout flags disabled',async t=>{
+  const {db,env,today,revision}=await fixture(t),{syncTredict}=await import('../cloud/runnerbear-cloud/src/index-v11-legacy.js'),{bootstrapV2}=await import('../cloud/runnerbear-cloud/src/v11/read-model.js');
+  db.sqlite.exec("UPDATE rb_feature_flags SET enabled=0 WHERE flag!='coach_loop_shadow'");
+  const stamp=new Date().toISOString(),activities=Array.from({length:100},(_,i)=>({id:`history-${i}`,date:new Date(Date.parse(today+'T12:00:00Z')-i*86400000).toISOString().slice(0,10),sportType:'running',title:'Synthetic historical run',summary:{distance:6000,duration:1800,pace:300,heartrate:150,heartrateMax:174}}));
+  env.TREDICT={snapshot:async()=>({ok:true,syncedAt:stamp,activities})};await syncTredict(env,{force:true});
+  db.sqlite.prepare("INSERT INTO rb_reconciliation_state(user_id,provider,canonical_plan_id,active_plan_revision_id,window_start,window_end,last_completed_at,last_result) VALUES('primary','tredict','rb-plan-primary',?,?,?,?,'confirmed')").run(revision,today,today,stamp);
+  const before=db.sqlite.prepare('SELECT * FROM rb_activities ORDER BY source_id').all(),planBefore=db.sqlite.prepare('SELECT * FROM rb_plan_revision_items ORDER BY local_date').all();db.writes=[];
+  const home=await bootstrapV2(env,'primary','home'),full=await bootstrapV2(env,'primary','full');
+  assert.equal(home.recentActivities.length,90);assert.equal(home.activityHistory.truncated,true);assert.equal(full.recentActivities.length,100);assert.equal(full.activityHistory.truncated,false);assert.equal(full.activityHistory.state,'current');assert.equal(full.recentActivities[0].pace_seconds_per_km,300);assert.equal(full.recentActivities[0].max_hr,174);assert.equal(full.calendarMirror.active_plan_revision_id,revision);assert.equal(full.calendarMirror.last_result,'confirmed');
+  for(const flag of ['coach_loop_read','coach_loop_ui','coach_loop_write','coach_loop_sync','coach_loop_safe_auto'])assert.equal(full.flags[flag],false);
+  assert.equal(db.writes.length,0);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_activities ORDER BY source_id').all(),before);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_plan_revision_items ORDER BY local_date').all(),planBefore);
+  db.sqlite.exec("UPDATE rb_sync_sources SET status='error'");assert.equal((await bootstrapV2(env,'primary','full')).activityHistory.state,'pending');
+});

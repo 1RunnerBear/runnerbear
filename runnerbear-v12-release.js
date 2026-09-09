@@ -2,9 +2,9 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'12.2.1',
-    assetVersion:'12201',
-    label:'Race Focus',
+    build:'12.2.2',
+    assetVersion:'12202',
+    label:'Historikk og tillit',
     design:'Concept 1 · Premium rolig'
   });
   window.RunnerBearRelease=release;
