@@ -25,3 +25,16 @@ Canonical JavaScript: 465 255 byte, under eksisterende grense på 466 000. CSS g
 ## Produksjonskrav
 
 Eksisterende GitHub Actions-løp skal sikkerhetskopiere, validere, publisere og kontrollere historikk, aktiv plan, tilgang og synkkø. Deretter kontrolleres den faktiske produksjonsappen: historikk, siste gjennomførte økt, løpssjekkliste, datakilder og utgitt versjon. Fysisk telefon og faktisk mottak på klokke er ikke testet av denne automatiserte kontrollen.
+
+## Produksjonskontroll — fullført 9. september 2026
+
+- Utgitt kilde: `64e52705eefb796f7d249188b4dd4d65ef7d6356`. GitHub-treet er identisk med det lokalt testede treet `29c38eccc091c574cc9bbdbd6aafb66353d3560a`.
+- Cloud deploy [34369727369](https://github.com/1RunnerBear/runnerbear/actions/runs/34369727369): success, rapportert 15:23 UTC. UI-valideringen er også grønn.
+- 364 aktiviteter før/etter, ingen duplikate eksterne ID-er. Alle 364 vises i produksjonens historikkliste.
+- Økten 8. september vises som gjennomført. Ukeoversikten viser 13 km gjennomført og 1 av 2 kvalitetsøkter; aktivitetsdetaljen viser den opprinnelige registreringen på 13,1 km.
+- Løpsforberedelser åpnes fra Mål. Fem praktiske punkter vises i eksisterende Concept 1-dialog. Dialogen lukker korrekt. Ingen konkurransefart eller skjulte treningsøkter vises i praktisk modus.
+- Mer viser fersk aktivitets-/helsesynk, siste aktivitetsdato og separat Tredict-kvittering. Versjon 12.2.2 vises i appen.
+- Offentlig read-only health-kontroll: historyIntegrity=true, samme aktive planrevisjon som før, én aktiv plan, kalender bekreftet og alle fire synkkøtall lik 0.
+- Feature flags er uendret: shadow=1; read/ui/write/sync/safe_auto/goal_confidence=0. Produksjonsløpets tilgangskontroll er grønn.
+
+Kontrollen er utført i faktisk produksjon med nettleser og driftsendepunkt. Ingen fysisk telefon eller Garmin-klokke er brukt i verifiseringen.
