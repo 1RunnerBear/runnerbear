@@ -122,12 +122,13 @@ jobs:
         run: node --test tests/v1011-trust.test.cjs tests/v1012-analysis.test.cjs tests/v1020-coaching-clarity.test.cjs
 
       - name: Test v10.31 coach loop and all legacy contracts
-        run: node --test tests/*.test.cjs tests/e2e/*.spec.mjs
+        run: |
+          npm ci --prefix cloud/runnerbear-cloud
+          node --test tests/*.test.cjs tests/e2e/*.spec.mjs
 
       - name: Validate empty and upgraded local D1 schema
         working-directory: cloud/runnerbear-cloud
         run: |
-          npm ci
           npx wrangler d1 migrations apply DB --local
           npx wrangler d1 migrations apply DB --local
           npx wrangler d1 execute DB --local --command="SELECT COUNT(*) AS tables_found FROM sqlite_master WHERE type='table' AND name IN ('rb_users','rb_plan_revisions','rb_coach_decisions','rb_sync_operations','rb_sync_bindings')" --json

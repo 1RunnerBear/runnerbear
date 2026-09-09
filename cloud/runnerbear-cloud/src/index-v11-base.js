@@ -1,5 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { handleV1027 } from './v11/routes.js';
+import { isStorageWriteLimit,STORAGE_WRITE_LIMIT } from './v11/storage-errors.js';
 
 const BUILD = '11.1.0';
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' };
@@ -459,6 +460,7 @@ export default {
       return json({ ok: false, error: 'Not found' }, 404, cors(request, env));
     } catch (error) {
       console.error(JSON.stringify({ event: 'runnerbear_cloud_error', path, message: error instanceof Error ? error.message : String(error) }));
+      if(path.startsWith('/api/')&&isStorageWriteLimit(error))return json({ok:false,...STORAGE_WRITE_LIMIT,retryable:true,correlationId:crypto.randomUUID()},503,cors(request,env));
       if (path.startsWith('/api/v2')) return json({ ok: false, code: error instanceof SyntaxError ? 'INVALID_JSON' : 'INTERNAL_ERROR', message: error instanceof SyntaxError ? 'Ugyldig JSON.' : 'RunnerBear kunne ikke fullføre forespørselen.', retryable: !(error instanceof SyntaxError), correlationId: crypto.randomUUID() }, error instanceof SyntaxError ? 400 : 500, cors(request, env));
       const message = error instanceof SyntaxError ? 'Invalid JSON' : error instanceof Error ? error.message : 'Unexpected error';
       const status = /too large/i.test(message) ? 413 : /invalid|required/i.test(message) ? 400 : 500;

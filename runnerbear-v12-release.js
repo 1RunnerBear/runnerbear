@@ -2,8 +2,8 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'12.2.0',
-    assetVersion:'12200',
+    build:'12.2.1',
+    assetVersion:'12201',
     label:'Race Focus',
     design:'Concept 1 · Premium rolig'
   });

@@ -82,7 +82,7 @@ async function storeActivities(env,rows){
       sub_sport_type=excluded.sub_sport_type,title=excluded.title,duration_seconds=excluded.duration_seconds,
       distance_m=excluded.distance_m,pace_seconds_per_km=excluded.pace_seconds_per_km,avg_hr=excluded.avg_hr,
       max_hr=excluded.max_hr,power=excluded.power,cadence=excluded.cadence,payload_json=excluded.payload_json,
-      updated_at=excluded.updated_at`);
+      updated_at=excluded.updated_at WHERE rb_activities.payload_json IS NOT excluded.payload_json`);
   const statements=[];
   for(const a of rows){
     const sourceId=String(a?.id||'');const date=isoDate(a?.date);if(!sourceId||!date)continue;
@@ -100,7 +100,8 @@ async function storeCapacity(env,capacity){
   const t=now(),id=owner(env);
   const stmt=env.DB.prepare(`INSERT INTO rb_capacity (user_id, timestamp, source, payload_json, updated_at)
     VALUES (?1,?2,?3,?4,?5)
-    ON CONFLICT(user_id, timestamp, source) DO UPDATE SET payload_json=excluded.payload_json,updated_at=excluded.updated_at`);
+    ON CONFLICT(user_id, timestamp, source) DO UPDATE SET payload_json=excluded.payload_json,updated_at=excluded.updated_at
+    WHERE rb_capacity.payload_json IS NOT excluded.payload_json`);
   const statements=rows.map((r,i)=>stmt.bind(id,String(r?.timestamp||r?.date||`${t.slice(0,19)}.${String(i).padStart(3,'0')}Z`),TREDICT_SOURCE,JSON.stringify(r||{}),t));
   await batch(env.DB,statements);
   return statements.length;
@@ -119,13 +120,16 @@ async function storeHealth(env,cache){
   Object.keys(sleep).forEach(key=>put(key,{sleep:healthValue(sleep,key,0),sleepBaseline:healthValue(sleep,key,1)}));
   body.forEach(x=>put(x?.timestamp,{rhr:finite(x?.hrRestDynamic??x?.restingHeartrate)}));
   if(!rows.size)return 0;
-  const t=now(),id=owner(env),clear=env.DB.prepare(`DELETE FROM rb_health_observations
-    WHERE user_id=?1 AND local_date=?2 AND source='tredict' AND metric IN ('hrv','sleep','rhr')`),stmt=env.DB.prepare(`INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at)
+  const t=now(),id=owner(env),stmt=env.DB.prepare(`INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at)
     VALUES (?1,?2,?3,?4,?5,?6,?7)
     ON CONFLICT(user_id,date) DO UPDATE SET hrv_ms=excluded.hrv_ms,sleep_seconds=excluded.sleep_seconds,
-      rhr_bpm=excluded.rhr_bpm,payload_json=excluded.payload_json,updated_at=excluded.updated_at`);
+      rhr_bpm=excluded.rhr_bpm,payload_json=excluded.payload_json,updated_at=excluded.updated_at
+    WHERE rb_health_daily.hrv_ms IS NOT excluded.hrv_ms OR rb_health_daily.sleep_seconds IS NOT excluded.sleep_seconds
+      OR rb_health_daily.rhr_bpm IS NOT excluded.rhr_bpm OR rb_health_daily.payload_json IS NOT excluded.payload_json`);
   const statements=[];
-  for(const [date,x] of rows)statements.push(clear.bind(id,date),stmt.bind(id,date,x.hrv??null,x.sleep??null,x.rhr??null,JSON.stringify(x),t));
+  // The installed observation triggers handle changed values and removals.
+  // Unchanged history must not be deleted and recreated on every automatic sync.
+  for(const [date,x] of rows)statements.push(stmt.bind(id,date,x.hrv??null,x.sleep??null,x.rhr??null,JSON.stringify(x),t));
   await batch(env.DB,statements);
   return rows.size;
 }

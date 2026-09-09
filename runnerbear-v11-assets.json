@@ -1,5 +1,5 @@
 {
-  "build": "12.2.0",
+  "build": "12.2.1",
   "core": [
     "runnerbear-v12-release.js",
     "runnerbear-v12-decision-contract.js",
