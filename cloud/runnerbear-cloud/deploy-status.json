@@ -1,9 +1,9 @@
 {
-  "build": "12.2.0",
+  "build": "12.2.1",
   "status": "success",
-  "checked_at": "2026-09-08T18:17:35.818530+00:00",
-  "run_id": "34262072577",
-  "source_sha": "f2c3dd71038eb974bac1d8f031ed492bd05ff2ee",
+  "checked_at": "2026-09-09T05:10:40.070646+00:00",
+  "run_id": "34313766232",
+  "source_sha": "fb4b11bf72a3c0da9a9eef5e27b3a4c87883a41c",
   "steps": {
     "install": "success",
     "validate": "success",
