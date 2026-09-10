@@ -60,7 +60,7 @@ test('v12 release, cache and state hydration use one current contract',()=>{
   const manifest=JSON.parse(read('runnerbear-v11-assets.json')),version=JSON.parse(read('runnerbear-version.json')),html=read('index.html'),headers=read('_headers'),readModel=read('cloud/runnerbear-cloud/src/v11/read-model.js'),healthGate=read('scripts/verify-v116-health.mjs');
   assert.equal(manifest.build ,'12.3.0');assert.equal(version.build ,'12.3.0');
   assert.equal(manifest.core[0],'runnerbear-v12-release.js');assert.ok(manifest.core.includes('runnerbear-v12-decision-contract.js'));
-  assert.match(html,/runnerbear-core-v11\.js\?v=12300/);assert.match(html,/runnerbear-data-v11\.js\?v=12300/);
+  assert.match(html,/runnerbear-core-v11\.js\?v=12301/);assert.match(html,/runnerbear-data-v11\.js\?v=12301/);
   for(const asset of ['runnerbear-core-v11.js','runnerbear-ui-v11.js','runnerbear-data-v11.js','runnerbear-v11.css'])assert.match(headers,new RegExp(`/${asset.replaceAll('.','\\.')}[\\s\\S]*immutable`));
   assert.match(headers,/\/runnerbear-version\.json[\s\S]*no-cache/);
   assert.match(readModel,/clientState:response\.clientState/);assert.match(readModel,/publicClientState\(parse\(state\?\.payload_json,\{\}\)\)/);

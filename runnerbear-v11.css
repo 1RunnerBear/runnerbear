@@ -2491,3 +2491,7 @@ html.rb107-ready .rb119b-race{max-width:880px}
 .rb113-one-decision .rb121-workout-why{margin-top:20px;border-top:1px solid var(--rb12-line)}
 .rb113-one-decision .rb121-workout-why p,.rb113-one-decision .rb121-workout-why li{font-size:14px;line-height:1.6;color:var(--rb12-muted)}
 .rb123-response,.rb123-response label,.rb123-response legend{min-width:0;overflow-wrap:anywhere}
+
+/* Secondary day choice must remain quieter than the workout action. */
+html.rb107-ready .rb107-surface .rb113-one-decision button[data-rb123-adapt]{background:transparent;border:1px solid var(--rb12-line);color:var(--rb12-forest);box-shadow:none;min-height:48px}
+html.rb107-ready .rb107-surface .rb113-one-decision button[data-rb123-adapt]:hover{background:#edf0e7;border-color:var(--rb12-forest)}

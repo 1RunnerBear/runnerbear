@@ -119,7 +119,7 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
 test('release metadata and production health gate agree on v12.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
   assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'12.3.0');
-  assert.match(read('site.webmanifest'),/v12300/);
+  assert.match(read('site.webmanifest'),/v12301/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v116.js'),/CONTEXTUAL_COACH_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v118\.js/);
