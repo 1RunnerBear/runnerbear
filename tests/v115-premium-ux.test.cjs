@@ -11,7 +11,7 @@ test('v11.6 replaces the decision chat with contextual coach surfaces',()=>{
   assert.match(ui,/function contextualWorkoutCoachHtml\(/);
   assert.match(ui,/function contextualPlanNoticeHtml\(/);
   assert.match(ui,/surfaces\?\.goal/);
-  assert.match(ui,/Dagens råd/);
+  assert.match(ui,/Dagens oppgave/);
   assert.match(ui,/Etter økten/);
   assert.doesNotMatch(ui,/Coach Live|coachLive|coach-live|data-rb112|rb112/);
   assert.match(css,/The coach speaks once, in context/);

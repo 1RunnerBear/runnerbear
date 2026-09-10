@@ -109,3 +109,37 @@ test('v12.2.2 real bootstrap exposes activity history and calendar receipts with
   assert.equal(db.writes.length,0);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_activities ORDER BY source_id').all(),before);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_plan_revision_items ORDER BY local_date').all(),planBefore);
   db.sqlite.exec("UPDATE rb_sync_sources SET status='error'");assert.equal((await bootstrapV2(env,'primary','full')).activityHistory.state,'pending');
 });
+
+async function responseFixture(t){
+ const f=await fixture(t),{syncTredict}=await import('../cloud/runnerbear-cloud/src/index-v11-legacy.js');
+ f.db.sqlite.exec("UPDATE rb_feature_flags SET enabled=0 WHERE flag!='coach_loop_shadow'");
+ f.env.TREDICT={snapshot:async()=>({ok:true,syncedAt:new Date().toISOString(),activities:[{id:'response-run',date:f.today,sportType:'running',title:'Synthetic run',summary:{distance:7000,duration:2100}}]})};await syncTredict(f.env,{force:true});
+ const a=f.db.sqlite.prepare('SELECT source,source_id FROM rb_activities').get();
+ f.input={activityId:a.source_id,activitySource:a.source,workoutId:'wo-quota-today',planRevisionId:f.revision,localDate:f.today,responseDate:f.today,responsePhase:'post_workout',control:'controlled'};
+ return f;
+}
+test('v12.3 authenticated workout response stores input, replays safely and preserves all plan authority gates',async t=>{
+ const {db,call,input}=await responseFixture(t),plan=db.sqlite.prepare('SELECT * FROM rb_plan_revision_items').all(),activities=db.sqlite.prepare('SELECT * FROM rb_activities').all(),flags=db.sqlite.prepare('SELECT * FROM rb_feature_flags').all();
+ const post=(body,key='response-test')=>call(request('/api/v2/workout-responses',{method:'POST',body:JSON.stringify(body),headers:{'Idempotency-Key':key}}));
+ const first=await post(input),saved=await first.json();assert.equal(first.status,200);assert.equal(saved.planChanged,false);assert.ok(saved.eventId);
+ assert.equal((await (await post(input)).json()).eventId,saved.eventId);assert.equal((await post({...input,control:'uncontrolled'})).status,409);
+ assert.equal((await post({...input,control:'borderline'},'response-edited')).status,200);assert.equal(db.sqlite.prepare("SELECT COUNT(*) n FROM rb_training_events WHERE event_type='feedback:workout'").get().n,2);
+ assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_plan_revision_items').all(),plan);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_activities').all(),activities);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_feature_flags').all(),flags);
+ assert.equal((await call(request('/api/v2/plan/preview',{method:'POST',body:JSON.stringify({})}))).status,503);
+ assert.equal((await call(request('/api/v2/feedback',{method:'POST',body:JSON.stringify({rpe:4})}))).status,503,'existing plan-write gated route remains gated');
+ assert.equal((await call(request('/api/v2/workout-responses',{method:'POST',body:JSON.stringify(input),headers:{'X-RunnerBear-Key':''}}))).status,401);
+});
+test('v12.3 response rejects mismatched activities, stale plans, invalid scales and unavailable storage',async t=>{
+ const {db,env,call,input}=await responseFixture(t);let n=0;
+ const post=body=>call(request('/api/v2/workout-responses',{method:'POST',body:JSON.stringify(body),headers:{'Idempotency-Key':'invalid-'+n++}}));
+ for(const patch of [{pain:null},{control:null},{rpe:'bad'},{rpe:null,pain:11},{pain:-1},{control:'good'},{localDate:'2026-99-99'},{unexpected:true}])assert.equal((await post({...input,...patch})).status,400);
+ for(const patch of [{activityId:'another-users-run'},{planRevisionId:'old'},{localDate:'2020-01-01'},{responsePhase:'next_morning'}])assert.equal((await post({...input,...patch})).status,409);
+ db.writeError=quota;assert.equal((await post(input)).status,503);db.writeError=null;
+ env.COACH_LOOP_KILL_SWITCH='true';assert.equal((await post(input)).status,503);assert.equal(db.sqlite.prepare("SELECT COUNT(*) n FROM rb_training_events WHERE event_type='feedback:workout'").get().n,0);
+});
+test('v12.3 control-only response cannot clear a reported pain or illness signal',async t=>{
+ const {db,env,input}=await responseFixture(t),{saveWorkoutResponse}=await import('../cloud/runnerbear-cloud/src/v11/workout-response.js'),{bodyResponseFor}=await import('../cloud/runnerbear-cloud/src/v11/body-response.js'),{activePlan}=await import('../cloud/runnerbear-cloud/src/v11/repository.js'),plan=await activePlan(db,'primary'),now=new Date(),earlier=new Date(now.getTime()-60000).toISOString();
+ db.sqlite.prepare("INSERT INTO rb_subjective_checkins(checkin_id,user_id,source_id,local_date,state,reasons_json,response_phase,occurred_at,updated_at) VALUES('pain-check','primary','pain-check',?,'heavy','[\"achilles\"]','morning',?,?)").run(input.localDate,earlier,earlier);
+ await saveWorkoutResponse(db,'primary',input,'control-after-checkin',now.toISOString());const body=await bodyResponseFor(db,'primary',{plan,today:input.localDate,persist:false});assert.ok(body.reasonCodes.includes('ACHILLES')||body.reasonCodes.includes('PAIN'));assert.equal(body.subjectiveInput.sourceId,'pain-check');
+ await saveWorkoutResponse(db,'primary',{...input,pain:5},'new-pain',new Date(now.getTime()+1).toISOString());const updated=await bodyResponseFor(db,'primary',{plan,today:input.localDate,persist:false});assert.ok(updated.inputCursor.includes('new-pain'));
+});

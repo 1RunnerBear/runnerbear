@@ -104,7 +104,7 @@ test('Closed Loop UI stays inside One Decision with accessible disclosure and fo
   assert.match(ui,/Tidligere respons/);
   assert.match(ui,/complete_feedback/);
   assert.match(ui,/targetWorkoutId/);
-  assert.match(ui,/reflect:'Etter økten'/);
+  assert.match(ui,/Kort respons etter økten/);
   assert.match(css,/locked Concept 1 \/ Premium calm/);
   assert.match(css,/:focus-visible/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
@@ -126,7 +126,7 @@ test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>
   assert.match(readModel,/ORDER BY occurred_at DESC LIMIT 30/);
   assert.match(workflow,/verify-v116-health\.mjs/);
   const healthGate=fs.readFileSync('scripts/verify-v116-health.mjs','utf8');
-  assert.match(healthGate,/x\.cloudBuild==='12\.2\.2'/);
+  assert.match(healthGate,/x\.cloudBuild==='12\.3\.0'/);
   assert.match(healthGate,/x\.oneDecisionVersion==='one-decision-2'/);
   assert.match(healthGate,/x\.coachContinuityVersion==='coach-continuity-1'/);
   assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,10);

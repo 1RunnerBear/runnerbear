@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=12202/);
+  assert.match(html,/runnerbear-v11\.css\?v=12300/);
   const migration=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/v121-css-pruning.json'),'utf8'));
   assert.ok(migration.sources.includes(source),`${source} was consolidated in original cascade order`);
   assert.equal(assets.styles.length,5);
@@ -36,7 +36,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
 test('today switches from the prescription to a result-first coach surface',()=>{
   assert.match(app,/Dagens resultat/);
   assert.match(app,/Coachens vurdering/);
-  assert.match(app,/Vis full coachanalyse/);
+  assert.match(app,/Se øktanalysen/);
   assert.match(app,/Vis opprinnelig plan/);
 });
 
@@ -56,8 +56,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v12202');
-  assert.equal(version.build ,'12.2.2');
+  assert.equal(manifest.start_url,'/?app=v12300');
+  assert.equal(version.build ,'12.3.0');
   assert.equal(version.channel,'live');
 });
 
@@ -95,7 +95,7 @@ test('v10.17 makes coach changes visible, explained and reversible',()=>{
   assert.match(app,/Hvorfor\?/);
   assert.match(app,/Angre endringen/);
   assert.match(app,/data-rb117-undo-change/);
-  assert.match(app,/planChange\(p\)\?'adjusted'/);
+  assert.match(app,/changed=planChange\(p\)/);
   assert.match(ux,/\.rb107-day-chip\.adjusted:before/);
   assert.match(app,/Endringshistorikk/);
 });
@@ -182,8 +182,8 @@ test('v10.19c uses a contextual premium hero bank instead of one forest image',(
 });
 
 test('v10.19c makes Today coach-led with interpreted health and load signals',()=>{
-  assert.match(app,/Coachen følger med/);
-  assert.match(app,/function coachWatchHtml/);
+  assert.match(app,/Det vi følger med på/);
+  assert.match(app,/function coachReasonModalHtml/);
   assert.match(app,/Søvn/);
   assert.match(app,/HRV/);
   assert.match(app,/Restitusjon/);
@@ -196,7 +196,7 @@ test('v10.19c gives Plan a useful month, focus and long-term hierarchy',()=>{
   assert.match(app,/function monthCalendarHtml/);
   assert.match(app,/data-rb119c-month-focus/);
   assert.match(app,/data-rb119c-calendar-day/);
-  assert.match(app,/function focusHtml/);
+  assert.match(app,/function weeklyPriorityHtml/);
   assert.match(app,/function longTermHtml/);
   assert.match(app,/function dayViewHtml/);
   assert.match(app,/state\.planDayViewOpen\?dayPlan:normalPlan/);

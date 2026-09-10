@@ -1,7 +1,7 @@
 /* RunnerBear v12.0 · compatibility state and Tredict transport client */
 (function(){
   'use strict';
-  const BUILD=window.RunnerBearRelease?.build||'12.2.2';
+  const BUILD=window.RunnerBearRelease?.build||'12.3.0';
   const LEGACY_ORIGIN='https://1runnerbear.github.io';
   const IS_LEGACY=location.origin===LEGACY_ORIGIN;
   const CLOUD_ORIGIN=IS_LEGACY?'https://app.runnerbear.workers.dev':location.origin;
@@ -233,12 +233,12 @@
   }
 
   async function uploadLocal(force=false){
-    if(!IS_CLOUD||hydrating)return;
+    if(!IS_CLOUD||hydrating){if(force)throw new Error('Lagring er ikke klar ennå. Prøv igjen.');return}
     if(!force&&dirtyVersion===uploadedVersion)return;
     const snap=localSnapshot(),sig=signature(snap);
     if(!force&&sig===baseline){uploadedVersion=dirtyVersion;return}
     await api('/api/state/localStorage',{method:'PUT',body:JSON.stringify({payload:snap})});
-    baseline=sig;uploadedVersion=dirtyVersion;
+    baseline=sig;uploadedVersion=dirtyVersion;return{ok:true};
   }
 
   function scheduleUpload(){

@@ -34,13 +34,13 @@ test('One Decision never turns generic weekly attention into a false required ac
 
 test('canonical Cloud load performs no parallel legacy bootstrap or client sync timer',()=>{
   const listeners={},fetches=[],storage=new Map(),classList={add(){},remove(){},toggle(){}};
-  const window={RunnerBearRelease:{build:'12.2.2'},RunnerBearCloudV11:{refresh:async()=>({})},RunnerBearV1025:{},addEventListener:(name,fn)=>{listeners[name]=fn},dispatchEvent(){}};
+  const window={RunnerBearRelease:{build:'12.3.0'},RunnerBearCloudV11:{refresh:async()=>({})},RunnerBearV1025:{},addEventListener:(name,fn)=>{listeners[name]=fn},dispatchEvent(){}};
   const document={hidden:false,documentElement:{classList},querySelector:()=>null,getElementById:()=>null,addEventListener:(name,fn)=>{listeners[`document:${name}`]=fn},body:{appendChild(){}}};
   const context={window,document,location:{origin:'https://app.runnerbear.workers.dev',hostname:'app.runnerbear.workers.dev',search:'',href:'https://app.runnerbear.workers.dev/'},localStorage:{get length(){return storage.size},key:index=>[...storage.keys()][index]||null,getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value)},sessionStorage:{},fetch:async(...args)=>{fetches.push(args);return{ok:true,json:async()=>({})}},MutationObserver:class{observe(){}},URL,URLSearchParams,JSON,Date,Number,String,Object,Array,Map,Set,Math,Promise,console:{info(){},warn(){},error(){}},setTimeout,clearTimeout,setInterval:()=>{throw new Error('canonical mode must not create an interval')},clearInterval,performance:{now:()=>0}};
   vm.runInNewContext(read('runnerbear-cloud-v1025.js'),context);
   assert.equal(typeof listeners.load,'function');listeners.load();
   assert.equal(fetches.length,0);
-  assert.equal(window.RunnerBearCloud.build ,'12.2.2');
+  assert.equal(window.RunnerBearCloud.build ,'12.3.0');
   assert.equal(typeof window.RunnerBearCloud.hydrateState,'function');
 });
 
@@ -58,9 +58,9 @@ test('v12 UI keeps week first, month explicit and Concept 1 responsive',()=>{
 
 test('v12 release, cache and state hydration use one current contract',()=>{
   const manifest=JSON.parse(read('runnerbear-v11-assets.json')),version=JSON.parse(read('runnerbear-version.json')),html=read('index.html'),headers=read('_headers'),readModel=read('cloud/runnerbear-cloud/src/v11/read-model.js'),healthGate=read('scripts/verify-v116-health.mjs');
-  assert.equal(manifest.build ,'12.2.2');assert.equal(version.build ,'12.2.2');
+  assert.equal(manifest.build ,'12.3.0');assert.equal(version.build ,'12.3.0');
   assert.equal(manifest.core[0],'runnerbear-v12-release.js');assert.ok(manifest.core.includes('runnerbear-v12-decision-contract.js'));
-  assert.match(html,/runnerbear-core-v11\.js\?v=12202/);assert.match(html,/runnerbear-data-v11\.js\?v=12202/);
+  assert.match(html,/runnerbear-core-v11\.js\?v=12300/);assert.match(html,/runnerbear-data-v11\.js\?v=12300/);
   for(const asset of ['runnerbear-core-v11.js','runnerbear-ui-v11.js','runnerbear-data-v11.js','runnerbear-v11.css'])assert.match(headers,new RegExp(`/${asset.replaceAll('.','\\.')}[\\s\\S]*immutable`));
   assert.match(headers,/\/runnerbear-version\.json[\s\S]*no-cache/);
   assert.match(readModel,/clientState:response\.clientState/);assert.match(readModel,/publicClientState\(parse\(state\?\.payload_json,\{\}\)\)/);

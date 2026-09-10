@@ -2,9 +2,9 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'12.2.2',
-    assetVersion:'12202',
-    label:'Historikk og tillit',
+    build:'12.3.0',
+    assetVersion:'12300',
+    label:'Min løpehverdag',
     design:'Concept 1 · Premium rolig'
   });
   window.RunnerBearRelease=release;
