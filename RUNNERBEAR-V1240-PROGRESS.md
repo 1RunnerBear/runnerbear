@@ -25,4 +25,11 @@ Korrigering endrer ingen plan, utrullingsflagg eller Garmin-/Tredict-data. Treni
 
 ## Produksjonskontroll
 
-Fylles med faktisk deploy-resultat etter publisering.
+Fullført 14. september 2026. Produksjon: https://app.runnerbear.workers.dev/
+
+- Kildecommit d0668e68eacd3aa43fb7367cf9a594134b3d4af2. GitHub-tre 0070c4f8d712fa7145b6f508ed83168af380460a er identisk med lokalt testet tre. Bygg 12.4.0, ressursversjon 12400.
+- Cloud deploy: https://github.com/1RunnerBear/runnerbear/actions/runs/34836393637 — success. UI-validering: https://github.com/1RunnerBear/runnerbear/actions/runs/34836393657 — success. Alle 431 tester bestått også i deploymiljøet.
+- 370 aktiviteter før og etter deploy, duplicate_external_ids=0. Produksjonens /health bekrefter build=12.4.0, historyIntegrity=true og tom syncOutbox. Én kanonisk plan, samme aktive revisjon som baseline og kalenderspeil confirmed.
+- Utrullingsflagg verifisert: shadow=1; read, ui, write, sync, safe_auto og goal_confidence=0. Privat tilgangsvern bestått.
+- JavaScript 461 520 byte / gzip 132 612 byte. CSS gzip nivå 9: 35 837 byte. Alle eksisterende ressursbudsjetter beholdt.
+- Innlogget visuell produksjonskontroll gjenstår fordi nettleserøkten krever ny Cloudflare Access-innlogging. Produksjonsdeploy og serverkontroller er fullført. Skjema, kildemerking, originaltotaler, angre og målvisning er testet gjennom den faktiske UI-koden med syntetiske data og produksjonens flagg, uten å skrive testdata til produksjon.
