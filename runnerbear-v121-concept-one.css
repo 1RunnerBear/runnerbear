@@ -153,3 +153,5 @@ html.rb107-ready .rb107-surface .rb113-one-decision button[data-rb123-adapt]:hov
 .rb124-next{display:grid;gap:8px}.rb124-correction summary{min-height:48px;padding:12px 0}
 .rb124-correction label:has(input[type=text]){display:grid}
 .rb124-correction input[type=text]{width:100%;height:48px;font:inherit;border:1px solid var(--rb12-line);border-radius:8px;padding:8px;background:var(--rb12-paper)}
+
+html.rb107-ready .rb107-surface .rb123-response button.rb107-button{color:#fffdf8!important;min-height:48px}

@@ -3,7 +3,7 @@
   'use strict';
   const release=Object.freeze({
     build:'12.4.0',
-    assetVersion:'12400',
+    assetVersion:'12401',
     label:'Dokumentert fremgang',
     design:'Concept 1 · Premium rolig'
   });
