@@ -8,6 +8,7 @@ import { bootstrapV2,compatibilityBootstrap } from './read-model.js';
 import { projectRollingSync,projectSync,stableExternalId,syncOperationStatements } from './sync-projection.js';
 import { buildRealignmentProposal } from './review-engine.js';
 import { activityHistory } from './history-status.js';
+import { savePaceCorrection } from './pace-correction.js';
 import { saveWorkoutResponse } from './workout-response.js';
 import { buildSyncRepair,canExplicitlyVerify } from './sync-repair.js';
 import { createReleaseGoalRepairState,restorePausedPrimaryGoalState } from './goal-model.js';
@@ -221,6 +222,9 @@ export async function handleV1027(request,env,{userId,bodyJson,corsHeaders={},ct
   if(flagError)return fail('INVALID_FLAG_CONFIGURATION',503,flagError,corsHeaders);
   if(write&&!request.headers.get('Idempotency-Key'))return fail('IDEMPOTENCY_KEY_REQUIRED',400,'Idempotency-Key mangler.',corsHeaders);
   if(kill&&write)return fail('COACH_LOOP_DISABLED',503,'Coach Loop er midlertidig satt i sikker modus.',corsHeaders);
+  if(request.method==='POST'&&path==='/api/v2/pace-corrections'){
+    try{return json(await savePaceCorrection(env.DB,userId,await bodyJson(request),request.headers.get('Idempotency-Key')),200,corsHeaders)}catch(error){if(error.status&&error.code)return fail(error.code,error.status,error.message,corsHeaders);throw error}
+  }
   if(request.method==='POST'&&path==='/api/v2/workout-responses'){
     try{return json(await saveWorkoutResponse(env.DB,userId,await bodyJson(request),request.headers.get('Idempotency-Key')),200,corsHeaders)}
     catch(error){if(error.status&&error.code)return fail(error.code,error.status,error.message,corsHeaders);throw error}

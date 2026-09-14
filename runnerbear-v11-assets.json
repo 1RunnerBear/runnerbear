@@ -1,9 +1,10 @@
 {
-  "build": "12.3.0",
+  "build": "12.4.0",
   "core": [
     "runnerbear-v12-release.js",
     "runnerbear-v1222-data-trust.js",
     "runnerbear-v123-running-day.js",
+    "runnerbear-v124-progress.js",
     "runnerbear-v12-decision-contract.js",
     "runnerbear-v121-calm-flow.js",
     "runnerbear-v122-race-focus.js",

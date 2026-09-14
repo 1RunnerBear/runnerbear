@@ -10,7 +10,7 @@ test('v11.6 replaces the decision chat with contextual coach surfaces',()=>{
   assert.match(ui,/function contextualHealthStripHtml\(/);
   assert.match(ui,/function contextualWorkoutCoachHtml\(/);
   assert.match(ui,/function contextualPlanNoticeHtml\(/);
-  assert.match(ui,/surfaces\?\.goal/);
+  assert.match(ui,/function goalProgressModel\(/);
   assert.match(ui,/Dagens oppgave/);
   assert.match(ui,/Etter økten/);
   assert.doesNotMatch(ui,/Coach Live|coachLive|coach-live|data-rb112|rb112/);

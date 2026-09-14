@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=12301/);
+  assert.match(html,/runnerbear-v11\.css\?v=12400/);
   const migration=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/v121-css-pruning.json'),'utf8'));
   assert.ok(migration.sources.includes(source),`${source} was consolidated in original cascade order`);
   assert.equal(assets.styles.length,5);
@@ -56,16 +56,16 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v12301');
-  assert.equal(version.build ,'12.3.0');
+  assert.equal(manifest.start_url,'/?app=v12400');
+  assert.equal(version.build ,'12.4.0');
   assert.equal(version.channel,'live');
 });
 
 test('v10.16 presents goals as evidence gates instead of misleading progress',()=>{
   assertCanonicalStyle('runnerbear-v1016-goals-more.css');
-  assert.match(app,/Retning mot målet/);
+  assert.match(app,/Dette har utviklet seg/);
   assert.match(app,/data-rb116-open-gate/);
-  assert.match(app,/En gate godkjennes ikke hvis reaksjonen dagen etter er dårligere/);
+  assert.match(app,/Dagens helseavklaring har alltid prioritet/);
   assert.match(app,/Trend vises når grunnlaget er sammenlignbart/);
   assert.doesNotMatch(goalsMore,/rb115-goal-track/);
 });
@@ -157,7 +157,7 @@ test('v10.19b builds source-of-truth screen structures instead of another token 
   assertCanonicalStyle('runnerbear-v1019b-screen-fidelity.css');
   assert.match(app,/rb119b-workout-hero/);
   assert.match(app,/rb119b-plan-list/);
-  assert.match(app,/rb119b-goal-corridor/);
+  assert.match(app,/rb124-progress/);
   assert.match(app,/rb119b-threshold-card/);
   assert.match(screenFidelity,/runnerbear-v1019b-forest\.webp/);
   assert.match(screenFidelity,/--rb19b-display/);

@@ -143,3 +143,29 @@ test('v12.3 control-only response cannot clear a reported pain or illness signal
  await saveWorkoutResponse(db,'primary',input,'control-after-checkin',now.toISOString());const body=await bodyResponseFor(db,'primary',{plan,today:input.localDate,persist:false});assert.ok(body.reasonCodes.includes('ACHILLES')||body.reasonCodes.includes('PAIN'));assert.equal(body.subjectiveInput.sourceId,'pain-check');
  await saveWorkoutResponse(db,'primary',{...input,pain:5},'new-pain',new Date(now.getTime()+1).toISOString());const updated=await bodyResponseFor(db,'primary',{plan,today:input.localDate,persist:false});assert.ok(updated.inputCursor.includes('new-pain'));
 });
+
+async function correctionFixture(t){
+ const f=await responseFixture(t),a=f.db.sqlite.prepare('SELECT * FROM rb_activities').get(),payload=JSON.parse(a.payload_json);payload.detail={analysis:{workDuration:1800,workPace:255,workHr:155,confidence:'high',workBlocks:Array.from({length:10},(_,i)=>({index:i+1,duration:180,pace:255,hr:155}))}};f.db.sqlite.prepare('UPDATE rb_activities SET payload_json=?').run(JSON.stringify(payload));
+ f.correction={activityId:a.source_id,activitySource:a.source,activityVersion:a.updated_at,expectedEventId:'',scope:'work',mode:'set',paceSeconds:240};f.post=(input,key)=>f.call(request('/api/v2/pace-corrections',{method:'POST',body:JSON.stringify(input),headers:{'Idempotency-Key':key}}));return f;
+}
+test('pace corrections append, replay, survive restart and undo without touching raw data or plan authority',async t=>{
+ const {db,env,post,correction}=await correctionFixture(t),{bootstrapV2}=await import('../cloud/runnerbear-cloud/src/v11/read-model.js'),before=db.sqlite.prepare('SELECT * FROM rb_activities').all(),plan=db.sqlite.prepare('SELECT * FROM rb_plan_revision_items').all(),flags=db.sqlite.prepare('SELECT * FROM rb_feature_flags').all();
+ const savedResponse=await post(correction,'pace-1'),saved=await savedResponse.json();assert.equal(savedResponse.status,200,JSON.stringify(saved));assert.equal(saved.planChanged,false);assert.equal(saved.correction.paceSeconds,240);assert.equal((await (await post(correction,'pace-1')).json()).correction.eventId,saved.correction.eventId);
+ assert.equal((await post({...correction,paceSeconds:250},'pace-1')).status,409);assert.equal((await post({...correction,paceSeconds:250},'stale-editor')).status,409);
+ const changed=await (await post({...correction,expectedEventId:saved.correction.eventId,paceSeconds:245},'pace-2')).json();const loaded=await bootstrapV2(env,'primary','full');assert.equal(loaded.correctionCapture,true);assert.equal(loaded.paceCorrections[0].paceSeconds,245);assert.equal(loaded.paceCorrections[1].paceSeconds,240);
+ const undo={...correction,expectedEventId:changed.correction.eventId,mode:'clear'};delete undo.paceSeconds;assert.equal((await post(undo,'pace-undo')).status,200);assert.equal((await bootstrapV2(env,'primary','home')).paceCorrections[0].mode,'clear');
+ assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_activities').all(),before);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_plan_revision_items').all(),plan);assert.deepEqual(db.sqlite.prepare('SELECT * FROM rb_feature_flags').all(),flags);assert.equal(db.sqlite.prepare("SELECT COUNT(*) n FROM rb_training_events WHERE event_type='activity:pace-corrected'").get().n,3);
+});
+test('pace correction validates ownership, work scope, explicit pace, storage and concurrent edits',async t=>{
+ const {db,env,post,correction,call}=await correctionFixture(t);let i=0;
+ for(const patch of [{paceSeconds:null},{paceSeconds:'240'},{paceSeconds:59},{paceSeconds:1201},{scope:'total'},{mode:'invented'},{unexpected:true}])assert.equal((await post({...correction,...patch},'invalid-'+i++)).status,400);
+ for(const patch of [{activityId:'foreign'},{activityVersion:'old'}])assert.equal((await post({...correction,...patch},'invalid-'+i++)).status,409);
+ assert.equal((await call(request('/api/v2/pace-corrections',{method:'POST',body:JSON.stringify(correction),headers:{'X-RunnerBear-Key':''}}))).status,401);
+ db.writeError=quota;assert.equal((await post(correction,'quota')).status,503);db.writeError=null;env.COACH_LOOP_KILL_SWITCH='true';assert.equal((await post(correction,'kill')).status,503);env.COACH_LOOP_KILL_SWITCH='false';
+ const responses=await Promise.all([post(correction,'concurrent-a'),post({...correction,paceSeconds:250},'concurrent-b')]);assert.deepEqual(responses.map(r=>r.status).sort(),[200,409]);assert.equal(db.sqlite.prepare("SELECT COUNT(*) n FROM rb_training_events WHERE event_type='activity:pace-corrected'").get().n,1);
+});
+test('correction history is per activity and does not disappear behind newer unrelated events',async t=>{
+ const {db,env,post,correction}=await correctionFixture(t),{bootstrapV2}=await import('../cloud/runnerbear-cloud/src/v11/read-model.js');await post(correction,'old-pace');
+ for(let i=0;i<405;i++)db.sqlite.prepare("INSERT INTO rb_training_events(event_id,user_id,event_type,occurred_at,local_date,source,source_id,payload_json,quality,ingested_at) VALUES(?,'primary','test:event','2099-01-01','2099-01-01','test',?,'{}','high','2099-01-01')").run('event-'+i,'source-'+i);
+ const model=await bootstrapV2(env,'primary','full');assert.equal(model.paceCorrections.length,1);assert.equal(model.paceCorrections[0].paceSeconds,240);
+});

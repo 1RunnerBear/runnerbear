@@ -61,7 +61,7 @@
   function thresholdEvidenceFromSessions(sessions=[]){
     const rows=[];
     for(const session of Array.isArray(sessions)?sessions:[]){
-      const plan=session?.plan||{},activity=session?.activity||{},feedback=session?.feedback||{},assessment=session?.assessment||{};
+      const plan=session?.plan||{},activity=session?.activity||{},feedback=session?.feedback||{},assessment=session?.assessment||{};if(activity.paceCorrection?.mode==='unreliable')continue;
       const analysis=activity?.detail?.analysis||activity?.raw?.detail?.analysis||assessment?.work||{};
       const blocks=Array.isArray(analysis?.workBlocks)?analysis.workBlocks:[];
       const pace=finite(analysis?.workPace)||finite(feedback?.paceSeconds)||finite(feedback?.pace);
@@ -77,7 +77,8 @@
         pace:Math.round(pace),
         hr:Math.round(hr),
         rpe:finite(feedback.rpe),
-        source:blocks.length?'Garmin arbeidsdel':'Manuell vurdering',
+        source:activity.paceCorrection?'Oppgitt av deg · arbeidsfart':blocks.length?'Garmin arbeidsdel':'Manuell vurdering',
+        paceBasis:activity.paceCorrection||!finite(analysis?.workPace)?'reported':'measured',
         activityId:String(activity.id||activity._id||''),
         family:clean(session.family||plan.family||plan.title||activity.title||'terskel'),
         confidence:clean(assessment?.confidence?.code||analysis?.confidence||(blocks.length>=3?'high':'medium')),
@@ -97,7 +98,7 @@
 
   function comparableThresholdEvidence(rows=[]){
     const groups=new Map();
-    for(const row of Array.isArray(rows)?rows:[]){const key=clean(row?.family||row?.label||'terskel');groups.set(key,[...(groups.get(key)||[]),row])}
+    for(const row of Array.isArray(rows)?rows:[]){const key=clean(row?.family||row?.label||'terskel')+':'+(row.paceBasis||'measured');groups.set(key,[...(groups.get(key)||[]),row])}
     return[...groups.values()].sort((a,b)=>b.length-a.length||String(b.at(-1)?.date||'').localeCompare(String(a.at(-1)?.date||'')))[0]||[];
   }
 
