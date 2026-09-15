@@ -53,10 +53,13 @@ for(const width of [360,375,390,430])test(`hero bank crop and long copy ${width}
  const helper=ui.slice(ui.indexOf('const heroStyle='),ui.indexOf('\n\n  function normalizeGoalState'));
  const hero=vm.runInNewContext(helper+';({heroStyle,heroImage})',{HERO_BANK:bank,esc:x=>String(x)});
  const cards=Object.keys(bank).map(name=>`<section class="rb119b-workout-hero" ${hero.heroStyle(name)}>${hero.heroImage(name,true)}<div class="rb119b-workout-copy"><small>Terskel</small><h2>Kontrollert terskelarbeid med en svært lang beskrivelse av dagens løpeøkt</h2></div></section>`).join('');
- await page.setContent(`<html><head><link rel="stylesheet" href="http://127.0.0.1:4173/runnerbear-v11.css"></head><body><main style="padding:16px;display:grid;gap:24px">${cards}<section class="rb119b-goal-hero" ${hero.heroStyle('race')}>${hero.heroImage('race')}<div><small>Runfest Sandnes</small><h2>21K</h2></div></section></main></body></html>`);
+ await page.setContent(`<html><head><link rel="stylesheet" href="http://127.0.0.1:4173/runnerbear-v11.css"></head><body><main style="padding:16px;display:grid;gap:24px">${cards}<section class="rb119b-goal-hero" ${hero.heroStyle('race')}>${hero.heroImage('race',true)}<div><small>Runfest Sandnes</small><h2>21K</h2></div></section></main></body></html>`);
  const rows=await page.locator('.rb119b-workout-hero,.rb119b-goal-hero').evaluateAll(nodes=>nodes.map(e=>({w:e.clientWidth,h:e.clientHeight,ratio:getComputedStyle(e).aspectRatio,position:getComputedStyle(e.querySelector('img')).objectPosition})));
  for(const r of rows)expect(Math.abs(r.w/r.h-(r.ratio==='16 / 9'?16/9:1.6))).toBeLessThan(.015);
  expect(new Set(rows.map(r=>r.position)).size).toBeGreaterThan(3);
+ const reserved=rows.map(({w,h})=>({w,h}));
+ await page.locator('img').evaluateAll(images=>Promise.all(images.map(image=>image.decode())));
+ expect(await page.locator('.rb119b-workout-hero,.rb119b-goal-hero').evaluateAll(nodes=>nodes.map(e=>({w:e.clientWidth,h:e.clientHeight})))).toEqual(reserved);
  await shot(page,info,'hero-bank');
 });
 test('failed bootstrap has a usable, stable mobile error state',async({page},info)=>{

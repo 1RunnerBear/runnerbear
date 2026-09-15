@@ -8,8 +8,8 @@ Workout media uses 16:10 and goal media 16:9. Absolutely positioned images reser
 
 The five existing CSS source layers are retained. Superseded shell and media rules and exact shadowed declarations were removed. Metadata has an 11px minimum, shared dialog geometry is mobile bottom sheet / desktop centered modal, navigation remains 72px plus the safe area, and keyboard focus/reduced motion remain supported.
 
-Validation before release: 431 existing functional tests passed. New foundation contracts and a Chromium/WebKit visual matrix cover 360, 375, 390, 393, 430, landscape 844, and desktop 1024/1280/1440; startup/ready/warm geometry, four main views, workout detail, error, slow bootstrap, focal cropping, long hero copy, keyboard containment and touch targets. CI screenshots and reports are retained for review. Physical iPhone Safari and installed standalone PWA require device testing; WebKit is engine-level coverage.
+Validation before release: all 433 functional tests passed (431 existing and two new foundation contracts). All 34 Chromium/WebKit visual tests passed in GitHub Actions run 34967129338. New foundation contracts and a Chromium/WebKit visual matrix cover 360, 375, 390, 393, 430, landscape 844, and desktop 1024/1280/1440; startup/ready/warm geometry, four main views, workout detail, selected day, empty history, completed workout, error, slow bootstrap, focal cropping, long hero copy, keyboard containment and touch targets. CI screenshots and reports are retained for review. Physical iPhone Safari and installed standalone PWA require device testing; WebKit is engine-level coverage.
 
 No changes to coach rules, workout bank, HRV, plan generation, provider logic, data model or One Decision authority. Server edits only advance the build identifier. Production deploy uses the existing workflow with history backup, integrity checks and private access verification.
 
-Release status: pending visual CI and production verification.
+Release status: functional and visual gates passed. Final image-decode screenshot verification and production deployment are in progress.
