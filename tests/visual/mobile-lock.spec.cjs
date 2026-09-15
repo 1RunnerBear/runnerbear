@@ -96,6 +96,6 @@ test('completed workout and long coach explanation retain mobile proportions',as
   const rgb=value=>value.match(/[\d.]+/g).map(Number);
   return nodes.map(e=>{let p=e,bg;do{bg=rgb(getComputedStyle(p).backgroundColor);p=p.parentElement}while(p&&bg.length===4&&bg[3]===0);const a=luminance(rgb(getComputedStyle(e).color)),b=luminance(bg);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05)});
  });
- for(const ratio of contrasts)expect(ratio).toBeGreaterThanOrEqual(4.5);
  await shot(page,info,'completed-workout');
+ for(const ratio of contrasts)expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
