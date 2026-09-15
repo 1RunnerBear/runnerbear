@@ -35,7 +35,7 @@ test('v11 renders one active surface and lazy-renders inactive tabs',()=>{
   assert.match(ui,/function renderGoals\(\)/);
   assert.match(ui,/function renderMore\(\)/);
   assert.match(ui,/function renderAll\(\)\{return renderView\(activeView\(\)\)\}/);
-  assert.match(ui,/decorateNav\(\);decorateBrand\(\);[\s\S]*await canonical\.start\(\)[\s\S]*prefsMigrated=migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\)/);
+  assert.match(ui,/await canonical\.start\(\)[\s\S]*prefsMigrated=migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\)/);
   assert.match(ui,/window\.RunnerBearClientMigrating=true/);
   assert.match(ui,/await waitForCanonicalRuntime\(\)/);
   assert.match(ui,/runAutopilot\(\);renderToday\(\)/);

@@ -1058,7 +1058,7 @@ html .rb119b .rb107-shell{display:flex;max-width:none;flex-direction:column;gap:
 .rb119b-plan-overview h2{font-size:1.05rem}
 .rb119b-plan-overview article>small{display:block;margin-top:3px;color:var(--rb19b-muted);font-size:11px}
 .rb119b-plan .rb107-day-detail{margin-top:2px;border-color:var(--rb19b-line)!important;border-radius:var(--rb19b-radius)!important;background:var(--rb19b-paper)!important;box-shadow:var(--rb19b-shadow)!important}
-.rb119b-back,.rb119b-completed-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:43px;border:0;background:transparent;color:var(--rb19b-forest);font-size:.7rem;font-weight:700}
+.rb119b-back,.rb119b-completed-link{display:flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:44px;border:0;background:transparent;color:var(--rb19b-forest);font-size:.7rem;font-weight:700}
 .rb119b-back{justify-content:flex-start}
 .rb119b-back .rb107-icon,.rb119b-completed-link .rb107-icon{width:17px;height:17px}
 {aspect-ratio:1.82;flex-direction:column;background-position:center 54%}

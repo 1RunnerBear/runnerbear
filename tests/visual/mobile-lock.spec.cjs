@@ -18,7 +18,7 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
  await page.setViewportSize({width,height});
  await page.route('**/api/**',async route=>{if(route.request().method()!=='GET')return route.fulfill({status:405,body:'{}'});await route.continue()});
  let release;const gate=new Promise(r=>release=r);
- await page.route('**/runnerbear-core-v11.js*',async route=>{await gate;await route.continue()});
+ await page.route('**/api/v2/bootstrap',async route=>{await gate;await route.continue()});
  await page.addInitScript(()=>{window.__cls=0;new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)window.__cls+=e.value}).observe({type:'layout-shift',buffered:true})});
  await page.goto('/',{waitUntil:'commit'});await page.locator('.rb108-boot').waitFor();
  const before=await geometry(page);await check(page);await shot(page,info,'startup');release();
@@ -39,7 +39,7 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
  const modal=await page.getByRole('dialog').boundingBox();if(width<821)expect(Math.abs(modal.y+modal.height-height)).toBeLessThan(2);
  await page.getByRole('dialog').getByRole('button',{name:'Lukk øktdetaljer'}).press('Tab');
  expect(await page.getByRole('dialog').evaluate(e=>e.contains(document.activeElement))).toBe(true);
- await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+ await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.locator('[data-rb113-decision-action]:visible')).toBeFocused();
  await page.reload();await page.locator('html.rb107-ready').waitFor();await check(page);
 });
 for(const width of [360,375,390,430])test(`hero bank crop and long copy ${width}`,async({page},info)=>{
@@ -65,4 +65,9 @@ test('slow bootstrap keeps first-paint geometry and respects reduced motion',asy
  await page.goto('/',{waitUntil:'domcontentloaded'});await check(page);const before=await geometry(page);
  expect(await page.locator('.rb108-boot-mark').evaluate(e=>getComputedStyle(e).animationName)).toBe('none');
  await shot(page,info,'slow-network');release();await page.locator('html.rb107-ready').waitFor();expect((await geometry(page)).nav).toEqual(before.nav);
+});
+
+test('Concept 1 first paint does not require JavaScript',async({browser},info)=>{
+ const context=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}}),page=await context.newPage();
+ await page.goto('http://127.0.0.1:4173/');await check(page);await shot(page,info,'without-javascript');await context.close();
 });

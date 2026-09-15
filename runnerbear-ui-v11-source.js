@@ -79,7 +79,7 @@
   const runningDay=()=>window.RunnerBearRunningDay;
   const responseEdits=new Set(),responseDrafts=new Map(),responseErrors=new Map(),responseSaving=new Set();
   let responsePhase='post_workout';
-  let raceFocusOpen=false,raceFocusReturnView='race';
+  let raceFocusOpen=false,raceFocusReturnView='race',dialogReturnFocus='';
   function raceFocusModel(){const snapshot=window.RunnerBearCloudV11?.snapshot?.(),input={snapshot,goal:activeGoal()};return snapshot?.flags?.coach_loop_ui===true?raceFocus()?.model(input):raceFocus()?.preparation(input)}
   function closeRaceFocus(){raceFocusOpen=false;renderAll();requestAnimationFrame(()=>qs(`#${CSS.escape(raceFocusReturnView)} [data-rb122-race-open]`)?.focus({preventScroll:true}))}
   const insightOpen=new Set();
@@ -1247,10 +1247,6 @@
     if(goal)box.innerHTML=`<b><span id='countdown'>${goalDays(goal)}</span> dager</b><span>til ${esc(goal.name)}</span>`;
     else box.innerHTML=`<b><span id='countdown'>${goalState().mode==='transition'?'7':'–'}</span> ${goalState().mode==='transition'?'dager':'modus'}</b><span>${goalState().mode==='transition'?'rolig overgang':'formbygging uten løpsdato'}</span>`;
   }
-  function decorateBrand(){
-    const brand=qs('.topbar .brand');if(!brand)return;
-    brand.innerHTML=`<div class="rb"><img src="runnerbear-brand-mark-flat.svg?v=1022" alt=""></div><div><b>RunnerBear</b><span>Bakken-coach</span></div>`;
-  }
   function mount(id,html){
     const section=$(id);if(!section)return;
     const surface=id==='race'||id==='goals'?'Goals':id[0].toUpperCase()+id.slice(1),old=qs(`#rb107${surface}`,section);
@@ -1269,16 +1265,14 @@
     const modal=qs('.rb1020-sheet-body',next);if(modal)modal.scrollTop=modalScroll;
     window.scrollTo({top:scroll,behavior:'instant'});
   }
-  function decorateNav(){
-    const map={today:['I dag','today'],plan:['Plan','plan'],race:['Mål','goal'],goals:['Mål','goal'],more:['Mer','more']};
-    qsa('.navbtn[data-tab]').forEach(b=>{const x=map[b.dataset.tab];if(!x||b.dataset.rb1021Nav==='1')return;b.innerHTML=`<span>${icon(x[1])}</span>${x[0]}`;b.dataset.rb1021Nav='1'});
-  }
   function activeView(){return qs('.view.active')?.id||'today'}
   function finishRender(id,startMark){
     decorateHeader();
     document.documentElement.classList.add('rb107-ready');
     document.documentElement.classList.remove('rb108-booting');
+    const hadDialog=document.body.classList.contains('rb109-modal-open');
     document.body.classList.toggle('rb109-modal-open',raceFocusOpen||state.goalManagerOpen||state.workoutDetailOpen||state.workoutBankOpen||!!state.movePreview||state.coachReasonOpen||state.bodyResponseOpen||state.oneDecisionProposalOpen||state.intensityExplanationOpen||state.weeklyReviewOpen||state.syncRepairOpen);
+    if(hadDialog&&!document.body.classList.contains('rb109-modal-open')&&dialogReturnFocus)requestAnimationFrame(()=>qs(dialogReturnFocus)?.focus({preventScroll:true}));
     bind($(id));
     runtimeStats.renders[id==='race'||id==='goals'?'goals':id]++;
     mark(`runnerbear:${id}:rendered`);measure(`runnerbear:${id}:render`,startMark);
@@ -1483,10 +1477,9 @@
       showBootFailure();
       return;
     }
-    decorateNav();decorateBrand();
     try{const canonical=await waitForCanonicalRuntime(),boot=await canonical.start();if(boot?.flags?.coach_loop_read===true&&!canonical.snapshot?.())throw new Error('Gjeldende plan kunne ikke verifiseres.');window.RunnerBearClientMigrating=true;let restoredGoal=null,prefsMigrated=false;try{migrateDocumentedThreshold();restoredGoal=restoreAccidentallyPausedGoal();prefsMigrated=migrateTrainingPreferences();tredictSync()?.init?.()}finally{window.RunnerBearClientMigrating=false}if(restoredGoal||prefsMigrated)try{await window.RunnerBearCloud?.uploadLocal?.(true)}catch{}if(restoredGoal)await canonical.reconfigure({reason:'goal-guard-restore',trigger:'goal_guard_restore',goalChanged:true,confirm:false,force:true});initialRenderAuthorized=true}catch(error){window.RunnerBearClientMigrating=false;console.error(JSON.stringify({event:'runnerbear_canonical_first_paint_failed',build:BUILD,message:error?.message||String(error)}));showBootFailure();return}
     runAutopilot();renderToday();
-    document.addEventListener('click',e=>{const nav=e.target.closest('.navbtn[data-tab]');if(nav){e.preventDefault();switchView(nav.dataset.tab,{root:true})}},true);
+    document.addEventListener('click',e=>{const trigger=e.target.closest('button,summary,[role="button"]');if(trigger&&!document.body.classList.contains('rb109-modal-open')){const attributes=[...trigger.attributes].filter(a=>a.name.startsWith('data-')||a.name==='aria-label').map(a=>'['+a.name+'="'+CSS.escape(a.value)+'"]').join('');if(attributes)dialogReturnFocus=(trigger.closest('.view')?'#'+CSS.escape(trigger.closest('.view').id)+' ':'')+attributes}const nav=e.target.closest('.navbtn[data-tab]');if(nav){e.preventDefault();switchView(nav.dataset.tab,{root:true})}},true);
     document.addEventListener('keydown',e=>{const dialog=qsa('[role="dialog"][aria-modal="true"]').filter(el=>el.offsetParent!==null).at(-1);if(e.key==='Tab'&&dialog){const focusable=qsa('summary,button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',dialog).filter(node=>{if(node.offsetParent===null||getComputedStyle(node).visibility==='hidden')return false;for(let parent=node.parentElement;parent&&parent!==dialog;parent=parent.parentElement){if(parent.tagName==='DETAILS'&&!parent.open&&!qs('summary',parent)?.contains(node))return false}return true});if(!focusable.length){e.preventDefault();dialog.focus();return}const first=focusable[0],last=focusable.at(-1);if(!dialog.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus()}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}return}if(e.key!=='Escape')return;if(raceFocusOpen){closeRaceFocus();return}if(state.workoutBankOpen){closeWorkoutBank();renderAll();return}if(state.goalManagerOpen||state.goalInsightOpen||state.workoutDetailOpen||state.movePreview||state.coachReasonOpen||state.bodyResponseOpen||state.oneDecisionProposalOpen||state.intensityExplanationOpen||state.weeklyReviewOpen||state.syncRepairOpen){state.goalManagerOpen=false;state.goalEditor='';state.goalInsightOpen='';state.workoutDetailOpen=false;state.movePreview=null;state.coachReasonOpen=false;state.bodyResponseOpen=false;state.oneDecisionProposalOpen=false;state.intensityExplanationOpen=false;state.weeklyReviewOpen=false;state.syncRepairOpen=false;renderAll()}});
     let storageFrame=0;
     let raceClockSignature='';
