@@ -18,7 +18,7 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
  await page.setViewportSize({width,height});
  await page.route('**/api/**',async route=>{if(route.request().method()!=='GET')return route.fulfill({status:405,body:'{}'});await route.continue()});
  let release;const gate=new Promise(r=>release=r);
- await page.route('**/api/v2/bootstrap',async route=>{await gate;await route.continue()});
+ await page.route('**/api/v2/bootstrap*',async route=>{await gate;await route.continue()});
  await page.addInitScript(()=>{window.__cls=0;new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)window.__cls+=e.value}).observe({type:'layout-shift',buffered:true})});
  await page.goto('/',{waitUntil:'commit'});await page.locator('.rb108-boot').waitFor();
  const before=await geometry(page);await check(page);await shot(page,info,'startup');release();
@@ -31,6 +31,10 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
   if(id==='plan'){
    await page.getByRole('button',{name:'Åpne månedsoversikt',exact:true}).click();await check(page);await shot(page,info,'month');
    await page.getByRole('button',{name:'Lukk månedsoversikt',exact:true}).click();
+   await page.locator('.rb119b-plan-row.key').click();await check(page);await shot(page,info,'selected-day');
+   await page.locator('[data-rb1020-day-close]').click();
+   await page.locator('[data-rb107-plan-view="done"]').click();await check(page);await shot(page,info,'empty-history');
+   await page.locator('[data-rb107-plan-view="plan"]').click();
   }
  }
  await nav.getByRole('button',{name:'I dag',exact:true}).click();
@@ -61,7 +65,7 @@ test('failed bootstrap has a usable, stable mobile error state',async({page},inf
 });
 test('slow bootstrap keeps first-paint geometry and respects reduced motion',async({page},info)=>{
  await page.setViewportSize({width:390,height:844});await page.emulateMedia({reducedMotion:'reduce'});
- let release;const gate=new Promise(r=>release=r);await page.route('**/api/v2/bootstrap',async route=>{await gate;await route.continue()});
+ let release;const gate=new Promise(r=>release=r);await page.route('**/api/v2/bootstrap*',async route=>{await gate;await route.continue()});
  await page.goto('/',{waitUntil:'domcontentloaded'});await check(page);const before=await geometry(page);
  expect(await page.locator('.rb108-boot-mark').evaluate(e=>getComputedStyle(e).animationName)).toBe('none');
  await shot(page,info,'slow-network');release();await page.locator('html.rb107-ready').waitFor();expect((await geometry(page)).nav).toEqual(before.nav);
@@ -70,4 +74,18 @@ test('slow bootstrap keeps first-paint geometry and respects reduced motion',asy
 test('Concept 1 first paint does not require JavaScript',async({browser},info)=>{
  const context=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}}),page=await context.newPage();
  await page.goto('http://127.0.0.1:4173/');await check(page);await shot(page,info,'without-javascript');await context.close();
+});
+
+test('completed workout and long coach explanation retain mobile proportions',async({page},info)=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.route('**/api/v2/bootstrap*',async route=>{
+  const response=await route.fetch(),data=await response.json(),w=data.activePlan.items[0],date=w.localDate,stamp=new Date().toISOString();
+  w.status='completed';data.todayWorkout=w;data.oneDecision.state='completed';
+  data.recentActivities=[{source:'tredict',source_id:'visual-run',date,sport_type:'running',updated_at:stamp,duration_seconds:3600,distance_m:w.plannedDistanceM,avg_hr:145,payload:{id:'visual-run',title:w.title,date,ds:date,sportType:'running',duration:3600,distance:w.plannedDistanceM,heartrate:145}}];
+  data.activityHistory={version:'activity-history-1',state:'current',syncedAt:stamp,truncated:false};
+  data.contextualCoach.surfaces.postWorkout={visible:true,headline:'God kontroll gjennom økten',summary:'Du holdt jevn innsats og tok hensyn til kroppens signaler. '.repeat(12),consequence:'Neste økt følger planen.'};
+  await route.fulfill({response,json:data});
+ });
+ await page.goto('/');await page.locator('html.rb107-ready').waitFor();
+ await expect(page.getByText('Registrert gjennomføring',{exact:true})).toBeVisible();await check(page);await shot(page,info,'completed-workout');
 });
