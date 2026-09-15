@@ -90,5 +90,12 @@ test('completed workout and long coach explanation retain mobile proportions',as
   await route.fulfill({response,json:data});
  });
  await page.goto('/');await page.locator('html.rb107-ready').waitFor();
- await expect(page.getByText('Registrert gjennomføring',{exact:true})).toBeVisible();await check(page);await shot(page,info,'completed-workout');
+ await expect(page.getByText('Registrert gjennomføring',{exact:true})).toBeVisible();await check(page);
+ const contrasts=await page.locator('.rb109-result-head p,.rb109-result-head .rb107-overline,.rb109-result-metrics b,.rb109-result-metrics span,.rb109-coach-verdict p,.rb109-coach-verdict>span').evaluateAll(nodes=>{
+  const luminance=rgb=>rgb.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
+  const rgb=value=>value.match(/[\d.]+/g).map(Number);
+  return nodes.map(e=>{let p=e,bg;do{bg=rgb(getComputedStyle(p).backgroundColor);p=p.parentElement}while(p&&bg.length===4&&bg[3]===0);const a=luminance(rgb(getComputedStyle(e).color)),b=luminance(bg);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05)});
+ });
+ for(const ratio of contrasts)expect(ratio).toBeGreaterThanOrEqual(4.5);
+ await shot(page,info,'completed-workout');
 });
