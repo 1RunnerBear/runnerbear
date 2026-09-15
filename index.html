@@ -8,12 +8,12 @@
 <link rel="icon" type="image/png" sizes="32x32" href="rb-icon-32.png?v=1025">
 <link rel="icon" type="image/svg+xml" href="runnerbear-app-icon-v1025.svg?v=1025">
 <link rel="apple-touch-icon" sizes="180x180" href="rb-icon-180.png?v=1025">
-<link rel="manifest" href="site.webmanifest?v=12401">
+<link rel="manifest" href="site.webmanifest?v=12500">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="RunnerBear">
-<link rel="stylesheet" href="runnerbear-v11.css?v=12401">
+<link rel="stylesheet" href="runnerbear-v11.css?v=12500">
 </head>
 <body>
 <div class="app">
@@ -22,14 +22,15 @@
     <div class="race-count"><b><span id="countdown">–</span> dager</b><span>til start</span></div>
   </header>
   <nav class="desktop-nav" aria-label="Hovedmeny">
-    <button class="navbtn active" data-tab="today"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg></span>I dag</button>
+    <button class="navbtn active" aria-current="page" data-tab="today"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg></span>I dag</button>
     <button class="navbtn" data-tab="plan"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></span>Plan</button>
     <button class="navbtn" data-tab="race"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4m0 1h10l-2.5 3L16 11H6"/><path d="m9 17 3-3 3 3 3-4 3 5"/></svg></span>Mål</button>
     <button class="navbtn" data-tab="more"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></span>Mer</button>
   </nav>
   <div id="rb108Boot" class="rb108-boot" role="status" aria-live="polite">
-    <span class="rb108-boot-mark" aria-hidden="true"></span>
-    <div><b>Henter gjeldende plan</b><span>RunnerBear verifiserer siste planrevisjon før den vises.</span></div>
+    <div class="rb119b-appbar"><span class="rb119b-wordmark">RUNNERBEAR</span></div>
+    <div class="rb108-boot-heading"><span class="rb108-boot-mark" aria-hidden="true"></span><div><b>Henter gjeldende plan</b><span>Et øyeblikk – vi gjør dagen klar.</span></div></div>
+    <div class="rb125-skeleton" aria-hidden="true"><i></i><i></i><i></i></div>
   </div>
   <main>
     <section id="today" class="view active"></section>
@@ -38,14 +39,14 @@
     <section id="more" class="view"></section>
   </main>
   <nav class="bottom-nav" aria-label="Mobilmeny">
-    <button class="navbtn active" data-tab="today"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg></span>I dag</button>
+    <button class="navbtn active" aria-current="page" data-tab="today"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg></span>I dag</button>
     <button class="navbtn" data-tab="plan"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></span>Plan</button>
     <button class="navbtn" data-tab="race"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4m0 1h10l-2.5 3L16 11H6"/><path d="m9 17 3-3 3 3 3-4 3 5"/></svg></span>Mål</button>
     <button class="navbtn" data-tab="more"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></span>Mer</button>
   </nav>
 </div>
-<script src="runnerbear-core-v11.js?v=12401"></script>
-<script src="runnerbear-ui-v11.js?v=12401"></script>
-<script src="runnerbear-data-v11.js?v=12401" defer></script>
+<script src="runnerbear-core-v11.js?v=12500"></script>
+<script src="runnerbear-ui-v11.js?v=12500"></script>
+<script src="runnerbear-data-v11.js?v=12500" defer></script>
 </body>
 </html>

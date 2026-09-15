@@ -1,18 +1,20 @@
 {
   "name": "runnerbear-release-harness",
   "private": true,
-  "version": "12.4.0",
+  "version": "12.5.0",
   "type": "commonjs",
   "scripts": {
     "dev": "node scripts/preview-v121.mjs",
     "build": "node scripts/build-v11.mjs",
     "check": "node scripts/build-v11.mjs && git diff --exit-code -- runnerbear-core-v11.js runnerbear-ui-v11.js runnerbear-data-v11.js runnerbear-v11.css && node --test tests/*.test.cjs tests/e2e/*.spec.mjs",
-    "test": "node --test tests/*.test.cjs tests/e2e/*.spec.mjs"
+    "test": "node --test tests/*.test.cjs tests/e2e/*.spec.mjs",
+    "test:visual": "playwright test"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "postcss": "^8.5.6"
   }
 }

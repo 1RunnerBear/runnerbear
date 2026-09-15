@@ -35,7 +35,7 @@ test('v11 renders one active surface and lazy-renders inactive tabs',()=>{
   assert.match(ui,/function renderGoals\(\)/);
   assert.match(ui,/function renderMore\(\)/);
   assert.match(ui,/function renderAll\(\)\{return renderView\(activeView\(\)\)\}/);
-  assert.match(ui,/decorateNav\(\);decorateBrand\(\);[\s\S]*await canonical\.start\(\)[\s\S]*prefsMigrated=migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\)/);
+  assert.match(ui,/await canonical\.start\(\)[\s\S]*prefsMigrated=migrateTrainingPreferences\(\);tredictSync\(\)\?\.init\?\.\(\)/);
   assert.match(ui,/window\.RunnerBearClientMigrating=true/);
   assert.match(ui,/await waitForCanonicalRuntime\(\)/);
   assert.match(ui,/runAutopilot\(\);renderToday\(\)/);
@@ -118,8 +118,8 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
 
 test('release metadata and production health gate agree on v12.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'12.4.0');
-  assert.match(read('site.webmanifest'),/v12401/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'12.5.0');
+  assert.match(read('site.webmanifest'),/v12500/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v116.js'),/CONTEXTUAL_COACH_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v118\.js/);

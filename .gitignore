@@ -3,3 +3,6 @@ cloud/runnerbear-cloud/node_modules/
 cloud/runnerbear-cloud/public/
 .wrangler/
 cloud/runnerbear-cloud/.wrangler/
+
+playwright-report/
+test-results/

@@ -16,6 +16,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tests/**'
+      - 'playwright.config.cjs'
+      - 'scripts/preview-v121.mjs'
       - '.github/workflows/runnerbear-cloud-deploy.yml'
       - '.github/workflows/runnerbear-coach-loop-rollout.yml'
       - '.github/workflows/validate-runnerbear.yml'
@@ -34,6 +36,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tests/**'
+      - 'playwright.config.cjs'
+      - 'scripts/preview-v121.mjs'
       - '.github/workflows/runnerbear-cloud-deploy.yml'
       - '.github/workflows/runnerbear-coach-loop-rollout.yml'
       - '.github/workflows/validate-runnerbear.yml'
@@ -135,3 +139,26 @@ jobs:
 
       - name: Validate web manifest
         run: python -m json.tool site.webmanifest > /dev/null
+
+  visual:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Verify mobile startup, images, controls and four views
+        run: npm run test:visual
+      - name: Preserve visual verification
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: premium-mobile-visual-${{ github.sha }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
