@@ -2,9 +2,9 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'12.4.0',
-    assetVersion:'12401',
-    label:'Dokumentert fremgang',
+    build:'12.5.0',
+    assetVersion:'12500',
+    label:'Premium Mobile & Visual Lock',
     design:'Concept 1 · Premium rolig'
   });
   window.RunnerBearRelease=release;
