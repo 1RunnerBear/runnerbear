@@ -369,7 +369,7 @@ html .rb107-button.secondary{background:var(--rb113-forest);border-color:var(--r
 .rb109-result-metrics span{color:var(--muted)}
 .rb109-result-metrics b{color:var(--ink)}
 .rb109-coach-verdict,.rb109-result-card.yellow .rb109-coach-verdict,.rb109-result-card.neutral .rb109-coach-verdict{margin:14px 24px 0;background:var(--canvas);color:var(--ink)}
-.rb109-coach-verdict>span,.rb109-result-card.yellow .rb109-coach-verdict>span,.rb109-result-card.neutral .rb109-coach-verdict>span{color:var(--muted)}
+.rb109-coach-verdict>span,.rb109-result-card.yellow .rb109-coach-verdict>span,.rb109-result-card.neutral .rb109-coach-verdict>span{color:var(--forest)}
 .rb109-coach-verdict>p{color:#fff}
 .rb109-coach-verdict>div{border-color:rgba(255,255,255,.14)}
 .rb109-coach-verdict>div b{color:#fff}
