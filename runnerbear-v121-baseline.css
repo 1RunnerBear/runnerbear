@@ -1024,8 +1024,8 @@ html .rb119b .rb107-shell{display:flex;max-width:none;flex-direction:column;gap:
 .rb119b-coach-card>button .rb107-icon{width:15px;height:15px}
 .rb119b .rb113-coach-data{border-color:var(--rb19b-line)!important;border-radius:var(--rb19b-radius)!important;background:rgba(255,253,248,.58)!important;box-shadow:none!important}
 .rb119b-week-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
-.rb119b-week-controls>div{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center;min-height:50px;border:1px solid var(--rb19b-line);border-radius:14px;background:rgba(255,253,248,.45)}
-.rb119b-week-controls button{display:grid;height:100%;min-width:42px;padding:0;border:0;background:transparent;place-items:center}
+.rb119b-week-controls>div{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;min-height:50px;border:1px solid var(--rb19b-line);border-radius:14px;background:rgba(255,253,248,.45)}
+.rb119b-week-controls button{display:grid;height:100%;min-width:44px;padding:0;border:0;background:transparent;place-items:center}
 .rb119b-week-controls>div b{overflow:hidden;color:var(--rb19b-ink);font-family:var(--rb19b-display);font-size:.95rem;font-weight:500;text-align:center;text-overflow:ellipsis;white-space:nowrap}
 .rb119b-week-controls>button{display:flex;align-items:center;gap:6px;padding:0 13px;border:1px solid var(--rb19b-line);border-radius:14px;background:rgba(255,253,248,.45);color:var(--rb19b-ink);font-size:.72rem}
 .rb119b-week-controls .rb107-icon{width:18px;height:18px}
@@ -1239,7 +1239,7 @@ html #rb95UpdateBanner{display:none!important}
 .rb119c-coach-watch>footer span{color:var(--rb19b-muted);font-size:11px}
 .rb119c-coach-watch>footer b{padding:4px 7px;border-radius:99px;background:var(--rb119c-sage);color:var(--rb119c-forest);font-size:11px}
 .rb119c-coach-watch>footer small{overflow:hidden;color:var(--rb19b-muted);font-size:11px;text-align:right;text-overflow:ellipsis;white-space:nowrap}
-.rb119c-month{padding:16px 18px 13px}
+.rb119c-month{padding:16px 12px}
 .rb119c-month:focus{outline:0;box-shadow:0 0 0 3px rgba(8,63,44,.12),var(--rb19b-shadow)}
 .rb119c-month>header{display:flex;align-items:center;justify-content:space-between}
 .rb119c-month>header h2{margin:0;color:var(--rb19b-ink);font-family:var(--rb19b-display);font-size:1.12rem;font-weight:500;text-transform:capitalize}
@@ -1249,7 +1249,7 @@ html #rb95UpdateBanner{display:none!important}
 .rb119c-weekdays,.rb119c-month-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
 .rb119c-weekdays{margin-top:7px;color:var(--rb19b-muted);font-size:11px;text-align:center}
 .rb119c-month-grid{row-gap:2px;margin-top:3px}
-.rb119c-month-grid button{position:relative;display:grid;min-width:0;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:#26342d;font-size:11px;place-items:center}
+.rb119c-month-grid button{position:relative;display:grid;min-width:44px;height:34px;padding:0;border:0;border-radius:9px;background:transparent;color:#26342d;font-size:11px;place-items:center}
 .rb119c-month-grid button:not(:disabled){cursor:pointer}
 .rb119c-month-grid button.outside{color:#b6b2aa}
 .rb119c-month-grid button.today{background:var(--rb119c-forest);color:#fff;font-weight:700}
@@ -1286,11 +1286,11 @@ html #rb95UpdateBanner{display:none!important}
   .rb119c-coach-watch>header{gap:10px}.rb119c-coach-watch>header p{font-size:11px}.rb119c-coach-watch>header button{font-size:11px}
   .rb119c-health-grid{gap:5px}.rb119c-health-grid>div{grid-template-columns:1fr;justify-items:center;padding:9px 4px 8px}.rb119c-health-grid>div>span{grid-row:auto;width:25px;height:25px}.rb119c-health-grid small{margin-top:3px;font-size:11px}.rb119c-health-grid b{font-size:.92rem}.rb119c-health-grid em{font-size:11px}
   .rb119c-coach-watch>footer{grid-template-columns:auto auto}.rb119c-coach-watch>footer small{grid-column:1/-1;text-align:left}
-  .rb119c-month{padding-inline:13px}.rb119c-month-grid button{height:32px}.rb119b-week-controls>button{justify-content:center;padding-inline:0}.rb119b-week-controls>button span{display:none}
+  .rb119c-month{padding-inline:12px}.rb119c-month-grid button{height:32px}.rb119b-week-controls>button{justify-content:center;padding-inline:0}.rb119b-week-controls>button span{display:none}
 }
 
 @media(max-width:380px){
   .rb119c-health-grid>div>span{width:23px;height:23px}.rb119c-health-grid b{font-size:.84rem}
-  .rb119c-month{padding-inline:10px}.rb119c-month-grid button{height:30px}
+  .rb119c-month{padding-inline:12px}.rb119c-month-grid button{height:30px}
   .rb119c-focus button{grid-template-columns:34px minmax(0,1fr) 15px;padding-inline:11px}.rb119c-focus button>span{width:32px;height:32px}
 }

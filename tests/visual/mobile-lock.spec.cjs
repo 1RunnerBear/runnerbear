@@ -28,9 +28,13 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
  const nav=page.locator(width<821?'.bottom-nav':'.desktop-nav');
  for(const [name,id] of [['Plan','plan'],['Mål','race'],['Mer','more']]){
   await nav.getByRole('button',{name,exact:true}).click();await expect(page.locator('#'+id)).toBeVisible();await check(page);await shot(page,info,id);
+  if(id==='plan'){
+   await page.getByRole('button',{name:'Åpne månedsoversikt',exact:true}).click();await check(page);await shot(page,info,'month');
+   await page.getByRole('button',{name:'Lukk månedsoversikt',exact:true}).click();
+  }
  }
  await nav.getByRole('button',{name:'I dag',exact:true}).click();
- await page.locator('[data-rb1020-workout-open]:visible').first().click();
+ await page.locator('[data-rb113-decision-action]:visible').first().click();
  await expect(page.getByRole('dialog')).toBeVisible();await check(page);await shot(page,info,'workout-detail');
  const modal=await page.getByRole('dialog').boundingBox();if(width<821)expect(Math.abs(modal.y+modal.height-height)).toBeLessThan(2);
  await page.getByRole('dialog').getByRole('button',{name:'Lukk øktdetaljer'}).press('Tab');
