@@ -148,6 +148,7 @@ jobs:
         continue-on-error: true
         env:
           RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
+          TREDICT_TOKEN: ${{ secrets.TREDICT_TOKEN }}
         run: |
           # Keep the existing relay credential aligned with the deployment secret.
           # Only repair an explicit key mismatch; all other failures remain blocking.
@@ -168,10 +169,27 @@ jobs:
             exit 1
           fi
           node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync("/tmp/runnerbear-bridge-auth.json","utf8"));if(x.ok!==true)throw new Error("Bridge health check failed")'
-          curl --fail --silent --show-error --retry 4 --retry-delay 3 \
+          SNAPSHOT_STATUS="$(curl --silent --show-error --max-time 90 --output /tmp/runnerbear-history-snapshot.json --write-out '%{http_code}' \
             -H "Origin: https://1runnerbear.github.io" \
             -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
-            "https://runnerbear-tredict-bridge.runnerbear.workers.dev/api/snapshot?days=365" > /tmp/runnerbear-history-snapshot.json
+            "https://runnerbear-tredict-bridge.runnerbear.workers.dev/api/snapshot?days=365")"
+          if [ "$SNAPSHOT_STATUS" = "401" ]; then
+            node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync("/tmp/runnerbear-history-snapshot.json","utf8"));if(x.error!=="TREDICT_ACTIVITY_READ_FAILED"||x.status!==401)throw new Error("Unexpected snapshot authentication failure");console.log("Tredict rejected the deployed provider credential")'
+            test -n "$TREDICT_TOKEN" || { echo 'Missing Tredict deployment credential'; exit 1; }
+            # Validate the existing candidate before updating any Worker secret.
+            curl --fail --silent --show-error --max-time 30 \
+              -H "Authorization: Bearer ${TREDICT_TOKEN}" -H 'Accept: application/json' \
+              'https://www.tredict.com/api/oauth/v2/activityList?pageSize=1' > /tmp/runnerbear-provider-auth.json
+            node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync("/tmp/runnerbear-provider-auth.json","utf8"));if(!Array.isArray(x.activityList||x._embedded?.activityList))throw new Error("Tredict credential validation failed")'
+            printf '%s' "$TREDICT_TOKEN" | npx wrangler secret put TREDICT_TOKEN --config ../../wrangler.toml
+            curl --fail --silent --show-error --retry 4 --retry-all-errors --retry-delay 3 --max-time 90 \
+              -H "Origin: https://1runnerbear.github.io" \
+              -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+              "https://runnerbear-tredict-bridge.runnerbear.workers.dev/api/snapshot?days=365" > /tmp/runnerbear-history-snapshot.json
+          elif [ "$SNAPSHOT_STATUS" != "200" ]; then
+            echo "History snapshot failed (HTTP $SNAPSHOT_STATUS)"
+            exit 1
+          fi
           node ../../scripts/v1027-history-recovery.mjs /tmp/runnerbear-history-snapshot.json /tmp/runnerbear-history-recovery.sql
           npx wrangler d1 execute DB --remote --config wrangler.release.jsonc --file=/tmp/runnerbear-history-recovery.sql
 
