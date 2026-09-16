@@ -149,6 +149,25 @@ jobs:
         env:
           RUNNERBEAR_BRIDGE_KEY: ${{ secrets.RUNNERBEAR_BRIDGE_KEY }}
         run: |
+          # Keep the existing relay credential aligned with the deployment secret.
+          # Only repair an explicit key mismatch; all other failures remain blocking.
+          test -n "${RUNNERBEAR_BRIDGE_KEY}" || { echo 'Missing bridge deployment credential'; exit 1; }
+          BRIDGE_STATUS="$(curl --silent --show-error --max-time 30 --output /tmp/runnerbear-bridge-auth.json --write-out '%{http_code}' \
+            -H "Origin: https://1runnerbear.github.io" \
+            -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+            "https://runnerbear-tredict-bridge.runnerbear.workers.dev/health")"
+          if [ "$BRIDGE_STATUS" = "401" ]; then
+            node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync("/tmp/runnerbear-bridge-auth.json","utf8"));if(x.error!=="BRIDGE_AUTH_FAILED")throw new Error("Unexpected bridge authentication failure")'
+            printf '%s' "$RUNNERBEAR_BRIDGE_KEY" | npx wrangler secret put RUNNERBEAR_BRIDGE_KEY --config ../../wrangler.toml
+            curl --fail --silent --show-error --retry 4 --retry-all-errors --retry-delay 3 --max-time 30 \
+              -H "Origin: https://1runnerbear.github.io" \
+              -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
+              "https://runnerbear-tredict-bridge.runnerbear.workers.dev/health" > /tmp/runnerbear-bridge-auth.json
+          elif [ "$BRIDGE_STATUS" != "200" ]; then
+            echo "Bridge authentication check failed (HTTP $BRIDGE_STATUS)"
+            exit 1
+          fi
+          node -e 'const fs=require("fs"),x=JSON.parse(fs.readFileSync("/tmp/runnerbear-bridge-auth.json","utf8"));if(x.ok!==true)throw new Error("Bridge health check failed")'
           curl --fail --silent --show-error --retry 4 --retry-delay 3 \
             -H "Origin: https://1runnerbear.github.io" \
             -H "X-RunnerBear-Key: ${RUNNERBEAR_BRIDGE_KEY}" \
