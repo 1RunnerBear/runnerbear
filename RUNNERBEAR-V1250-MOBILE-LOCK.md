@@ -12,4 +12,8 @@ Validation before release: all 433 functional tests passed (431 existing and two
 
 No changes to coach rules, workout bank, HRV, plan generation, provider logic, data model or One Decision authority. Server edits only advance the build identifier. Production deploy uses the existing workflow with history backup, integrity checks and private access verification.
 
-Release status: functional and visual gates passed. Loaded-image screenshots and final contrast checks passed in run 34968249124 (34 tests). PR #85 was merged. Production deployment stopped before publishing because the migration relay returned HTTP 401; a narrowly scoped credential-alignment repair is being applied without removing authentication or history checks.
+Release status (16 September 2026): implementation complete and PR #85 merged as ed25ac29351f927730d4bd8bad7170ce097fb853. All 433 functional tests and 34 Chromium/WebKit tests passed; loaded image crops, completed-result contrast, mobile navigation and dialogs were reviewed.
+
+Production deployment is blocked, not complete. Run 35057919930 confirmed that the bridge accepts its relay key, but Tredict rejects both the deployed provider token and the existing GitHub TREDICT_TOKEN candidate with HTTP 401. The candidate was validated before any secret mutation, so no secret was replaced. A valid TREDICT_TOKEN must be saved in repository Actions secrets before rerunning the failed deploy. Authentication, backup and history-integrity gates remain enforced.
+
+The public production health check on 16 September still reports build 12.4.0, historyIntegrity=true, zero duplicate external IDs, zero queued/retryable/processing/review sync operations, and the same active plan revision as before release. The authenticated production app loads today's existing plan. No claim is made that v12.5 is live. Physical iPhone Safari and standalone PWA checks remain unperformed.
