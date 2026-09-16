@@ -123,7 +123,8 @@ test('release metadata and production health gate agree on v12.0',()=>{
   assert.match(read('cloud/runnerbear-cloud/src/index-v116.js'),/CONTEXTUAL_COACH_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v118\.js/);
-  assert.match(read('scripts/verify-v116-health.mjs'),/cloudBuild==='12\.4\.0'/);
+  assert.match(read('scripts/verify-v116-health.mjs'),/cloudBuild===EXPECTED_BUILD/);
+  assert.match(read('scripts/verify-v116-health.mjs'),/import \{ BUILD as EXPECTED_BUILD \} from '\.\.\/cloud\/runnerbear-cloud\/src\/v11\/constants\.js'/);
   assert.match(bridgeWorkflow,/for attempt in 1 2 3 4 5 6 7 8 9 10 11 12/);
   assert.match(bridgeWorkflow,/git checkout -B runnerbear-bridge-report origin\/main/);
 });

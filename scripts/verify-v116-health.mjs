@@ -1,3 +1,4 @@
+import { BUILD as EXPECTED_BUILD } from '../cloud/runnerbear-cloud/src/v11/constants.js';
 const x=JSON.parse(process.argv[2]||'{}');
 const allowPendingSync=process.argv.slice(3).includes('--allow-pending-sync');
 
@@ -5,7 +6,7 @@ const fail=message=>{throw new Error(`RunnerBear v12.0 health gate: ${message}`)
 const required=(condition,message)=>{if(!condition)fail(message)};
 
 required(x.ok===true&&x.assets===true&&x.database===true,'base health is not green');
-required(x.cloudBuild==='12.4.0'&&x.schemaVersion===5,'unexpected build or schema');
+required(x.cloudBuild===EXPECTED_BUILD&&x.schemaVersion===5,'unexpected build or schema');
 required(x.contextualCoach===true&&x.contextualCoachVersion==='contextual-coach-1','contextual coach is unavailable');
 required(x.contextualCoachAudit?.ok===true,'contextual coach audit failed');
 required(x.contextualCoachAudit?.mode==='background','coach is not background-first');
