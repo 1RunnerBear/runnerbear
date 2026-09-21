@@ -22,7 +22,7 @@ test('questions are contextual, capped at two and never infer pain from effort',
  assert.deepEqual(day.questions({type:'easy'}),[]);assert.equal(day.questions({type:'quality',confidence:'high'}).length,1);assert.equal(day.questions({type:'quality',pain:true}).length,2);assert.deepEqual(day.questions({type:'quality',phase:'next_morning'}),[]);assert.deepEqual(day.questions({pain:true,phase:'next_morning'}).map(q=>q.key),['pain']);
 });
 test('actual Today renders the workout, one primary action and a direct adaptation entry',()=>{
- const {api,os}=ui(snapshot()),html=api.oneDecisionHeroHtml(os.planFor(workout.ds));assert.match(html,/<h2[^>]*>6 × 6 min terskel<\/h2>/);assert.equal((html.match(/class="rb113-primary"/g)||[]).length,1);assert.match(html,/Se gjennomføringen/);assert.match(html,/data-rb123-adapt/);assert.doesNotMatch(html,/Planen står/);
+ const {api,os}=ui(snapshot()),html=api.oneDecisionHeroHtml(os.planFor(workout.ds));assert.match(html,/<h2[^>]*>6 × 6 min terskel<\/h2>/);assert.equal((html.match(/class="rb113-primary"/g)||[]).length,1);assert.match(html,/Se økten/);assert.match(html,/data-rb123-adapt/);assert.doesNotMatch(html,/Planen står/);
 });
 test('completed Today shows one measured result and an unanswered response with production flags disabled',()=>{
  const data=snapshot(true),{api,os}=ui(data),p=os.planFor(workout.ds),c=api.responseContext(p);assert.ok(c);assert.equal(c.workout.workoutId,'wo-2026-09-09');

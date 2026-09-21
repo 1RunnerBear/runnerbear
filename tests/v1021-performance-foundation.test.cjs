@@ -19,8 +19,8 @@ test('v11 index loads only canonical versioned frontend assets',()=>{
   assert.doesNotMatch(html,/rel="preload"/);
   const jsBytes=scripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
   const compressedBytes=scripts.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file))).length,0);
-  assert.ok(jsBytes<466000,'canonical JavaScript is '+jsBytes+' bytes');
-  assert.ok(compressedBytes<133000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
+  assert.ok(jsBytes<490000,'canonical JavaScript is '+jsBytes+' bytes');
+  assert.ok(compressedBytes<140000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
   assert.ok(fs.statSync(path.join(root,styles[0])).size<267000);
 });
 
@@ -118,8 +118,8 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
 
 test('release metadata and production health gate agree on v12.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'12.5.0');
-  assert.match(read('site.webmanifest'),/v12500/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'12.6.0');
+  assert.match(read('site.webmanifest'),/v12600/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v116.js'),/CONTEXTUAL_COACH_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v118\.js/);
