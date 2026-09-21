@@ -21,6 +21,8 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
  await page.route('**/api/v2/bootstrap*',async route=>{await gate;await route.continue()});
  await page.addInitScript(()=>{window.__cls=0;new PerformanceObserver(list=>{for(const e of list.getEntries())if(!e.hadRecentInput)window.__cls+=e.value}).observe({type:'layout-shift',buffered:true})});
  await page.goto('/',{waitUntil:'commit'});await page.locator('.rb108-boot').waitFor();
+ // DOM can exist before the render-blocking stylesheet has loaded in WebKit.
+ await expect(page.locator('body')).toHaveCSS('margin','0px');
  const before=await geometry(page);await check(page);await shot(page,info,'startup');release();
  await page.locator('html.rb107-ready').waitFor();await check(page);
  const after=await geometry(page);expect(after.app.width).toBe(before.app.width);expect(after.nav).toEqual(before.nav);expect(await page.evaluate(()=>window.__cls)).toBeLessThan(.05);

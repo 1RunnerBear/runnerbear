@@ -9,7 +9,7 @@ The approved Concept 1 A evolves the existing four-tab app with warm ivory, fore
 
 ## Verification
 
-438 functional tests pass locally, including exact interval duration, stale previews, failed writes and confirmed commit with failed refresh. 24 Chromium checks cover 200% text resizing, symptom capture, failed health-check saving, 320–430 px, existing desktop widths, all four tabs, dialogs, images, cancel/retry/save and revision changes. GitHub CI also runs WebKit before merge. The public push is currently blocked by automatic approval review and needs a fresh explicit authorization in the active conversation. Browser emulation does not replace a physical iPhone check.
+438 functional tests pass locally, including exact interval duration, stale previews, failed writes and confirmed commit with failed refresh. 24 Chromium checks cover 200% text resizing, symptom capture, failed health-check saving, 320–430 px, existing desktop widths, all four tabs, dialogs, images, cancel/retry/save and revision changes. GitHub CI also runs WebKit before merge. Public push and production deployment were explicitly authorized in the active conversation. GitHub PR validation passed all 48 Chromium/WebKit cases; startup geometry now waits for the render-blocking stylesheet before measurement. Browser emulation does not replace a physical iPhone check.
 
 The canonical client remains three JS requests and one CSS request. New preview and health interfaces increase compressed JavaScript by about 5 KB; the per-release ceilings are 490 KB raw / 140 KB gzip. The existing total compressed-asset growth gate remains unchanged. No runtime dependencies or new photos were added.
 
