@@ -2,10 +2,10 @@
 :root{
  --canvas:#f5f3ed;--paper:#fffdf8;--ink:#193126;--muted:#66736c;--forest:#174a35;--line:rgba(25,49,38,.12);
  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--space-10:40px;
- --page-gutter:16px;--card-radius:20px;--control-size:44px;--nav-height:72px;
+ --page-gutter:20px;--card-radius:16px;--control-size:44px;--nav-height:72px;
 }
 html{scroll-padding-bottom:calc(88px + env(safe-area-inset-bottom))}
-body{margin:0;background:var(--canvas);color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--canvas);color:var(--ink);font:16px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased}
 .app{position:relative;width:100%;max-width:1180px;margin:0 auto;padding:4px max(var(--page-gutter),env(safe-area-inset-right)) calc(88px + env(safe-area-inset-bottom)) max(var(--page-gutter),env(safe-area-inset-left))}
 main{position:relative;width:100%;min-width:0;min-height:calc(100dvh - 96px)}
 .topbar{display:none}

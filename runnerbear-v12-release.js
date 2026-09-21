@@ -2,9 +2,9 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'12.5.0',
-    assetVersion:'12500',
-    label:'Premium Mobile & Visual Lock',
+    build:'12.6.0',
+    assetVersion:'12600',
+    label:'Concept 1 A · Personlig oppfølging',
     design:'Concept 1 · Premium rolig'
   });
   window.RunnerBearRelease=release;

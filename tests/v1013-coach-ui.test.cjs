@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=12500/);
+  assert.match(html,/runnerbear-v11\.css\?v=12600/);
   const migration=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/v121-css-pruning.json'),'utf8'));
   assert.ok(migration.sources.includes(source),`${source} was consolidated in original cascade order`);
   assert.equal(assets.styles.length,5);
@@ -34,14 +34,14 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
 });
 
 test('today switches from the prescription to a result-first coach surface',()=>{
-  assert.match(app,/Dagens resultat/);
+  assert.match(app,/Godt gjennomført/);
   assert.match(app,/Coachens vurdering/);
   assert.match(app,/Se øktanalysen/);
   assert.match(app,/Vis opprinnelig plan/);
 });
 
 test('plan defaults to one vertical fidelity week with long-term access',()=>{
-  assert.match(app,/Din plan/);
+  assert.match(app,/Din uke/);
   assert.match(app,/data-rb119b-plan-lens="week"/);
   assert.doesNotMatch(app,/data-rb119b-plan-lens="focus"/);
   assert.match(app,/data-rb119b-plan-lens="long"/);
@@ -56,8 +56,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v12500');
-  assert.equal(version.build ,'12.5.0');
+  assert.equal(manifest.start_url,'/?app=v12600');
+  assert.equal(version.build ,'12.6.0');
   assert.equal(version.channel,'live');
 });
 
@@ -84,7 +84,7 @@ test('v10.19b gives Today three explicit, mutually exclusive states',()=>{
   assertCanonicalStyle('runnerbear-v1017-ux.css');
   assert.match(app,/Dagens økt/);
   assert.match(app,/Aktivitet registrert · analyse pågår/);
-  assert.match(app,/Dagens resultat/);
+  assert.match(app,/Godt gjennomført/);
   assert.doesNotMatch(app,/function nextWorkoutHtml/);
   assert.doesNotMatch(app,/Ett signal fortjener oppmerksomhet/);
 });
@@ -97,7 +97,7 @@ test('v10.17 makes coach changes visible, explained and reversible',()=>{
   assert.match(app,/data-rb117-undo-change/);
   assert.match(app,/changed=planChange\(p\)/);
   assert.match(ux,/\.rb107-day-chip\.adjusted:before/);
-  assert.match(app,/Endringshistorikk/);
+  assert.match(app,/Coachens endringer/);
 });
 
 test('v10.19b gives goal administration to Mål only',()=>{
@@ -106,7 +106,7 @@ test('v10.19b gives goal administration to Mål only',()=>{
   assert.match(goals,/data-rb109-goal-open/);
   assert.doesNotMatch(more,/data-rb109-goal-open/);
   assert.doesNotMatch(more,/Profil og mål/);
-  assert.match(more,/>Innstillinger</);
+  assert.match(more,/viewTitleHtml\('Mer'/);
 });
 
 test('v10.19b presents one week with two focused lenses',()=>{
@@ -115,7 +115,7 @@ test('v10.19b presents one week with two focused lenses',()=>{
   assert.match(app,/rb119b-plan-list/);
   assert.match(plan,/>Uke</);
   assert.doesNotMatch(plan,/>Fokus</);
-  assert.match(plan,/>Langsiktig</);
+  assert.match(plan,/>Fremover</);
   assert.doesNotMatch(plan,/data-rb107-plan-view="overview"/);
 });
 
