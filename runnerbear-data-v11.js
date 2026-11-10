@@ -538,6 +538,22 @@
   let fullRefreshPromise=null,refreshSerial=0,snapshot=null,lastSignature='',syncTimer=0,startPromise=null,fullLoadedRevision='',syncWatchTimers=[];
   const read=(key,fallback={})=>{try{return JSON.parse(localStorage.getItem(key)||'')??fallback}catch{return fallback}};
   const api=async(path,{timeoutMs,...options}={})=>{const controller=new AbortController(),timer=(timeoutMs||(options.method||'GET')==='GET')?setTimeout(()=>controller.abort(),timeoutMs||15000):null;try{const response=await fetch(path,{credentials:'same-origin',cache:'no-store',signal:controller.signal,...options,headers:{Accept:'application/json',...(options.body?{'Content-Type':'application/json'}:{}),...(options.headers||{})}});let body={};try{body=await response.json()}catch(error){if(controller.signal.aborted)throw error}if(!response.ok)throw Object.assign(new Error(body.message||body.error||`RunnerBear HTTP ${response.status}`),{code:body.code,status:response.status});return body}finally{clearTimeout(timer)}};
+  async function loadBootstrap(scope) {
+    const path = '/api/v2/bootstrap?scope=' + scope;
+    try {
+      return await api(path);
+    } catch (error) {
+      if (!(error instanceof TypeError || error.name === 'AbortError' || [502,503,504].includes(error.status))) throw error;
+      return api(path, {timeoutMs: 30000});
+    }
+  }
+  function persistSnapshot(data) {
+    try {
+      localStorage.setItem(CACHE, JSON.stringify(data));
+    } catch (error) {
+      if (!['QuotaExceededError','SecurityError'].includes(error.name)) throw error;
+    }
+  }
   async function digest(value){const bytes=new TextEncoder().encode(value),hash=await crypto.subtle.digest('SHA-256',bytes);return[...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('')}
   function constraints(){const prefs=window.RunnerBearCoachOS?.trainingPreferences?.()||{};return{runDays:prefs.runDays||[],qualityDays:prefs.qualityDays||[],longRunDay:prefs.longRunDay,alternativeDays:prefs.alternativeDays||[],maxRunDays:(prefs.runDays||[]).length||5,weeklyKmCap:Number(prefs.maxKm||55),avoidHillWorkouts:true,safetyOverrides:[]}}
   function legacyInput(){
@@ -548,13 +564,13 @@
     if(data?.needsMigration)return data;
     const integrity=window.RunnerBearV1026?.assertRevision?.(data)||{ok:false,code:'PLAN_INTEGRITY_UNAVAILABLE'};
     if(!integrity.ok)throw Object.assign(new Error(`Gjeldende plan kunne ikke verifiseres: ${integrity.code}`),{code:integrity.code});
-    window.RunnerBearCloud?.hydrateState?.(data.clientState||{});snapshot=data;localStorage.setItem(CACHE,JSON.stringify(data));
+    window.RunnerBearCloud?.hydrateState?.(data.clientState||{});snapshot=data;persistSnapshot(data);
     try{window.RunnerBearPlanReadModel?.install?.(data)}catch(error){console.error(JSON.stringify({event:'coach_loop_hydration_mismatch',build:BUILD,message:error.message}));return data}
     document.documentElement.classList.toggle('rb1026-active',data.flags?.coach_loop_ui===true);
     if(data.flags?.coach_loop_sync!==true)window.RunnerBearCloud?.schedulePlanReconcile?.();
     window.RunnerBearCoachOS?.renderView?.(document.querySelector('.view.active')?.id||'today');return data;
   }
-  async function refreshSync(){if(!snapshot?.flags?.coach_loop_sync)return snapshot;const result=await api('/api/v2/sync/status');snapshot={...snapshot,sync:result.operations||[],syncRepair:result.syncRepair||snapshot.syncRepair};localStorage.setItem(CACHE,JSON.stringify(snapshot));window.RunnerBearCoachOS?.renderView?.(document.querySelector('.view.active')?.id||'today');return snapshot}
+  async function refreshSync(){if(!snapshot?.flags?.coach_loop_sync)return snapshot;const result=await api('/api/v2/sync/status');snapshot={...snapshot,sync:result.operations||[],syncRepair:result.syncRepair||snapshot.syncRepair};persistSnapshot(snapshot);window.RunnerBearCoachOS?.renderView?.(document.querySelector('.view.active')?.id||'today');return snapshot}
   function watchSync(){for(const timer of syncWatchTimers)clearTimeout(timer);syncWatchTimers=[1200,5000].map(delay=>setTimeout(()=>refreshSync().catch(error=>console.warn(JSON.stringify({event:'coach_loop_sync_status_failed',build:BUILD,code:error.code||'',message:error.message}))),delay))}
   async function retrySync(){await api('/api/v2/sync/process',{method:'POST',headers:{'Idempotency-Key':window.RunnerBearV1026?.idempotency?.('sync-retry')||`sync-retry:${Date.now()}`}});const next=await refreshSync();watchSync();return next}
   async function verifySyncRepair(operationId){const id=String(operationId||snapshot?.syncRepair?.primary?.operationId||'');if(!id)return snapshot;await api('/api/v2/sync/repair/verify',{method:'POST',headers:{'Idempotency-Key':`sync-repair:${id}:${Date.now()}`},body:JSON.stringify({operationId:id})});const next=await refreshSync();watchSync();return next}
@@ -569,7 +585,7 @@
   async function refresh(scope='home'){
     const serial=++refreshSerial;
     if(scope==='home'&&fullLoadedRevision&&document.querySelector('.view.active')?.id!=='today')scope='full';
-    let data=await api(`/api/v2/bootstrap?scope=${scope}`);
+    let data=await loadBootstrap(scope);
     if(serial!==refreshSerial)return snapshot||data;
     if(data.needsMigration){if(data.flags?.coach_loop_shadow!==true&&data.flags?.coach_loop_read!==true)return data;data=await migrate(data.flags||{})}
     if(serial!==refreshSerial)return snapshot||data;

@@ -101,3 +101,21 @@ test('completed workout and long coach explanation retain mobile proportions',as
  await shot(page,info,'completed-workout');
  for(const ratio of contrasts)expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
+
+test('mobile startup recovers an interrupted plan request with a full snapshot cache',async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await page.addInitScript(()=>{
+    const write=Storage.prototype.setItem;
+    Storage.prototype.setItem=function(key,value){
+      if(key==='runnerbear_coach_loop_snapshot_v1')throw new DOMException('Full','QuotaExceededError');
+      return write.call(this,key,value);
+    };
+  });
+  let reads=0;
+  await page.route('**/api/v2/bootstrap*',route=>++reads===1?route.abort('failed'):route.continue());
+  await page.goto('/');
+  await page.locator('html.rb107-ready').waitFor();
+  expect(reads).toBeGreaterThanOrEqual(2);
+  await page.locator('.bottom-nav [data-tab="plan"]').click();
+  await expect(page.locator('#plan')).toBeVisible();
+});
