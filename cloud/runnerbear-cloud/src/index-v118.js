@@ -1,5 +1,5 @@
 import previous, { MigrationService } from './index-v116.js';
-import { syncGarminPersonal } from './v1027/garmin-personal.js';
+import { syncGarminPersonal, backfillGarminDay } from './v1027/garmin-personal.js';
 
 export { MigrationService };
 const BUILD='12.7.0';
@@ -26,7 +26,7 @@ export default{
     const fallback=response.clone();try{const body=await response.json();if(path==='/api/v2/bootstrap')return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD,tredictLiveCalendarMirror:true});const audit=await liveMirrorAudit(env,String(env.PRIMARY_USER_ID||'primary'));return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD,schemaVersion:5,tredictLiveCalendarMirror:true,tredictLiveCalendarMirrorVersion:'live-calendar-mirror-1',tredictMirrorAudit:audit,tredictConfigured:audit.tredictConfigured,calendarRead:audit.calendarRead,calendarWrite:audit.calendarWrite,moveSupported:audit.moveSupported,createSupported:audit.createSupported,updateSupported:audit.updateSupported,deleteSupported:audit.deleteSupported,replaceSupported:audit.replaceSupported,ownedRelinkSupported:audit.ownedRelinkSupported,lastReconcileAt:audit.lastReconcileAt,lastReconcileResult:audit.lastReconcileResult})}catch(error){console.error(JSON.stringify({event:'tredict_live_mirror_health',build:BUILD,status:'failed',errorCode:String(error?.message||error).slice(0,80)}));return fallback}
   },
   async scheduled(controller,env,ctx){
-    const garmin=env.GARMIN_API_KEY?syncGarminPersonal(env,{days:2}).catch(error=>{console.error(JSON.stringify({event:'garmin_personal_sync',status:'failed',reason:String(error?.message||'GARMIN_SYNC_FAILED').slice(0,80)}));return null;}):Promise.resolve(null);
+    const garmin=env.GARMIN_API_KEY?syncGarminPersonal(env,{days:2}).then(()=>backfillGarminDay(env)).catch(error=>{console.error(JSON.stringify({event:'garmin_personal_sync',status:'failed',reason:String(error?.message||'GARMIN_SYNC_FAILED').slice(0,80)}));return null;}):Promise.resolve(null);
     await Promise.all([previous.scheduled(controller,env,ctx),garmin]);
   },
 };

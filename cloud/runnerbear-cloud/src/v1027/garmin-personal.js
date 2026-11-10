@@ -22,7 +22,7 @@ async function getAccessToken(env,userId){
   return token;
 }
 
-async function apiGet(token,path){const response=await fetch(`${BASE}${path}`,{redirect:'manual',headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});if(!response.ok)throw new Error(`GARMIN_API_HTTP_${response.status}`);return response.json()}
+async function apiGet(token,path){const response=await fetch(`${BASE}${path}`,{redirect:'manual',headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});if(response.status===404)return null;if(!response.ok)throw new Error(`GARMIN_API_HTTP_${response.status}`);return response.json()}
 const firstNumber=(obj,keys)=>{for(const k of keys){const v=obj?.[k];if(typeof v==='number'&&Number.isFinite(v))return v}return null};
 function healthRow(date,sleep,hr,hrv,spo2){
   const sleepObj=Array.isArray(sleep)?sleep[0]||{}:sleep||{},hrObj=Array.isArray(hr)?hr[0]||{}:hr||{},hrvObj=Array.isArray(hrv)?hrv[0]||{}:hrv||{},spoObj=Array.isArray(spo2)?spo2[0]||{}:spo2||{};
@@ -40,20 +40,7 @@ export async function syncGarminPersonal(env,{userId=String(env.PRIMARY_USER_ID|
   const now=new Date(),today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo'}).format(now),from=new Date(Date.parse(today+'T12:00:00Z')-Math.max(1,Math.min(7,days))*86400000).toISOString().slice(0,10),token=await getAccessToken(env,userId);
   const dates=[];for(let d=new Date(`${from}T12:00:00Z`);d<=new Date(`${today}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+1))dates.push(d.toISOString().slice(0,10));
   let saved=0;
-  for(const date of dates){
-    const [sleep,hr,hrv,spo2]=await Promise.all([
-      apiGet(token,`/sleep-service/sleep/dailySleep?date=${date}`),
-      apiGet(token,`/wellness-service/wellness/dailyHeartRate?date=${date}`),
-      apiGet(token,`/hrv-service/hrv/${date}`),
-      apiGet(token,`/wellness-service/wellness/daily/spo2acclimation/${date}`),
-    ]);
-    const row=healthRow(date,sleep?.dailySleepDTO??sleep,hr,hrv?.hrvSummary??hrv,spo2),at=new Date().toISOString();
-    if(Object.entries(row).every(([key,value])=>key==='date'||value==null)) continue;
-    await env.DB.prepare(`INSERT INTO rb_garmin_shadow(user_id,date,metrics,updated_at)
-      VALUES(?1,?2,?3,?4) ON CONFLICT(user_id,date) DO UPDATE
-      SET metrics=CASE WHEN excluded.updated_at>=rb_garmin_shadow.updated_at THEN json_patch(rb_garmin_shadow.metrics,(SELECT json_group_object(key,value) FROM json_each(excluded.metrics) WHERE type!='null')) ELSE rb_garmin_shadow.metrics END,updated_at=max(rb_garmin_shadow.updated_at,excluded.updated_at)`)
-      .bind(userId,date,JSON.stringify(row),at).run();saved++;
-  }
+  for(const date of dates){if(await importHealthDate(env,userId,date,token)) saved++;}
   const at=new Date().toISOString();
   await env.DB.prepare(`INSERT INTO rb_sync_sources(user_id,source,last_synced_at,status,detail_json,updated_at) VALUES(?1,'garmin_shadow',?2,'ok',?3,?2) ON CONFLICT(user_id,source) DO UPDATE SET last_synced_at=excluded.last_synced_at,status='ok',detail_json=excluded.detail_json,updated_at=excluded.updated_at`).bind(userId,at,JSON.stringify({mode:'shadow-read-only',healthRows:saved,dateFrom:from,dateTo:today})).run();
   await env.DB.prepare(`INSERT INTO rb_garmin_observation_days(user_id,observed_date,first_checked_at,last_checked_at,checks,checks_with_data,plan_failures)
@@ -69,3 +56,35 @@ export async function syncGarminPersonal(env,{userId=String(env.PRIMARY_USER_ID|
 
 export async function garminTokenProbe(env,userId=String(env.PRIMARY_USER_ID||'primary')){await getAccessToken(env,userId);return{configured:true,tokenObtained:true,tokenStoredServerSide:true}}
 export const garminDateIsValid=safeDate;
+
+async function importHealthDate(env,userId,date,token){
+    const [sleep,hr,hrv,spo2]=await Promise.all([
+      apiGet(token,`/sleep-service/sleep/dailySleep?date=${date}`),
+      apiGet(token,`/wellness-service/wellness/dailyHeartRate?date=${date}`),
+      apiGet(token,`/hrv-service/hrv/${date}`),
+      apiGet(token,`/wellness-service/wellness/daily/spo2acclimation/${date}`),
+    ]);
+    const row=healthRow(date,sleep?.dailySleepDTO??sleep,hr,hrv?.hrvSummary??hrv,spo2),at=new Date().toISOString();
+    if(Object.entries(row).every(([key,value])=>key==='date'||value==null)) return false;
+    await env.DB.prepare(`INSERT INTO rb_garmin_shadow(user_id,date,metrics,updated_at)
+      VALUES(?1,?2,?3,?4) ON CONFLICT(user_id,date) DO UPDATE
+      SET metrics=CASE WHEN excluded.updated_at>=rb_garmin_shadow.updated_at THEN json_patch(rb_garmin_shadow.metrics,(SELECT json_group_object(key,value) FROM json_each(excluded.metrics) WHERE type!='null')) ELSE rb_garmin_shadow.metrics END,updated_at=max(rb_garmin_shadow.updated_at,excluded.updated_at)`)
+      .bind(userId,date,JSON.stringify(row),at).run();
+    return true;
+}
+
+// One historical day per scheduled run. Missing dates are revisited after a week.
+export async function backfillGarminDay(env){
+  const userId=String(env.PRIMARY_USER_ID||'primary');
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo'}).format(new Date());
+  const candidate=await env.DB.prepare(`WITH RECURSIVE dates(d) AS (
+    SELECT date(?1,'-3 days') UNION ALL SELECT date(d,'-1 day') FROM dates WHERE d>date(?1,'-89 days')
+  ) SELECT d FROM dates LEFT JOIN rb_garmin_backfill_checks c ON c.user_id=?2 AND c.date=d
+  WHERE c.checked_at IS NULL OR (c.has_data=0 AND date(c.checked_at)<=date(?1,'-7 days'))
+  ORDER BY c.checked_at IS NOT NULL,d DESC LIMIT 1`).bind(today,userId).first();
+  if(!candidate)return;
+  const saved=await importHealthDate(env,userId,candidate.d,await getAccessToken(env,userId));
+  await env.DB.prepare(`INSERT INTO rb_garmin_backfill_checks(user_id,date,checked_at,has_data)
+    VALUES (?1,?2,?3,?4) ON CONFLICT(user_id,date) DO UPDATE SET checked_at=excluded.checked_at,has_data=excluded.has_data`)
+    .bind(userId,candidate.d,new Date().toISOString(),saved?1:0).run();
+}
