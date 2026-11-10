@@ -88,3 +88,23 @@ export async function backfillGarminDay(env){
     VALUES (?1,?2,?3,?4) ON CONFLICT(user_id,date) DO UPDATE SET checked_at=excluded.checked_at,has_data=excluded.has_data`)
     .bind(userId,candidate.d,new Date().toISOString(),saved?1:0).run();
 }
+
+export async function importGarminActivities(env){
+  const user=String(env.PRIMARY_USER_ID||'primary');
+  const token=await getAccessToken(env,user);
+  const end=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo'}).format(new Date());
+  const start=new Date(Date.parse(end+'T12:00:00Z')-2*86400000).toISOString().slice(0,10);
+  const rows=await apiGet(token,'/activitylist-service/activities/search/activities?start=0&limit=100&startDate='+start+'&endDate='+end);
+  if(!Array.isArray(rows)||rows.length===100)throw new Error('GARMIN_ACTIVITY_WINDOW_INCOMPLETE');
+  const statements=[];
+  for(const row of rows){
+    const id=String(row.activityId||''),day=String(row.startTimeLocal||'').slice(0,10);
+    if(!/^\d+$/.test(id)||!safeDate(day)||day<start||day>end)continue;
+    const summary={sport:row.activityType?.typeKey||null,durationSeconds:firstNumber(row,['duration']),distanceM:firstNumber(row,['distance']),avgHr:firstNumber(row,['averageHR']),avgWatts:firstNumber(row,['avgPower','averagePower'])};
+    statements.push(env.DB.prepare(`INSERT INTO rb_garmin_activity_shadow(user_id,activity_id,local_date,summary_json)
+      VALUES(?1,?2,?3,?4) ON CONFLICT(user_id,activity_id) DO UPDATE SET
+      local_date=excluded.local_date,summary_json=excluded.summary_json`).bind(user,id,day,JSON.stringify(summary)));
+  }
+  if(statements.length)await env.DB.batch(statements);
+  return statements.length;
+}
