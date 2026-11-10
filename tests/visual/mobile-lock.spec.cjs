@@ -120,13 +120,14 @@ test('mobile startup recovers an interrupted plan request with a full snapshot c
   await expect(page.locator('#plan')).toBeVisible();
 });
 
-test('the local plan snapshot is excluded from shared user settings',async({page})=>{
+test('shared settings from an older device cannot overwrite the local plan snapshot',async({page})=>{
   await page.goto('/');
   await page.locator('html.rb107-ready').waitFor();
-  const requestPromise=page.waitForRequest(request=>request.url().endsWith('/api/state/localStorage')&&request.method()==='PUT');
-  await page.route('**/api/state/localStorage',route=>route.fulfill({json:{ok:true}}));
-  await page.evaluate(()=>window.RunnerBearCloud.uploadLocal(true));
-  const state=(await requestPromise).postDataJSON().payload;
-  expect(await page.evaluate(()=>Boolean(localStorage.getItem('runnerbear_coach_loop_snapshot_v1')))).toBe(true);
-  expect(state).not.toHaveProperty('runnerbear_coach_loop_snapshot_v1');
+  const result=await page.evaluate(()=>{
+    const key='runnerbear_coach_loop_snapshot_v1';
+    const local=localStorage.getItem(key);
+    window.RunnerBearCloud.hydrateState({[key]:'obsolete remote copy',runnerbear_test_preference:'updated'});
+    return {hasLocal:Boolean(local),preserved:localStorage.getItem(key)===local,preference:localStorage.getItem('runnerbear_test_preference')};
+  });
+  expect(result).toEqual({hasLocal:true,preserved:true,preference:'updated'});
 });
