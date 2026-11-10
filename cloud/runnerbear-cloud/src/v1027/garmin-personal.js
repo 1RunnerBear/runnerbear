@@ -37,7 +37,7 @@ function healthRow(date,sleep,hr,hrv,spo2){
 }
 
 export async function syncGarminPersonal(env,{userId=String(env.PRIMARY_USER_ID||'primary'),days=2}={}){
-  const now=new Date(),today=now.toISOString().slice(0,10),from=new Date(now.getTime()-Math.max(1,Math.min(7,days))*86400000).toISOString().slice(0,10),token=await getAccessToken(env,userId);
+  const now=new Date(),today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo'}).format(now),from=new Date(Date.parse(today+'T12:00:00Z')-Math.max(1,Math.min(7,days))*86400000).toISOString().slice(0,10),token=await getAccessToken(env,userId);
   const dates=[];for(let d=new Date(`${from}T12:00:00Z`);d<=new Date(`${today}T12:00:00Z`);d.setUTCDate(d.getUTCDate()+1))dates.push(d.toISOString().slice(0,10));
   let saved=0;
   for(const date of dates){
@@ -51,11 +51,19 @@ export async function syncGarminPersonal(env,{userId=String(env.PRIMARY_USER_ID|
     if(Object.entries(row).every(([key,value])=>key==='date'||value==null)) continue;
     await env.DB.prepare(`INSERT INTO rb_garmin_shadow(user_id,date,metrics,updated_at)
       VALUES(?1,?2,?3,?4) ON CONFLICT(user_id,date) DO UPDATE
-      SET metrics=excluded.metrics,updated_at=excluded.updated_at`)
+      SET metrics=CASE WHEN excluded.updated_at>=rb_garmin_shadow.updated_at THEN json_patch(rb_garmin_shadow.metrics,(SELECT json_group_object(key,value) FROM json_each(excluded.metrics) WHERE type!='null')) ELSE rb_garmin_shadow.metrics END,updated_at=max(rb_garmin_shadow.updated_at,excluded.updated_at)`)
       .bind(userId,date,JSON.stringify(row),at).run();saved++;
   }
   const at=new Date().toISOString();
   await env.DB.prepare(`INSERT INTO rb_sync_sources(user_id,source,last_synced_at,status,detail_json,updated_at) VALUES(?1,'garmin_shadow',?2,'ok',?3,?2) ON CONFLICT(user_id,source) DO UPDATE SET last_synced_at=excluded.last_synced_at,status='ok',detail_json=excluded.detail_json,updated_at=excluded.updated_at`).bind(userId,at,JSON.stringify({mode:'shadow-read-only',healthRows:saved,dateFrom:from,dateTo:today})).run();
+  await env.DB.prepare(`INSERT INTO rb_garmin_observation_days(user_id,observed_date,first_checked_at,last_checked_at,checks,checks_with_data,plan_failures)
+    SELECT ?1,?2,?3,?3,1,?4,CASE WHEN COUNT(*)=1 THEN 0 ELSE 1 END
+    FROM rb_plan_revisions WHERE user_id=?1 AND status='active'
+    ON CONFLICT(user_id,observed_date) DO UPDATE SET
+      last_checked_at=max(last_checked_at,excluded.last_checked_at),checks=checks+1,
+      checks_with_data=checks_with_data+excluded.checks_with_data,
+      plan_failures=plan_failures+excluded.plan_failures`)
+    .bind(userId,today,at,saved>0?1:0).run();
   return{saved,dateFrom:from,dateTo:today};
 }
 
