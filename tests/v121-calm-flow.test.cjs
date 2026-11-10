@@ -35,7 +35,7 @@ test('canonical workout copy never inherits obsolete instructions from the stati
  const vm=require('node:vm'),ui=fs.readFileSync('runnerbear-ui-v11-source.js','utf8');
  const fn=ui.slice(ui.indexOf('function canonicalRows()'),ui.indexOf('function effectiveSchedule()'));
  const rows=[{workoutId:'wo-2026-09-08',localDate:'2026-09-08',workoutType:'easy',title:'6 km rolig',plannedDistanceM:6000,prescription:{legacy:{}}}];
- const context={window:{RunnerBearPlanReadModel:{get:()=>({flags:{coach_loop_ui:true},planRevisionId:'pr-current',activePlan:{items:rows}})}},rawSchedule:()=>[{ds:'2026-09-08',label:'old',week:5,type:'quality',detail:'4:02/km threshold',desc:'Old workout'}],today:()=> '2026-09-08',read:()=>({}),K:{},dateFrom:x=>x,dayDiff:()=>0,formatDate:x=>x};
+ const context={window:{RunnerBearPlanReadModel:{get:()=>({flags:{coach_loop_ui:true},planRevisionId:'pr-current',activePlan:{items:rows}})}},rawSchedule:()=>[{ds:'2026-09-08',label:'old',week:5,type:'quality',detail:'4:02/km threshold',desc:'Old workout'}],today:()=> '2026-09-08',read:()=>({}),K:{},dateFrom:x=>new Date(`${x}T12:00:00`),dayDiff:()=>0,formatDate:x=>x};
  const mapped=vm.runInNewContext(fn+';canonicalRows()',context)[0];
  assert.equal(mapped.type,'easy');assert.equal(mapped.detail,'');assert.equal(mapped.desc,'');assert.equal(mapped.planRevisionId,'pr-current');
 });
