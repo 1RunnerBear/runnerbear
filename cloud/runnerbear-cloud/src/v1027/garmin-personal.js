@@ -7,7 +7,7 @@ async function getAccessToken(env,userId){
   if(!env.GARMIN_API_KEY) throw new Error('GARMIN_KEY_MISSING');
   const now=Date.now();
   if(isolateToken&&isolateTokenExpiresAt>now+10*60_000)return isolateToken;
-  const response=await fetch(`${BASE}${TOKEN_PATH}`,{method:'POST',redirect:'error',headers:{Authorization:`ApiKey ${env.GARMIN_API_KEY}`,Accept:'application/json'}});
+  const response=await fetch(`${BASE}${TOKEN_PATH}`,{method:'POST',redirect:'manual',headers:{Authorization:`ApiKey ${env.GARMIN_API_KEY}`,Accept:'application/json'}});
   if(!response.ok)throw new Error(`GARMIN_TOKEN_HTTP_${response.status}`);
   const token=(await response.text()).trim();
   let expiration;
@@ -22,7 +22,7 @@ async function getAccessToken(env,userId){
   return token;
 }
 
-async function apiGet(token,path){const response=await fetch(`${BASE}${path}`,{redirect:'error',headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});if(!response.ok)throw new Error(`GARMIN_API_HTTP_${response.status}`);return response.json()}
+async function apiGet(token,path){const response=await fetch(`${BASE}${path}`,{redirect:'manual',headers:{Authorization:`Bearer ${token}`,Accept:'application/json'}});if(!response.ok)throw new Error(`GARMIN_API_HTTP_${response.status}`);return response.json()}
 const firstNumber=(obj,keys)=>{for(const k of keys){const v=obj?.[k];if(typeof v==='number'&&Number.isFinite(v))return v}return null};
 function healthRow(date,sleep,hr,hrv,spo2){
   const sleepObj=Array.isArray(sleep)?sleep[0]||{}:sleep||{},hrObj=Array.isArray(hr)?hr[0]||{}:hr||{},hrvObj=Array.isArray(hrv)?hrv[0]||{}:hrv||{},spoObj=Array.isArray(spo2)?spo2[0]||{}:spo2||{};
