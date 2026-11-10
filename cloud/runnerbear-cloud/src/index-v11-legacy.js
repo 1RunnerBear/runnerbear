@@ -114,22 +114,32 @@ function healthValue(source,key,index){
 }
 
 async function storeHealth(env,cache){
-  const hrv=cache?.hrv&&typeof cache.hrv==='object'?cache.hrv:{},sleep=cache?.sleep&&typeof cache.sleep==='object'?cache.sleep:{},body=Array.isArray(cache?.body)?cache.body:[];
+  const hrv=cache?.hrv&&typeof cache.hrv==='object'?cache.hrv:{},sleep=cache?.sleep&&typeof cache.sleep==='object'?cache.sleep:{},spo2=cache?.spo2&&typeof cache.spo2==='object'?cache.spo2:{},body=Array.isArray(cache?.body)?cache.body:[];
   const rows=new Map(),put=(date,patch)=>{const ds=isoDate(String(date||'').replace(/^(\d{4})(\d{2})(\d{2}).*$/,'$1-$2-$3'));if(!ds)return;rows.set(ds,{...(rows.get(ds)||{}),...patch})};
+  const field=(value,names)=>{for(const name of names){const n=finite(value?.[name]);if(n!=null)return n}return null};
   Object.keys(hrv).forEach(key=>put(key,{hrv:healthValue(hrv,key,0),hrvBaseline:healthValue(hrv,key,1)}));
   Object.keys(sleep).forEach(key=>put(key,{sleep:healthValue(sleep,key,0),sleepBaseline:healthValue(sleep,key,1)}));
-  body.forEach(x=>put(x?.timestamp,{rhr:finite(x?.hrRestDynamic??x?.restingHeartrate)}));
+  Object.entries(spo2).forEach(([key,value])=>put(key,{spo2Avg:field(value,['average','avg','averageSpO2','spo2Average','averageSpO2Percent']),spo2Min:field(value,['lowest','min','lowestSpO2','spo2Minimum','lowestSpO2Percent']),respirationAvg:field(value,['respirationAverage','avgRespiration','averageRespiration','respirationAvgBpm']),sleepScore:field(value,['sleepScore','score'])}));
+  body.forEach(x=>put(x?.timestamp,{rhr:finite(x?.hrRestDynamic??x?.restingHeartrate),spo2Avg:field(x,['averageSpO2','spo2Average','spo2AvgPct']),spo2Min:field(x,['lowestSpO2','spo2Minimum','spo2MinPct']),respirationAvg:field(x,['avgRespiration','respirationAverage','respirationAvgBpm'])}));
   if(!rows.size)return 0;
-  const t=now(),id=owner(env),stmt=env.DB.prepare(`INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at)
-    VALUES (?1,?2,?3,?4,?5,?6,?7)
+  const t=now(),id=owner(env),stmt=env.DB.prepare(`INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at,spo2_avg_pct,spo2_min_pct,respiration_avg_bpm,sleep_score,health_source,health_quality)
+    VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,'tredict',?12)
     ON CONFLICT(user_id,date) DO UPDATE SET hrv_ms=excluded.hrv_ms,sleep_seconds=excluded.sleep_seconds,
-      rhr_bpm=excluded.rhr_bpm,payload_json=excluded.payload_json,updated_at=excluded.updated_at
+      rhr_bpm=excluded.rhr_bpm,payload_json=excluded.payload_json,updated_at=excluded.updated_at,
+      spo2_avg_pct=COALESCE(excluded.spo2_avg_pct,rb_health_daily.spo2_avg_pct),spo2_min_pct=COALESCE(excluded.spo2_min_pct,rb_health_daily.spo2_min_pct),
+      respiration_avg_bpm=COALESCE(excluded.respiration_avg_bpm,rb_health_daily.respiration_avg_bpm),sleep_score=COALESCE(excluded.sleep_score,rb_health_daily.sleep_score),
+      health_source=CASE WHEN excluded.spo2_avg_pct IS NOT NULL OR excluded.spo2_min_pct IS NOT NULL OR excluded.respiration_avg_bpm IS NOT NULL OR excluded.sleep_score IS NOT NULL THEN excluded.health_source ELSE rb_health_daily.health_source END,
+      health_quality=CASE WHEN excluded.spo2_avg_pct IS NOT NULL OR excluded.spo2_min_pct IS NOT NULL OR excluded.respiration_avg_bpm IS NOT NULL OR excluded.sleep_score IS NOT NULL THEN excluded.health_quality ELSE rb_health_daily.health_quality END
     WHERE rb_health_daily.hrv_ms IS NOT excluded.hrv_ms OR rb_health_daily.sleep_seconds IS NOT excluded.sleep_seconds
-      OR rb_health_daily.rhr_bpm IS NOT excluded.rhr_bpm OR rb_health_daily.payload_json IS NOT excluded.payload_json`);
+      OR rb_health_daily.rhr_bpm IS NOT excluded.rhr_bpm OR rb_health_daily.payload_json IS NOT excluded.payload_json
+      OR (excluded.spo2_avg_pct IS NOT NULL AND rb_health_daily.spo2_avg_pct IS NOT excluded.spo2_avg_pct)
+      OR (excluded.spo2_min_pct IS NOT NULL AND rb_health_daily.spo2_min_pct IS NOT excluded.spo2_min_pct)
+      OR (excluded.respiration_avg_bpm IS NOT NULL AND rb_health_daily.respiration_avg_bpm IS NOT excluded.respiration_avg_bpm)
+      OR (excluded.sleep_score IS NOT NULL AND rb_health_daily.sleep_score IS NOT excluded.sleep_score)`);
   const statements=[];
   // The installed observation triggers handle changed values and removals.
   // Unchanged history must not be deleted and recreated on every automatic sync.
-  for(const [date,x] of rows)statements.push(stmt.bind(id,date,x.hrv??null,x.sleep??null,x.rhr??null,JSON.stringify(x),t));
+  for(const [date,x] of rows){const spo2Avg=x.spo2Avg!=null&&x.spo2Avg>=50&&x.spo2Avg<=100?x.spo2Avg:null,spo2Min=x.spo2Min!=null&&x.spo2Min>=50&&x.spo2Min<=100?x.spo2Min:null,respirationAvg=x.respirationAvg!=null&&x.respirationAvg>=4&&x.respirationAvg<=40?x.respirationAvg:null,sleepScore=x.sleepScore!=null&&x.sleepScore>=0&&x.sleepScore<=100?Math.round(x.sleepScore):null,quality=spo2Avg!=null||spo2Min!=null?'usable_with_caveats':'partial';statements.push(stmt.bind(id,date,x.hrv??null,x.sleep??null,x.rhr??null,JSON.stringify(x),t,spo2Avg,spo2Min,respirationAvg,sleepScore,quality))}
   await batch(env.DB,statements);
   return rows.size;
 }
@@ -137,7 +147,7 @@ async function storeHealth(env,cache){
 function cacheFromSnapshot(s){
   return{
     activities:Array.isArray(s?.activities)?s.activities:[],
-    hrv:s?.hrv||{},sleep:s?.sleep||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
+    hrv:s?.hrv||{},sleep:s?.sleep||{},spo2:s?.spo2||{},body:Array.isArray(s?.body)?s.body:[],capacity:s?.capacity||{},zones:s?.zones||{},
     syncedAt:s?.syncedAt||now(),bridgeParts:Array.isArray(s?.parts)?s.parts:[],source:'runnerbear-cloud-v10.25.1'
   };
 }

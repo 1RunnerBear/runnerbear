@@ -60,3 +60,11 @@ The rollout workflow also exposes owner-only manual rollback levels for safe-aut
 ## Data and observability
 
 Structured logs contain stable owner scope, correlation/revision/decision/operation IDs, status, policy and reason codes—never raw health values, email, tokens or full explanation text. Actual private production records must not be copied into repository fixtures.
+
+## Health data foundation — Cloud 12.6.1
+
+Migration `0011_health_breathing_metrics.sql` adds optional SpO₂ average/minimum, respiration average, sleep score, source and quality fields to the existing daily health row. Existing Tredict sync remains the only configured scheduled source.
+
+Access-protected, read-only summaries are available at `/api/v2/health/trends?window=7d|28d|90d` and `/api/v2/health/sleep-breathing?window=28d|90d`. They return available sample coverage and preserve missing values as missing. SpO₂ minima are not used to infer apnea, AHI, ODI or time below threshold. The endpoints honor `COACH_LOOP_KILL_SWITCH` and cannot change training plans.
+
+The production Worker does not currently have a Garmin Personal API secret. These routes prepare a safe storage/read contract; they do not make Garmin data appear until an authorized, supported production source is configured and validated.

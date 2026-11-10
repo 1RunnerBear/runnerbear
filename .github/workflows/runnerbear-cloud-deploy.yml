@@ -81,6 +81,7 @@ jobs:
           node --check src/index-v115.js
           node --check src/index-v116.js
           node --check src/index-v118.js
+          node --check src/v1027/health-intelligence.js
           node --check src/v11/body-response.js
           node --check src/v112/coach-live.js
           node --check src/v113/one-decision.js

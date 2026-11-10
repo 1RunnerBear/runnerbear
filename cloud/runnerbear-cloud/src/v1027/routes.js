@@ -6,6 +6,7 @@ import { migrationPreview,commitMigration,compatibilityProjectionStatements } fr
 import { historicalRowsUnchanged,previewPlan,validatePlan } from './plan-engine.js';
 import { activePlan,activateDraft,athleteConfig,createDraft,flagConfigurationError,flags,latestDecision,planByRevision,saveDecision,syncStatus } from './repository.js';
 import { bootstrapV2,compatibilityBootstrap } from './read-model.js';
+import { normalizeHealthWindow,summarizeHealthWindow,summarizeSleepBreathing } from './health-intelligence.js';
 import { projectSync,syncOperationStatements } from './sync-projection.js';
 const json=(body,status=200,headers={})=>Response.json(body,{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store',...headers}});
 const fail=(code,status=400,message=code,headers={})=>json({ok:false,code,message,retryable:status>=500,correlationId:crypto.randomUUID()},status,headers);
@@ -79,6 +80,15 @@ export async function handleV1027(request,env,{userId,bodyJson,corsHeaders={},ct
   const url=new URL(request.url),path=url.pathname.replace(/\/+$/,'');if(!path.startsWith('/api/v2'))return null;const correlationId=String(request.headers.get('X-Correlation-ID')||crypto.randomUUID());
   const kill=String(env.COACH_LOOP_KILL_SWITCH||'false').toLowerCase()==='true',allFlags=await flags(env.DB,userId),write=!['GET','HEAD'].includes(request.method),migration=await env.DB.prepare("SELECT status FROM rb_migrations WHERE user_id=?1 AND migration_key='coach-loop-v1026'").bind(userId).first(),flagError=flagConfigurationError(allFlags,migration?.status==='committed');
   if(flagError)return fail('INVALID_FLAG_CONFIGURATION',503,flagError,corsHeaders);
+  if(request.method==='GET'&&['/api/v2/health/trends','/api/v2/health/sleep-breathing'].includes(path)){
+    if(kill)return fail('HEALTH_READ_DISABLED',503,'Helseinnsikt er midlertidig utilgjengelig.',corsHeaders);
+    const breathing=path.endsWith('/sleep-breathing'),allowed=breathing?[28,90]:[7,28,90],days=normalizeHealthWindow(url.searchParams.get('window'),allowed,breathing?28:28);
+    const timezone='Europe/Oslo',today=new Intl.DateTimeFormat('en-CA',{timeZone:timezone}).format(new Date()),from=addDays(today,-(days-1));
+    const result=await env.DB.prepare(`SELECT date,hrv_ms,sleep_seconds,rhr_bpm,spo2_avg_pct,spo2_min_pct,respiration_avg_bpm,sleep_score,health_source,health_quality,updated_at
+      FROM rb_health_daily WHERE user_id=?1 AND date>=?2 AND date<=?3 ORDER BY date DESC LIMIT ?4`).bind(userId,from,today,days).all(),rows=result.results||[];
+    const summary=breathing?summarizeSleepBreathing(rows,days):summarizeHealthWindow(rows,days);
+    return json({ok:true,build:'12.6.1',generatedAt:new Date().toISOString(),source:'runnerbear-health-observations',timezone,windowDays:days,...summary},200,corsHeaders);
+  }
   if(write&&!request.headers.get('Idempotency-Key'))return fail('IDEMPOTENCY_KEY_REQUIRED',400,'Idempotency-Key mangler.',corsHeaders);
   if(kill&&write)return fail('COACH_LOOP_DISABLED',503,'Coach Loop er midlertidig satt i sikker modus.',corsHeaders);
   if(kill&&request.method==='GET'&&['/api/v2/bootstrap','/api/v2/plan','/api/v2/coach/decision','/api/v2/sync/status'].includes(path)){const fallback=await compatibilityBootstrap(env,userId,url.searchParams.get('scope')==='full'?'full':'home');if(path==='/api/v2/plan')return json({ok:true,build:BUILD,schemaVersion:SCHEMA_VERSION,compatibilityFallback:true,activePlan:fallback.activePlan},200,corsHeaders);if(path==='/api/v2/coach/decision')return json({ok:true,compatibilityFallback:true,planRevisionId:fallback.planRevisionId,coachDecision:null},200,corsHeaders);if(path==='/api/v2/sync/status')return json({ok:true,compatibilityFallback:true,operations:[]},200,corsHeaders);return json(fallback,200,corsHeaders)}

@@ -330,16 +330,23 @@ async function putHealth(request, env) {
   if (rows.length > 500) return json({ ok: false, error: 'Too many health rows' }, 400, cors(request, env));
   const id = owner(env), now = new Date().toISOString();
   const stmt = env.DB.prepare(
-    `INSERT INTO rb_health_daily (user_id, date, hrv_ms, sleep_seconds, rhr_bpm, payload_json, updated_at)
-     VALUES (?1,?2,?3,?4,?5,?6,?7)
-     ON CONFLICT(user_id, date) DO UPDATE SET hrv_ms=excluded.hrv_ms, sleep_seconds=excluded.sleep_seconds,
-      rhr_bpm=excluded.rhr_bpm, payload_json=excluded.payload_json, updated_at=excluded.updated_at`
+    `INSERT INTO rb_health_daily (user_id,date,hrv_ms,sleep_seconds,rhr_bpm,payload_json,updated_at,spo2_avg_pct,spo2_min_pct,respiration_avg_bpm,sleep_score,health_source,health_quality)
+     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)
+     ON CONFLICT(user_id,date) DO UPDATE SET hrv_ms=excluded.hrv_ms,sleep_seconds=excluded.sleep_seconds,
+      rhr_bpm=excluded.rhr_bpm,payload_json=excluded.payload_json,updated_at=excluded.updated_at,
+      spo2_avg_pct=COALESCE(excluded.spo2_avg_pct,rb_health_daily.spo2_avg_pct),spo2_min_pct=COALESCE(excluded.spo2_min_pct,rb_health_daily.spo2_min_pct),
+      respiration_avg_bpm=COALESCE(excluded.respiration_avg_bpm,rb_health_daily.respiration_avg_bpm),sleep_score=COALESCE(excluded.sleep_score,rb_health_daily.sleep_score),
+      health_source=CASE WHEN excluded.spo2_avg_pct IS NOT NULL OR excluded.spo2_min_pct IS NOT NULL OR excluded.respiration_avg_bpm IS NOT NULL OR excluded.sleep_score IS NOT NULL THEN excluded.health_source ELSE rb_health_daily.health_source END,
+      health_quality=CASE WHEN excluded.spo2_avg_pct IS NOT NULL OR excluded.spo2_min_pct IS NOT NULL OR excluded.respiration_avg_bpm IS NOT NULL OR excluded.sleep_score IS NOT NULL THEN excluded.health_quality ELSE rb_health_daily.health_quality END`
   );
   const statements = rows.map((r) => {
     const date = isoDate(r.date || r.timestamp);
     if (!date) throw new Error('Invalid health date');
-    return stmt.bind(id, date, num(r.hrv ?? r.hrvMs ?? r.hrv_ms), num(r.sleep ?? r.sleepSeconds ?? r.sleep_seconds),
-      num(r.rhr ?? r.rhrBpm ?? r.rhr_bpm), payload(r), now);
+    const within=(value,min,max)=>{const n=num(value);return n!=null&&n>=min&&n<=max?n:null};
+    const spo2Average=within(r.spo2AveragePct??r.spo2AvgPct??r.spo2_avg_pct,50,100),spo2Minimum=within(r.spo2MinimumPct??r.spo2MinPct??r.spo2_min_pct,50,100),respiration=within(r.respirationAvgBpm??r.respiration_avg_bpm,4,40),sleepScore=within(r.sleepScore??r.sleep_score,0,100);
+    const source=String(r.source||'tredict').slice(0,32),quality=spo2Average!=null||spo2Minimum!=null?'usable_with_caveats':'partial';
+    return stmt.bind(id,date,num(r.hrv??r.hrvMs??r.hrv_ms),num(r.sleep??r.sleepSeconds??r.sleep_seconds),
+      num(r.rhr??r.rhrBpm??r.rhr_bpm),payload(r),now,spo2Average,spo2Minimum,respiration,sleepScore,source,quality);
   });
   if (statements.length) await batch(env.DB, statements);
   return json({ ok: true, stored: statements.length, updatedAt: now }, 200, cors(request, env));
