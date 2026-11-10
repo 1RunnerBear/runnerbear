@@ -35,6 +35,10 @@ on:
       - '.github/workflows/runnerbear-cloud-deploy.yml'
       - '.github/workflows/runnerbear-coach-loop-rollout.yml'
 
+concurrency:
+  group: runnerbear-cloud-production
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -433,7 +437,7 @@ jobs:
           git add cloud/runnerbear-cloud/access-status.json 2>/dev/null || true
           git commit -m "Record RunnerBear Cloud deploy status" || true
           for attempt in 1 2 3; do
-            git pull --rebase origin main
+            git pull --rebase -X theirs origin main
             if git push origin HEAD:main; then
               exit 0
             fi
