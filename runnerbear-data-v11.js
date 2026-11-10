@@ -170,6 +170,7 @@
     if(k==='runnerbear_v122_race_checklist')return false; // Device-local logistics, never uploaded or hydrated.
     if(!/^(runnerbear_|runfest26_|rb)/i.test(k))return false;
     if(/(?:token|secret|bridge_key|api_key|access_aud|access_team|cloudflare)/i.test(k))return false;
+    if(k==='runnerbear_coach_loop_snapshot_v1')return false; // Rebuilt from the active plan on this device.
     if(k==='runnerbear_bridge_url'||k===CACHE||k===LAST)return false;
     if(/^runnerbear_cloud_/i.test(k))return false;
     return k.length<=160;

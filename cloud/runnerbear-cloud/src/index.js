@@ -266,11 +266,15 @@ async function getBootstrap(request, env) {
 async function putState(request, env, namespace) {
   if (!/^[a-z0-9._-]{1,64}$/i.test(namespace)) return json({ ok: false, error: 'Invalid namespace' }, 400, cors(request, env));
   const input = await bodyJson(request);
+  const state = input.payload ?? input;
+  if (namespace === 'localStorage' && state && typeof state === 'object') {
+    delete state.runnerbear_coach_loop_snapshot_v1;
+  }
   const now = new Date().toISOString();
   await env.DB.prepare(
     `INSERT INTO rb_state (user_id, namespace, payload_json, updated_at) VALUES (?1, ?2, ?3, ?4)
      ON CONFLICT(user_id, namespace) DO UPDATE SET payload_json = excluded.payload_json, updated_at = excluded.updated_at`
-  ).bind(owner(env), namespace, payload(input.payload ?? input), now).run();
+  ).bind(owner(env), namespace, payload(state), now).run();
   return json({ ok: true, namespace, updatedAt: now }, 200, cors(request, env));
 }
 

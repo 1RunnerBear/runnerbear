@@ -119,3 +119,14 @@ test('mobile startup recovers an interrupted plan request with a full snapshot c
   await page.locator('.bottom-nav [data-tab="plan"]').click();
   await expect(page.locator('#plan')).toBeVisible();
 });
+
+test('the local plan snapshot is excluded from shared user settings',async({page})=>{
+  await page.goto('/');
+  await page.locator('html.rb107-ready').waitFor();
+  const requestPromise=page.waitForRequest(request=>request.url().endsWith('/api/state/localStorage')&&request.method()==='PUT');
+  await page.route('**/api/state/localStorage',route=>route.fulfill({json:{ok:true}}));
+  await page.evaluate(()=>window.RunnerBearCloud.uploadLocal(true));
+  const state=(await requestPromise).postDataJSON().payload;
+  expect(await page.evaluate(()=>Boolean(localStorage.getItem('runnerbear_coach_loop_snapshot_v1')))).toBe(true);
+  expect(state).not.toHaveProperty('runnerbear_coach_loop_snapshot_v1');
+});
