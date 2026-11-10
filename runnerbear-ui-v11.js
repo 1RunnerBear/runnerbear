@@ -29,7 +29,10 @@
   const addDays=(ds,n)=>{const d=dateFrom(ds);d.setDate(d.getDate()+n);return localIso(d)};
   const dayDiff=(a,b)=>Math.round((dateFrom(a)-dateFrom(b))/86400000);
   const today=()=>localIso(new Date());
-  const formatDate=(ds,opts={weekday:'long',day:'numeric',month:'long'})=>new Intl.DateTimeFormat('nb-NO',opts).format(dateFrom(ds));
+  const formatDate=(ds,opts={weekday:'long',day:'numeric',month:'long'})=>{
+    const date=dateFrom(ds);
+    return Number.isFinite(date.getTime())?new Intl.DateTimeFormat('nb-NO',opts).format(date):'Dato ukjent';
+  }
   const fmtTime=sec=>{sec=Math.max(0,Math.round(Number(sec)||0));const h=Math.floor(sec/3600),m=Math.floor((sec%3600)/60),s=sec%60;return h?`${h}:${z(m)}:${z(s)}`:`${m}:${z(s)}`};
   const fmtPace=sec=>{sec=Math.round(Number(sec)||0);return sec?`${Math.floor(sec/60)}:${z(sec%60)}`:'–'};
   const paceSec=s=>{const m=String(s||'').match(/(\d+):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):0};
@@ -203,7 +206,7 @@
     if(!snapshot?.flags?.coach_loop_ui||!Array.isArray(snapshot.activePlan?.items))return null;
     const first=rawSchedule()[0]?.ds||today(),moves=read(K.moves,{}),adjustments=read(K.adjustments,{});
     return snapshot.activePlan.items.map(item=>{
-      const idDate=String(item.workoutId||'').replace(/^wo-/,'').match(/^\d{4}-\d{2}-\d{2}/)?.[0]||'',baseDs=idDate||item.localDate,raw=rawSchedule().find(x=>x.ds===baseDs)||{},legacy=item.prescription?.legacy||{},sourceLabel=raw.label||item.workoutId,adjustment=adjustments[sourceLabel]||{},ds=moves[baseDs]||item.localDate;
+      const idDate=String(item.workoutId||'').replace(/^wo-/,'').match(/^\d{4}-\d{2}-\d{2}/)?.[0]||'',baseDs=idDate||item.localDate,raw=rawSchedule().find(x=>x.ds===baseDs)||{},legacy=item.prescription?.legacy||{},sourceLabel=raw.label||item.workoutId,adjustment=adjustments[sourceLabel]||{},ds=Number.isFinite(dateFrom(moves[baseDs]).getTime())?moves[baseDs]:item.localDate;
       return{...raw,...legacy,...item,...adjustment,baseDs,sourceLabel,ds,date:dateFrom(ds),type:adjustment.type||item.workoutType||raw.type||'easy',workoutType:adjustment.type||item.workoutType,km:adjustment.km??Number(item.plannedDistanceM||0)/1000,title:adjustment.title||item.title||raw.title||'Planlagt økt',desc:adjustment.desc||legacy.desc||'',detail:adjustment.detail||legacy.detail||'',week:raw.week??Math.floor(dayDiff(ds,first)/7)+1,label:formatDate(ds,{weekday:'short',day:'numeric',month:'short'}).replace('.',''),workoutId:item.workoutId,planRevisionId:snapshot.planRevisionId,locked:item.lockLevel==='user',terminal:['completed','cancelled','replaced','skipped'].includes(item.status)};
     });
   }
@@ -211,10 +214,10 @@
     if(renderCache?.schedule)return renderCache.schedule;
     const moves=read(K.moves,{}),adjustments=read(K.adjustments,{});
     const canonical=canonicalRows(),rows=canonical||rawSchedule().map(p=>{
-      const a=adjustments[p.label]||{},ds=moves[p.ds]||p.ds;
+      const a=adjustments[p.label]||{},ds=Number.isFinite(dateFrom(moves[p.ds]).getTime())?moves[p.ds]:p.ds;
       return {...p,...a,baseDs:p.ds,sourceLabel:p.label,ds,date:dateFrom(ds),label:formatDate(ds,{weekday:'short',day:'numeric',month:'short'}).replace('.','')};
     });
-    const represented=new Set(rows.map(p=>p.ds)),first=rawSchedule()[0]?.ds||today(),activityOnly=canonical?activities().filter(a=>a.ds<today()&&!represented.has(a.ds)).map(a=>{const kind=sportKind(a);return{activityOnly:true,baseDs:`activity:${a.id}`,sourceLabel:`activity:${a.id}`,workoutId:`activity-${a.id}`,lineageId:`activity-${a.id}`,ds:a.ds,date:dateFrom(a.ds),label:formatDate(a.ds,{weekday:'short',day:'numeric',month:'short'}).replace('.',''),week:Math.floor(dayDiff(a.ds,first)/7)+1,status:'completed',terminal:true,locked:true,sport:kind==='run'?'running':kind==='row'?'rowing':kind==='bike'?'cycling':'other',type:kind==='run'?'easy':'cross',workoutType:kind==='run'?'easy':'cross',title:a.title||'Historisk aktivitet',desc:'Aktivitet bevart fra treningshistorikken',detail:'',km:0,plannedDistanceM:0,plannedLoad:{},activityId:a.id}}):[];
+    const represented=new Set(rows.map(p=>p.ds)),first=rawSchedule()[0]?.ds||today(),activityOnly=canonical?activities().filter(a=>Number.isFinite(dateFrom(a.ds).getTime())&&a.ds<today()&&!represented.has(a.ds)).map(a=>{const kind=sportKind(a);return{activityOnly:true,baseDs:`activity:${a.id}`,sourceLabel:`activity:${a.id}`,workoutId:`activity-${a.id}`,lineageId:`activity-${a.id}`,ds:a.ds,date:dateFrom(a.ds),label:formatDate(a.ds,{weekday:'short',day:'numeric',month:'short'}).replace('.',''),week:Math.floor(dayDiff(a.ds,first)/7)+1,status:'completed',terminal:true,locked:true,sport:kind==='run'?'running':kind==='row'?'rowing':kind==='bike'?'cycling':'other',type:kind==='run'?'easy':'cross',workoutType:kind==='run'?'easy':'cross',title:a.title||'Historisk aktivitet',desc:'Aktivitet bevart fra treningshistorikken',detail:'',km:0,plannedDistanceM:0,plannedLoad:{},activityId:a.id}}):[];
     const schedule=(canonical?[...rows,...activityOnly]:applyGoalRaces([...rows,...activityOnly])).sort((a,b)=>a.ds.localeCompare(b.ds)||String(a.workoutId||'').localeCompare(String(b.workoutId||'')));
     if(renderCache)renderCache.schedule=schedule;
     return schedule;
@@ -793,7 +796,9 @@
   }
   function nextReviewCopy(brief){
     if(brief.freshness!=='current'||!brief.validUntil)return'Fornyes når datagrunnlaget er verifisert.';
-    const at=new Date(brief.validUntil),same=at.toDateString()===new Date().toDateString(),time=new Intl.DateTimeFormat('nb-NO',{hour:'2-digit',minute:'2-digit'}).format(at);
+    const at=new Date(brief.validUntil);
+    if(!Number.isFinite(at.getTime()))return 'Fornyes når datagrunnlaget er verifisert.';
+    const same=at.toDateString()===new Date().toDateString(),time=new Intl.DateTimeFormat('nb-NO',{hour:'2-digit',minute:'2-digit'}).format(at);
     return same?`Vurderes senest på nytt kl. ${time}.`:`Vurderes senest på nytt ${formatDate(at.toISOString().slice(0,10),{day:'numeric',month:'short'})} kl. ${time}.`;
   }
   function weeklyPriorityHtml(){
@@ -1551,7 +1556,7 @@
       showBootFailure();
       return;
     }
-    try{const canonical=await waitForCanonicalRuntime(),boot=await canonical.start();if(boot?.flags?.coach_loop_read===true&&!canonical.snapshot?.())throw new Error('Gjeldende plan kunne ikke verifiseres.');window.RunnerBearClientMigrating=true;let restoredGoal=null,prefsMigrated=false;try{migrateDocumentedThreshold();restoredGoal=restoreAccidentallyPausedGoal();prefsMigrated=migrateTrainingPreferences();tredictSync()?.init?.()}finally{window.RunnerBearClientMigrating=false}if(restoredGoal||prefsMigrated)try{await window.RunnerBearCloud?.uploadLocal?.(true)}catch{}if(restoredGoal)await canonical.reconfigure({reason:'goal-guard-restore',trigger:'goal_guard_restore',goalChanged:true,confirm:false,force:true});initialRenderAuthorized=true}catch(error){window.RunnerBearClientMigrating=false;console.error(JSON.stringify({event:'runnerbear_canonical_first_paint_failed',build:BUILD,message:error?.message||String(error)}));showBootFailure();return}
+    try{const canonical=await waitForCanonicalRuntime(),boot=await canonical.start();if(boot?.flags?.coach_loop_read===true&&!canonical.snapshot?.())throw new Error('Gjeldende plan kunne ikke verifiseres.');window.RunnerBearClientMigrating=true;let restoredGoal=null,prefsMigrated=false;try{migrateDocumentedThreshold();restoredGoal=restoreAccidentallyPausedGoal();prefsMigrated=migrateTrainingPreferences();tredictSync()?.init?.()}finally{window.RunnerBearClientMigrating=false}if(restoredGoal||prefsMigrated)try{await window.RunnerBearCloud?.uploadLocal?.(true)}catch{}if(restoredGoal)await canonical.reconfigure({reason:'goal-guard-restore',trigger:'goal_guard_restore',goalChanged:true,confirm:false,force:true});initialRenderAuthorized=true}catch(error){window.RunnerBearClientMigrating=false;console.error(JSON.stringify({event:'runnerbear_canonical_first_paint_failed',build:BUILD,stack:error?.stack,message:error?.message||String(error)}));showBootFailure();return}
     runAutopilot();renderToday();
     document.addEventListener('click',e=>{const trigger=e.target.closest('button,summary,[role="button"]');if(trigger&&!document.body.classList.contains('rb109-modal-open')){const attributes=[...trigger.attributes].filter(a=>a.name.startsWith('data-')||a.name==='aria-label').map(a=>'['+a.name+'="'+CSS.escape(a.value)+'"]').join('');if(attributes)dialogReturnFocus=(trigger.closest('.view')?'#'+CSS.escape(trigger.closest('.view').id)+' ':'')+attributes}const nav=e.target.closest('.navbtn[data-tab]');if(nav){e.preventDefault();switchView(nav.dataset.tab,{root:true})}},true);
     document.addEventListener('keydown',e=>{const dialog=qsa('[role="dialog"][aria-modal="true"]').filter(el=>el.offsetParent!==null).at(-1);if(e.key==='Tab'&&dialog){const focusable=qsa('summary,button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',dialog).filter(node=>{if(node.offsetParent===null||getComputedStyle(node).visibility==='hidden')return false;for(let parent=node.parentElement;parent&&parent!==dialog;parent=parent.parentElement){if(parent.tagName==='DETAILS'&&!parent.open&&!qs('summary',parent)?.contains(node))return false}return true});if(!focusable.length){e.preventDefault();dialog.focus();return}const first=focusable[0],last=focusable.at(-1);if(!dialog.contains(document.activeElement)){e.preventDefault();(e.shiftKey?last:first).focus()}else if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}return}if(e.key!=='Escape')return;if(state.adaptBusy)return;if(raceFocusOpen){closeRaceFocus();return}if(state.workoutBankOpen){closeWorkoutBank();renderAll();return}if(state.goalManagerOpen||state.goalInsightOpen||state.workoutDetailOpen||state.movePreview||state.coachReasonOpen||state.bodyResponseOpen||state.oneDecisionProposalOpen||state.intensityExplanationOpen||state.weeklyReviewOpen||state.syncRepairOpen){state.goalManagerOpen=false;state.goalEditor='';state.goalInsightOpen='';state.workoutDetailOpen=false;state.adaptOpen=false;state.movePreview=null;state.coachReasonOpen=false;state.bodyResponseOpen=false;state.oneDecisionProposalOpen=false;state.intensityExplanationOpen=false;state.weeklyReviewOpen=false;state.syncRepairOpen=false;renderAll()}});
