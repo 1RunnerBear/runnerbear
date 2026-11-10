@@ -7,7 +7,7 @@ async function getAccessToken(env,userId){
   if(!env.GARMIN_API_KEY) throw new Error('GARMIN_KEY_MISSING');
   const now=Date.now();
   if(isolateToken&&isolateTokenExpiresAt>now+10*60_000)return isolateToken;
-  const response=await fetch(`${BASE}${TOKEN_PATH}`,{method:'POST',redirect:'manual',headers:{Authorization:`ApiKey ${env.GARMIN_API_KEY}`,Accept:'application/json'}});
+  const response=await fetch(`${BASE}${TOKEN_PATH}`,{method:'POST',redirect:'manual',headers:{Authorization:`ApiKey ${env.GARMIN_API_KEY}`,Accept:'*/*'}});
   if(!response.ok)throw new Error(`GARMIN_TOKEN_HTTP_${response.status}`);
   const token=(await response.text()).trim();
   let expiration;
