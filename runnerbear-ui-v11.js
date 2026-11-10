@@ -223,7 +223,7 @@
     return schedule;
   }
   function planChange(p){
-    if(!p)return null;
+    if(!p||p.activityOnly)return null;
     const raw=rawSchedule().find(x=>x.ds===p.baseDs)||p,adjustment=read(K.adjustments,{})[p.sourceLabel],moved=p.ds!==p.baseDs,dayMode=read(K.dayModes,{})[p.baseDs];
     if(!adjustment&&!moved&&!dayMode)return null;
     const reasons={

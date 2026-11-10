@@ -58,3 +58,10 @@ test('Calm Flow is presentation-only and preserves the original history source',
  assert.match(ui,/const drafts=new Map/);assert.match(ui,/el.open=details.get\(key\)/);
  assert.doesNotMatch(ui,/data-rb119b-plan-lens="focus"/);
 });
+
+test('history-only activities never produce a plan move or an undo action',()=>{
+ const source=fs.readFileSync('runnerbear-ui-v11-source.js','utf8');
+ const fn=source.slice(source.indexOf('function planChange(p)'),source.indexOf('\n  function ',source.indexOf('function planChange(p)')+1));
+ const change=require('node:vm').runInNewContext('('+fn+')');
+ assert.equal(change({activityOnly:true,baseDs:'activity:record',ds:'2026-11-09'}),null);
+});
