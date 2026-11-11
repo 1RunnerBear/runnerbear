@@ -37,7 +37,7 @@ test('today switches from the prescription to a result-first coach surface',()=>
   assert.match(app,/Slik bygger du form/);
   assert.match(app,/Coachens vurdering/);
   assert.match(app,/Se øktanalysen/);
-  assert.match(app,/Vis opprinnelig plan/);
+  assert.match(app,/Se totalen og plankoblingen/);
 });
 
 test('plan defaults to one vertical fidelity week with long-term access',()=>{
@@ -80,10 +80,10 @@ test('v10.19b keeps More insight-first while preserving real controls',()=>{
   assert.match(app,/data-rb109-goal-open/);
 });
 
-test('v10.19b gives Today three explicit, mutually exclusive states',()=>{
+test('Today distinguishes recorded activity, planned rest and a health clarification',()=>{
   assertCanonicalStyle('runnerbear-v1017-ux.css');
   assert.match(app,/Dagens økt/);
-  assert.match(app,/Aktivitet registrert · analyse pågår/);
+  assert.match(app,/context.mode==='activity'/);assert.match(app,/context.mode==='rest'/);assert.match(app,/Avklar kroppen før neste økt/);
   assert.match(app,/Slik bygger du form/);
   assert.doesNotMatch(app,/function nextWorkoutHtml/);
   assert.doesNotMatch(app,/Ett signal fortjener oppmerksomhet/);

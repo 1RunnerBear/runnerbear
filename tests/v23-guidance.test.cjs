@@ -57,3 +57,16 @@ test('compact snapshots retain reasoning without raw work arrays',async()=>{
  const [,,{buildAgentSnapshot}]=await modules;const s=buildAgentSnapshot({today,activities:[activity('new')]});
  assert.equal(s.activities[0].workBlocks,undefined);assert.equal(s.activities[0].structureSignature,undefined);assert.ok(s.activities[0].advice);assert.ok(s.primary.advice);assert.ok(s.review.learning);
 });
+test('completed voluntary focus freezes observations at the actual close date',async()=>{
+ const {describeFocus}=await import('../cloud/runnerbear-cloud/src/v22/focus.js');
+ const focus=describeFocus({focus_id:'one',kind:'body_response',status:'completed',start_date:'2026-11-01',end_date:'2026-11-14',updated_at:'2026-11-03T10:00:00Z'},[],[{local_date:'2026-11-02'},{local_date:'2026-11-08'}],today);
+ assert.equal(focus.through,'2026-11-03');assert.equal(focus.elapsed,3);assert.match(focus.observation,/1 av 3/);assert.match(focus.limitation,/ikke effekt/);
+});
+test('client warming retries are bounded even when an old snapshot exists',async()=>{
+ const vm=require('node:vm'),fs=require('node:fs'),timers=[];let calls=0;
+ const window={addEventListener(){},dispatchEvent(){}};
+ const context={window,document:{readyState:'complete',visibilityState:'visible'},fetch:async()=>{calls++;return{ok:true,json:async()=>({ok:true,enabled:true,warming:true,stale:false,snapshot:{version:'proactive-agent-1',localDate:new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo'}).format(new Date()),inputRevision:'old'}})}},Intl,Date,AbortController,URLSearchParams,CustomEvent:class{},setTimeout(fn,delay){if(delay===3000)timers.push(fn);return{}},clearTimeout(){},setInterval(){}};
+ vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../runnerbear-v22-agent.js'),'utf8'),context);
+ await new Promise(r=>setImmediate(r));for(let i=0;i<5&&timers.length;i++){timers.shift()();await new Promise(r=>setImmediate(r));}
+ assert.equal(calls,4);assert.equal(timers.length,0);assert.equal(window.RunnerBearV22Agent.snapshot(),null);assert.ok(window.RunnerBearV22Agent.historySnapshot());
+});
