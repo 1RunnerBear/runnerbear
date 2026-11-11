@@ -32,6 +32,7 @@ test('active Worker creates and revises read-only agent snapshots with local D1,
  let revised;for(let i=0;i<40;i++){revised=await db.prepare('SELECT input_revision,payload_json FROM rb_agent_snapshots WHERE user_id=?').bind('primary').first();if(revised.input_revision!==record.input_revision)break;await new Promise(r=>setTimeout(r,100));}
  assert.notEqual(revised.input_revision,record.input_revision);const updated=JSON.parse(revised.payload_json);assert.equal(updated.health.domains[0].current,42);assert.equal(updated.health.domains[0].measuredAt,null);
  assert.equal((await db.prepare('SELECT COUNT(*) n FROM rb_agent_snapshots').first()).n,1,'new evidence revises the same day');
+ assert.equal((await db.prepare('SELECT COUNT(*) n FROM rb_agent_history').first()).n,2,'the previous explanation is retained');
  assert.equal((await db.prepare('SELECT COUNT(*) n FROM rb_agent_items').first()).n,1,'new evidence does not create a second daily card');
 
  assert.equal((await db.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE name='rb_plan_revisions'").first()).n,0,'agent works without a plan and creates no plan table');

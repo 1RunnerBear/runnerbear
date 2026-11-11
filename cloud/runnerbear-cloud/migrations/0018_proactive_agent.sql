@@ -16,3 +16,9 @@ CREATE TABLE IF NOT EXISTS rb_agent_receipts (
   action TEXT NOT NULL CHECK(action IN ('seen','skipped')), created_at TEXT NOT NULL,
   PRIMARY KEY(user_id,item_id,input_revision)
 );
+CREATE TABLE IF NOT EXISTS rb_agent_history (
+  user_id TEXT NOT NULL, item_id TEXT NOT NULL, input_revision TEXT NOT NULL,
+  kind TEXT NOT NULL, local_date TEXT NOT NULL, payload_json TEXT NOT NULL,
+  recorded_at TEXT NOT NULL, PRIMARY KEY(user_id,item_id,input_revision)
+);
+CREATE INDEX IF NOT EXISTS idx_rb_agent_history_date ON rb_agent_history(user_id,recorded_at DESC);
