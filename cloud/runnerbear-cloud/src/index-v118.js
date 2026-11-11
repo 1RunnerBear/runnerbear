@@ -34,7 +34,7 @@ export default{
   },
   async scheduled(controller,env,ctx){
     const garmin=env.GARMIN_API_KEY?syncGarminPersonal(env,{days:2}).then(()=>Promise.all([backfillGarminDay(env),importGarminActivities(env)])).catch(error=>{console.error(JSON.stringify({event:'garmin_personal_sync',status:'failed',reason:String(error?.message||'GARMIN_SYNC_FAILED').slice(0,80)}));return null;}):Promise.resolve(null);
-    await Promise.all([previous.scheduled(controller,env,ctx),garmin]);
-    try{await runAgentCycle(env)}catch{console.error(JSON.stringify({event:'agent_cycle',status:'failed'}))}
+    try{await Promise.all([previous.scheduled(controller,env,ctx),garmin])}
+    finally{try{await runAgentCycle(env)}catch{console.error(JSON.stringify({event:'agent_cycle',status:'failed'}))}}
   },
 };

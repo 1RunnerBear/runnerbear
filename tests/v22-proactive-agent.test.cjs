@@ -45,3 +45,10 @@ test('agent kill switches stop analysis and rendering without reading private ro
 test('impossible source dates do not count towards reference coverage',async()=>{
  const [{healthEvidence}]=await modules;assert.equal(healthEvidence([{date:'2026-02-31',hrv_ms:40}]).length,0);
 });
+test('scheduled insight analysis is attempted even if existing plan maintenance fails',async()=>{
+ const {build}=require('../cloud/runnerbear-cloud/node_modules/esbuild');
+ const result=await build({entryPoints:[require('node:path').join(__dirname,'../cloud/runnerbear-cloud/src/index-v118.js')],bundle:true,write:false,format:'esm',platform:'node',logLevel:'silent',plugins:[{name:'legacy-scheduled-fixture',setup(builder){builder.onResolve({filter:/^\.\/index-v116\.js$/},()=>({path:'legacy',namespace:'fixture'}));builder.onLoad({filter:/.*/,namespace:'fixture'},()=>({contents:"export class MigrationService{}; export default {async scheduled(){throw Error('fixture legacy maintenance failure')}}",loader:'js'}))}}]});
+ const worker=(await import('data:text/javascript;base64,'+Buffer.from(result.outputFiles[0].text).toString('base64'))).default;
+ const log=console.error;let attempted=false;console.error=()=>{};
+ try{await assert.rejects(worker.scheduled({cron:'fixture'},{DB:{prepare(){attempted=true;throw Error('fixture DB unavailable')}}},{}),/legacy maintenance failure/);assert.equal(attempted,true)}finally{console.error=log}
+});
