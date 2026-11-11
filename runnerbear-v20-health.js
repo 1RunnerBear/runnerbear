@@ -206,7 +206,7 @@
   });
 
   window.addEventListener('runnerbear:view', (event) => {
-    if (event.detail?.view === 'health'&&!state.summary&&!state.loading)open();
+    if (event.detail?.view === 'health'&&!state.loading)open();
   });
   window.RunnerBearV20Health = Object.freeze({ version: '2.0.0', open, loadRange, render });
 })();
