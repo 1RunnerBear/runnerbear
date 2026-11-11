@@ -52,3 +52,8 @@ test('scheduled insight analysis is attempted even if existing plan maintenance 
  const log=console.error;let attempted=false;console.error=()=>{};
  try{await assert.rejects(worker.scheduled({cron:'fixture'},{DB:{prepare(){attempted=true;throw Error('fixture DB unavailable')}}},{}),/legacy maintenance failure/);assert.equal(attempted,true)}finally{console.error=log}
 });
+test('enriched FIT evidence and corrections override the original serialized activity',async()=>{
+ const [,{analyzeWorkout}]=await modules;
+ const a={source_id:'one',date:today,sport_type:'running',payload_json:JSON.stringify({title:'Original',detail:{}}),payload:{title:'Original',paceCorrection:{mode:'set',paceSeconds:240},detail:{garminFit:{laps:[{intensity:'active',seconds:600,distanceM:2000}]}}}};
+ const result=analyzeWorkout(a);assert.equal(result.workSeconds,600);assert.equal(result.workPace,240);assert.equal(JSON.parse(a.payload_json).detail.garminFit,undefined);
+});
