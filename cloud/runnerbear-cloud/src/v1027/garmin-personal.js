@@ -95,6 +95,19 @@ export async function importGarminActivities(env){
   const token=await getAccessToken(env,user);
   const end=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo'}).format(new Date());
   const start=new Date(Date.parse(end+'T12:00:00Z')-2*86400000).toISOString().slice(0,10);
+  const imported=await importActivityWindow(env,user,token,start,end);
+  const pending=await env.DB.prepare(`SELECT date FROM rb_garmin_backfill_checks
+    WHERE user_id=?1 AND activity_checked_at IS NULL AND date>=date(?2,'-89 days')
+    ORDER BY date DESC LIMIT 1`).bind(user,end).first();
+  if(pending){
+    await importActivityWindow(env,user,token,pending.date,pending.date);
+    await env.DB.prepare('UPDATE rb_garmin_backfill_checks SET activity_checked_at=CURRENT_TIMESTAMP WHERE user_id=?1 AND date=?2').bind(user,pending.date).run();
+  }
+  await analyzeNextActivity(env,user,token);
+  return imported;
+}
+
+async function importActivityWindow(env,user,token,start,end){
   const rows=await apiGet(token,'/activitylist-service/activities/search/activities?start=0&limit=100&startDate='+start+'&endDate='+end);
   if(!Array.isArray(rows)||rows.length===100)throw new Error('GARMIN_ACTIVITY_WINDOW_INCOMPLETE');
   const statements=[];
@@ -107,7 +120,6 @@ export async function importGarminActivities(env){
       local_date=excluded.local_date,summary_json=excluded.summary_json`).bind(user,id,day,JSON.stringify(summary)));
   }
   if(statements.length)await env.DB.batch(statements);
-  await analyzeNextActivity(env,user,token);
   return statements.length;
 }
 
