@@ -27,6 +27,13 @@ test('active Worker creates and revises read-only agent snapshots with local D1,
  const mark=await mf.dispatchFetch('https://app.runnerbear.workers.dev/api/v2/agent/receipt',{method:'POST',headers:{...headers,'Content-Type':'application/json','Idempotency-Key':'seen-fixture'},body:JSON.stringify({itemId:primary.id,inputRevision:primary.inputRevision,action:'seen'})});assert.equal(mark.status,200);assert.equal((await (await get()).json()).receipt,'seen');
  const stale=await mf.dispatchFetch('https://app.runnerbear.workers.dev/api/v2/agent/receipt',{method:'POST',headers:{...headers,'Content-Type':'application/json','Idempotency-Key':'stale-fixture'},body:JSON.stringify({itemId:primary.id,inputRevision:'0'.repeat(64),action:'seen'})});assert.equal(stale.status,409);
  assert.equal((await db.prepare('SELECT COUNT(*) n FROM rb_agent_items').first()).n,1);
+ await db.prepare('INSERT INTO rb_garmin_shadow(user_id,date,metrics,updated_at) VALUES(?1,?2,?3,?4)').bind('primary',today,JSON.stringify({hrvMs:42,sleepSeconds:28000,rhr:50}),new Date().toISOString()).run();
+ await db.prepare("UPDATE rb_agent_snapshots SET checked_at='2000-01-01T00:00:00Z'").run();await get();
+ let revised;for(let i=0;i<40;i++){revised=await db.prepare('SELECT input_revision,payload_json FROM rb_agent_snapshots WHERE user_id=?').bind('primary').first();if(revised.input_revision!==record.input_revision)break;await new Promise(r=>setTimeout(r,100));}
+ assert.notEqual(revised.input_revision,record.input_revision);const updated=JSON.parse(revised.payload_json);assert.equal(updated.health.domains[0].current,42);assert.equal(updated.health.domains[0].measuredAt,null);
+ assert.equal((await db.prepare('SELECT COUNT(*) n FROM rb_agent_snapshots').first()).n,1,'new evidence revises the same day');
+ assert.equal((await db.prepare('SELECT COUNT(*) n FROM rb_agent_items').first()).n,1,'new evidence does not create a second daily card');
+
  assert.equal((await db.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE name='rb_plan_revisions'").first()).n,0,'agent works without a plan and creates no plan table');
  const isolated=await db.prepare('SELECT COUNT(*) n FROM rb_agent_snapshots WHERE user_id=?').bind('someone-else').first();assert.equal(isolated.n,0);
  }finally{await mf.dispose();fs.rmSync(dir,{recursive:true,force:true})}

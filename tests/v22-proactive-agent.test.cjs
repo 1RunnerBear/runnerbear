@@ -42,3 +42,6 @@ test('subjective safety takes precedence and repeated windows do not assert caus
 test('agent kill switches stop analysis and rendering without reading private rows',async()=>{
  const [,,{runAgentCycle,agentRead}]=await modules;const env={RUNNERBEAR_AGENT_INSIGHTS:'false',DB:{prepare(){throw Error('should not read')}}};assert.equal((await runAgentCycle(env)).status,'disabled');const response=await agentRead(new Request('https://example.test/api/v2/agent'),env,{userId:'primary'});assert.equal((await response.json()).enabled,false);
 });
+test('impossible source dates do not count towards reference coverage',async()=>{
+ const [{healthEvidence}]=await modules;assert.equal(healthEvidence([{date:'2026-02-31',hrv_ms:40}]).length,0);
+});

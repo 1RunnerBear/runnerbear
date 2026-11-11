@@ -5,7 +5,7 @@ export const localDay=now=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Osl
 export const finite=v=>typeof v==='number'&&Number.isFinite(v)?v:null;
 export const median=values=>{const a=values.filter(v=>finite(v)!=null).sort((a,b)=>a-b),n=a.length;return n?(n%2?a[n>>1]:(a[n/2-1]+a[n/2])/2):null};
 export const parse=(text,fallback={})=>{try{return JSON.parse(text)||fallback}catch{return fallback}};
-const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'')&&Number.isFinite(Date.parse(s+'T12:00:00Z'));
+const validDate=s=>/^\d{4}-\d{2}-\d{2}$/.test(s||'')&&Number.isFinite(Date.parse(s+'T12:00:00Z'))&&new Date(s+'T12:00:00Z').toISOString().slice(0,10)===s;
 export function healthEvidence(canonical=[],shadow=[]){
  const rows=mergeHealthEvidence(canonical,shadow),original=new Map(canonical.map(r=>[r.date,r])),direct=new Map(shadow.map(r=>[r.date,r]));
  for(const row of rows)for(const [key,min,max] of [['hrv_ms',1,400],['sleep_seconds',1,86400],['rhr_bpm',20,150],['spo2_avg_pct',50,100],['spo2_min_pct',50,100]])if(finite(row[key])==null||row[key]<min||row[key]>max)row[key]=null;
