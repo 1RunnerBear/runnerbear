@@ -2,7 +2,7 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'13.1.0',
+    build:'13.2.0',
     assetVersion:'13000',
     label:'RunnerBear 2.0 · Coach Intelligence',
     design:'Original A · Editorial Athlete'

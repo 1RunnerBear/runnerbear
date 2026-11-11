@@ -46,6 +46,8 @@
   }
 
   function summaryNote() {
+    const observed=window.RunnerBearV22Agent?.snapshot?.()?.health;
+    if(observed)return observed.summary;
     const body = bodyResponse();
     if(state.summary?.daysWithAnyData>0&&body?.freshness?.status!=='fresh')return 'Registrerte målinger vises med datadekning. Dagens samlede coachvurdering venter fortsatt på et bekreftet helsegrunnlag.';
     if (!body) return 'Vi trenger bekreftede, ferske data før RunnerBear kan vurdere kroppens respons.';
@@ -73,6 +75,11 @@
     return '';
   }
 
+  function responseHtml(){
+    const snapshot=window.RunnerBearV22Agent?.snapshot?.();if(!snapshot)return'';
+    const health=snapshot.health,latest=snapshot.activities?.[0],primary=snapshot.primary;
+    return `<section class="rb22-response"><p class="rb20-smallcaps">DAGENS RESPONS · SISTE 7 KALENDERDAGER</p><h2>${escapeHtml(health.title)}</h2><dl>${health.domains.map(d=>`<div><dt>${escapeHtml(d.label)}</dt><dd>${escapeHtml(({missing:'Ingen målinger',stale:'Siste måling er eldre',building:'Referansen bygges',steady:'Ingen tydelig endring',higher:'Høyere enn referansen',lower:'Lavere enn referansen'})[d.state])} · ${d.coverage} av 7 dager</dd></div>`).join('')}</dl><details><summary>Se personlig referanse og begrensninger</summary>${health.domains.map(d=>`<p>${escapeHtml(d.summary)} ${escapeHtml(d.label)}: ${d.coverage} av 7 dager. Referanse: ${d.referenceCoverage} av 28 dager, ${escapeHtml(d.referenceFrom)} – ${escapeHtml(d.referenceTo)}. Siste måledato: ${escapeHtml(d.measurementDate||'mangler')}. Kilde: ${escapeHtml(sourceText(d.source))}.</p>`).join('')}<p>${escapeHtml(health.limitation)}</p></details>${latest?`<h3>Etter siste økt</h3><p>${escapeHtml(latest.title)} · ${escapeHtml(latest.response.summary)}</p><p>${escapeHtml(latest.response.limitation)}</p>`:''}${snapshot.subjective?`<p>Egenfølelse registrert i dag: ${escapeHtml(({fresh:'som normalt',tired:'litt redusert',heavy:'klart redusert'})[snapshot.subjective.state]||'ukjent')}.</p>`:''}${primary.priority==='attention'||latest?.sport==='run'&&latest?.date<snapshot.localDate&&!snapshot.subjective?'<button data-rb22-checkin>Hvordan kjennes kroppen i dag?</button>':''}<p class="rb20-source">Ingen plan eller soner endres av denne vurderingen.</p>${window.RunnerBearV22Agent.receipt()?'': '<button data-rb22-seen>Forstått · behold i historikken</button>'}<p data-rb22-save-status role="status"></p><details><summary>Oppfølging siste 7 dager</summary><p>${escapeHtml(snapshot.review.summary)}</p><p>${escapeHtml(snapshot.review.focus)}</p></details><details><summary>Tidligere innsikter</summary>${(snapshot.history||[]).length?snapshot.history.map(i=>`<article><h3>${escapeHtml(i.date)} · ${escapeHtml(i.title)}</h3><p>${escapeHtml(i.summary)}</p></article>`).join(''):'<p>Nye innsikter blir bevart her etter hvert.</p>'}</details></section>`;
+  }
   function overviewHtml() {
     const m = state.summary?.metrics || {};
     const hrv = m.hrvMs || {}, sleep = m.sleepSeconds || {}, rhr = m.restingHeartRateBpm || {};
@@ -93,13 +100,14 @@
           ${metricRow('Hvilepuls', numberText(rhr.median, 1), 'bpm', rhr.samples, `Median · ${rhr.samples||0} av ${state.range} dager`)}
         </dl>` : ''}
         ${state.summary ? trendHtml()+sourceNote() : ''}
-        <section class="rb20-coach">
+        ${responseHtml()}
+        ${window.RunnerBearV22Agent?.snapshot?.()?'':`<section class="rb20-coach">
           <p class="rb20-smallcaps">FRA ØKT TIL RESPONS</p>
           <h2>${fresh ? 'Se belastningen i sammenheng.' : 'Vi følger med videre.'}</h2>
           <p>${escapeHtml(fresh && load?.summary ?
             load.summary :
             'RunnerBear ser etter sammenheng mellom gjennomført trening, søvn, puls og egne symptomer. Ingen enkeltmåling avgjør neste økt.')}</p>
-        </section>
+        </section>`}
         <div class="rb20-links">
           <button type="button" data-rb20-page="breathing"><span>Søvn og pust</span><span aria-hidden="true">›</span></button>
           <button type="button" data-rb20-checkin><span>Akilles og kroppssjekk</span><span aria-hidden="true">›</span></button>
@@ -216,6 +224,8 @@
   }
 
   root.addEventListener('click', (event) => {
+    if(event.target.closest('[data-rb22-checkin]')){window.RunnerBearCoachOS?.switchView?.('today');window.RunnerBearCoachOS?.openBodyResponse?.();return}
+    if(event.target.closest('[data-rb22-seen]')){const button=event.target.closest('[data-rb22-seen]');button.disabled=true;window.RunnerBearV22Agent.markSeen().then(()=>render()).catch(()=>{button.disabled=false;const status=root.querySelector('[data-rb22-save-status]');if(status)status.textContent='Kunne ikke lagre akkurat nå. Prøv igjen.'});return}
     if(event.target.closest('[data-rb20-settings]')){window.RunnerBearCoachOS?.switchView?.('more');return}
     const metric=event.target.closest('[data-rb20-metric]');if(metric&&['hrvMs','sleepSeconds','restingHeartRateBpm'].includes(metric.dataset.rb20Metric)){state.metric=metric.dataset.rb20Metric;render();return}
     if(event.target.closest('[data-rb20-export]')&&state.summary){const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),note:'Registrerte klokkemålinger. Ikke diagnose eller opptelling av pustestopp.',...state.summary},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='RunnerBear-helseobservasjoner.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return}
@@ -233,6 +243,7 @@
     }
   });
 
+  window.addEventListener('runnerbear:agent',()=>{if(root.classList?.contains('active'))render()});
   window.addEventListener('runnerbear:view', (event) => {
     if (event.detail?.view === 'health')open(state.page);
     else if(pending){++state.request;pending.controller.abort();pending=null;state.loading=false;}

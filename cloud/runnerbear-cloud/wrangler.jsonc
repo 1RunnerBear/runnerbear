@@ -13,6 +13,9 @@
     "crons": ["*/5 * * * *"]
   },
   "vars": {
+    "RUNNERBEAR_AGENT_INSIGHTS": "true",
+    "RUNNERBEAR_AGENT_BACKGROUND": "true",
+    "RUNNERBEAR_AGENT_COMPARISONS": "false",
     "PRIMARY_USER_ID": "primary",
     "PRIMARY_USER_EMAIL": "torbjorn.forre@gmail.com",
     "CORS_ORIGINS": "",

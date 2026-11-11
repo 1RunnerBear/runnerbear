@@ -64,7 +64,7 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
   assert.match(ui,/function oneDecisionHeroHtml/);
   assert.doesNotMatch(ui,/Oppdater Garmin-data|stale:'Oppdater data'|if\(kind==='refresh_data'\)/);
   assert.match(ui,/stale:'Oppdateres automatisk'/);
-  assert.match(html,/runnerbear-ui-v11\.js\?v=13100/);
+  assert.match(html,/runnerbear-ui-v11\.js\?v=13200/);
   assert.match(ui,/aria-labelledby=\"rb113DecisionTitle\"/);
   assert.match(ui,/function oneDecisionProposalModalHtml/);
   assert.match(ui,/aria-labelledby=\"rb113ProposalTitle\"/);
@@ -94,5 +94,5 @@ test('release chain preserves the v11.3 contract without a new endpoint or schem
   assert.match(routes,/decision\.status!=='proposed'/);
   assert.match(routes,/reductionPercent>20/);
   assert.match(routes,/SAFE_ADJUSTMENT_REJECTED/);
-  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,17);
+  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,18);
 });

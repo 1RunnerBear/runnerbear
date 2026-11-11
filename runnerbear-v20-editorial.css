@@ -19,3 +19,8 @@
 .rb20-estimate-status{padding:16px 0;border-block:1px solid var(--rb20-line)}
 .rb20-estimate-status h3{font:600 23px/1.2 Georgia,serif;margin:8px 0;color:var(--rb20-ink)}
 .rb20-estimate-status p{font-size:13px;line-height:1.6;color:var(--rb20-muted)}
+/* 2.2: evidence and response inside the locked editorial design. */
+.rb22-workout{padding:14px 0;border-bottom:1px solid var(--rb20-line)}
+.rb22-workout p,.rb22-workout li,.rb22-review p{font-size:13px;line-height:1.6;color:var(--rb20-muted)}
+.rb22-workout summary,.rb22-hero summary,.rb22-latest>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:13px;font-weight:650}
+.rb22-hero>p{line-height:1.55}.rb22-hero summary{margin-top:12px}.rb22-latest{margin:18px 0}.rb22-latest .rb20-observation{margin-top:10px}.rb22-review{border-block:1px solid var(--rb20-line);padding:16px 0;margin:20px 0}

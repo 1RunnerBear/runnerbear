@@ -207,3 +207,11 @@
 #health button:focus-visible,#health summary:focus-visible{outline:3px solid #789d85;outline-offset:3px}
 #health .rb20-feedback{overflow-wrap:anywhere}
 @media(prefers-reduced-motion:reduce){#health *{scroll-behavior:auto!important;transition:none!important}}
+#health .rb22-response{padding:20px 0;border-block:1px solid var(--rb20-line);margin:20px 0}
+#health .rb22-response h2{font:600 25px/1.15 Georgia,serif;color:var(--rb20-ink)}
+#health .rb22-response h3{font:600 21px/1.2 Georgia,serif;color:var(--rb20-ink)}
+#health .rb22-response p,#health .rb22-response dd{font-size:13px;line-height:1.6;color:var(--rb20-muted)}
+#health .rb22-response dt{font-size:13px;font-weight:700;color:var(--rb20-ink)}
+#health .rb22-response dd{margin:6px 0 16px}
+#health .rb22-response summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:13px;font-weight:650}
+#health .rb22-response button{border:1px solid var(--rb20-line);border-radius:12px;padding:12px;margin:8px 0;background:var(--rb20-surface);color:var(--rb20-ink);font:600 13px system-ui}

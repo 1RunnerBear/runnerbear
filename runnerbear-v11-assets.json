@@ -1,5 +1,5 @@
 {
-  "build": "13.1.0",
+  "build": "13.2.0",
   "core": [
     "runnerbear-v12-release.js",
     "runnerbear-v1222-data-trust.js",
