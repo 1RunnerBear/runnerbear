@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=13000/);
+  assert.match(html,/runnerbear-v11\.css\?v=13001/);
   const migration=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/v121-css-pruning.json'),'utf8'));
   assert.ok(migration.sources.includes(source),`${source} was consolidated in original cascade order`);
   assert.equal(assets.styles.length,6);

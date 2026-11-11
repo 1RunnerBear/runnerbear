@@ -6,7 +6,7 @@ function mockEnv(rows){
 }
 
 test('authorized health trend route returns bounded 90-day summaries',async()=>{
-  const {handleV1027}=await import('../cloud/runnerbear-cloud/src/v1027/routes.js');
+  const {handleV1027}=await import('../cloud/runnerbear-cloud/src/v11/routes.js');
   const rows=[{date:'2026-11-09',hrv_ms:40,sleep_seconds:26000,rhr_bpm:51,spo2_avg_pct:96,spo2_min_pct:88,health_source:'garmin',health_quality:'usable_with_caveats',updated_at:'2026-11-10T07:00:00Z'}];
   const response=await handleV1027(new Request('https://app.runnerbear.workers.dev/api/v2/health/trends?window=90d'),mockEnv(rows),{userId:'primary'});
   assert.equal(response.status,200);
@@ -17,7 +17,7 @@ test('authorized health trend route returns bounded 90-day summaries',async()=>{
 });
 
 test('sleep breathing route preserves uncertainty when oxygen data is missing',async()=>{
-  const {handleV1027}=await import('../cloud/runnerbear-cloud/src/v1027/routes.js');
+  const {handleV1027}=await import('../cloud/runnerbear-cloud/src/v11/routes.js');
   const response=await handleV1027(new Request('https://app.runnerbear.workers.dev/api/v2/health/sleep-breathing?window=28d'),mockEnv([{date:'2026-11-09',sleep_seconds:25000,health_source:'tredict',health_quality:'partial'}]),{userId:'primary'});
   assert.equal(response.status,200);
   const body=await response.json();
@@ -28,7 +28,7 @@ test('sleep breathing route preserves uncertainty when oxygen data is missing',a
 });
 
 test('health insight routes stay unavailable during the coach kill switch',async()=>{
-  const {handleV1027}=await import('../cloud/runnerbear-cloud/src/v1027/routes.js');
+  const {handleV1027}=await import('../cloud/runnerbear-cloud/src/v11/routes.js');
   const env=mockEnv([]);env.COACH_LOOP_KILL_SWITCH='true';
   const response=await handleV1027(new Request('https://app.runnerbear.workers.dev/api/v2/health/trends?window=28d'),env,{userId:'primary'});
   assert.equal(response.status,503);

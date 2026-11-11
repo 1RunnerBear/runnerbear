@@ -1,3 +1,5 @@
+import {mergeHealthEvidence} from '../v20/evidence.js';
+import {normalizeHealthWindow,summarizeHealthWindow,summarizeSleepBreathing} from '../v1027/health-intelligence.js';
 import { BUILD,POLICY_VERSION,SCHEMA_VERSION } from './constants.js';
 import { event,eventStatement,newId } from './events.js';
 import { decideCoach,safeAutoCandidateAllowed } from './coach-engine.js';
@@ -220,6 +222,17 @@ export async function handleV1027(request,env,{userId,bodyJson,corsHeaders={},ct
   const url=new URL(request.url),path=url.pathname.replace(/\/+$/,'');if(!path.startsWith('/api/v2'))return null;const correlationId=String(request.headers.get('X-Correlation-ID')||crypto.randomUUID());
   const kill=String(env.COACH_LOOP_KILL_SWITCH||'false').toLowerCase()==='true',allFlags=await flags(env.DB,userId),write=!['GET','HEAD'].includes(request.method),migration=await env.DB.prepare("SELECT status FROM rb_migrations WHERE user_id=?1 AND migration_key='coach-loop-v1026'").bind(userId).first(),flagError=flagConfigurationError(allFlags,migration?.status==='committed');
   if(flagError)return fail('INVALID_FLAG_CONFIGURATION',503,flagError,corsHeaders);
+  if(request.method==='GET'&&['/api/v2/health/trends','/api/v2/health/sleep-breathing'].includes(path)){
+    if(kill)return fail('HEALTH_READ_DISABLED',503,'Helseinnsikt er midlertidig utilgjengelig.',corsHeaders);
+    const breathing=path.endsWith('/sleep-breathing'),allowed=breathing?[7,28,30,90]:[7,28,90],days=normalizeHealthWindow(url.searchParams.get('window'),allowed,breathing?28:28);
+    const timezone='Europe/Oslo',today=new Intl.DateTimeFormat('en-CA',{timeZone:timezone}).format(new Date()),from=addDays(today,-(days-1));
+    const result=await env.DB.prepare(`SELECT date,hrv_ms,sleep_seconds,rhr_bpm,spo2_avg_pct,spo2_min_pct,respiration_avg_bpm,sleep_score,health_source,health_quality,updated_at
+      FROM rb_health_daily WHERE user_id=?1 AND date>=?2 AND date<=?3 ORDER BY date DESC LIMIT ?4`).bind(userId,from,today,days).all(),rows=result.results||[];
+    const shadow=String(env.RUNNERBEAR_V20_EVIDENCE_DISABLED||'false')==='true'?{results:[]}:await env.DB.prepare('SELECT date,metrics,updated_at FROM rb_garmin_shadow WHERE user_id=?1 AND date>=?2 AND date<=?3 ORDER BY date DESC LIMIT ?4').bind(userId,from,today,days).all();
+    const observed=mergeHealthEvidence(rows,shadow.results||[]);
+    const summary=breathing?summarizeSleepBreathing(observed,days):summarizeHealthWindow(observed,days);
+    return json({ok:true,build:'12.6.1',generatedAt:new Date().toISOString(),source:'runnerbear-health-observations',timezone,windowDays:days,...summary},200,corsHeaders);
+  }
   if(write&&!request.headers.get('Idempotency-Key'))return fail('IDEMPOTENCY_KEY_REQUIRED',400,'Idempotency-Key mangler.',corsHeaders);
   if(kill&&write)return fail('COACH_LOOP_DISABLED',503,'Coach Loop er midlertidig satt i sikker modus.',corsHeaders);
   if(request.method==='POST'&&path==='/api/v2/pace-corrections'){
