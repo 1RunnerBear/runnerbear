@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F5F3ED">
-<title>RunnerBear · Din Bakken-coach</title>
+<title>RunnerBear · Din treningsagent</title>
 <link rel="icon" type="image/png" sizes="32x32" href="rb-icon-32.png?v=1025">
 <link rel="icon" type="image/svg+xml" href="runnerbear-app-icon-v1025.svg?v=1025">
 <link rel="apple-touch-icon" sizes="180x180" href="rb-icon-180.png?v=1025">
@@ -14,18 +14,19 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="RunnerBear">
 <link rel="stylesheet" href="runnerbear-v11.css?v=12600">
+<link rel="stylesheet" href="runnerbear-v20-health.css?v=20001">
 </head>
 <body>
 <div class="app">
   <header class="topbar">
-    <div class="brand"><div class="rb"><img src="runnerbear-brand-mark-flat.svg?v=1022" alt=""></div><div><b>RunnerBear</b><span>Bakken-coach</span></div></div>
+    <div class="brand"><div class="rb"><img src="runnerbear-brand-mark-flat.svg?v=1022" alt=""></div><div><b>RunnerBear</b><span>Treningsagent</span></div></div>
     <div class="race-count"><b><span id="countdown">–</span> dager</b><span>til start</span></div>
   </header>
   <nav class="desktop-nav" aria-label="Hovedmeny">
     <button class="navbtn active" aria-current="page" data-tab="today"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg></span>I dag</button>
-    <button class="navbtn" data-tab="plan"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></span>Plan</button>
+    <button class="navbtn" data-tab="plan"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></span>Trening</button>
+    <button class="navbtn" data-tab="health"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span>Helse</button>
     <button class="navbtn" data-tab="race"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4m0 1h10l-2.5 3L16 11H6"/><path d="m9 17 3-3 3 3 3-4 3 5"/></svg></span>Mål</button>
-    <button class="navbtn" data-tab="more"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></span>Mer</button>
   </nav>
   <div id="rb108Boot" class="rb108-boot" role="status" aria-live="polite">
     <div class="rb119b-appbar"><span class="rb119b-wordmark">RUNNERBEAR</span></div>
@@ -35,18 +36,21 @@
   <main>
     <section id="today" class="view active"></section>
     <section id="plan" class="view"></section>
+    <section id="health" class="view"></section>
     <section id="race" class="view"></section>
     <section id="more" class="view"></section>
   </main>
   <nav class="bottom-nav" aria-label="Mobilmeny">
     <button class="navbtn active" aria-current="page" data-tab="today"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z"/></svg></span>I dag</button>
-    <button class="navbtn" data-tab="plan"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></span>Plan</button>
+    <button class="navbtn" data-tab="plan"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4m8-4v4M4 10h16"/></svg></span>Trening</button>
+    <button class="navbtn" data-tab="health"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.6a5.5 5.5 0 0 0 0-7.8z"/></svg></span>Helse</button>
     <button class="navbtn" data-tab="race"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 21V4m0 1h10l-2.5 3L16 11H6"/><path d="m9 17 3-3 3 3 3-4 3 5"/></svg></span>Mål</button>
-    <button class="navbtn" data-tab="more"><span><svg class="rb107-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></span>Mer</button>
   </nav>
 </div>
 <script src="runnerbear-core-v11.js?v=12600"></script>
 <script src="runnerbear-ui-v11.js?v=12705"></script>
 <script src="runnerbear-data-v11.js?v=12702" defer></script>
+<script src="runnerbear-v20-health.js?v=20001" defer></script>
 </body>
 </html>
+

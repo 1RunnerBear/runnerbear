@@ -1,0 +1,199 @@
+/* RunnerBear 2.0 · Original A / Editorial Athlete · Helse, first functional slice. */
+:root {
+  --rb20-paper: #f5f3ed;
+  --rb20-surface: #fffdf8;
+  --rb20-ink: #193126;
+  --rb20-forest: #174a35;
+  --rb20-muted: #657168;
+  --rb20-border: rgba(25, 49, 38, .14);
+}
+#health.view { color: var(--rb20-ink); }
+#health .rb20-shell {
+  max-width: 730px;
+  margin: 0 auto 24px;
+  overflow: hidden;
+  border: 1px solid var(--rb20-border);
+  border-radius: 28px;
+  background: var(--rb20-surface);
+  box-shadow: 0 14px 44px rgba(25, 49, 38, .055);
+}
+#health .rb20-landscape {
+  height: clamp(78px, 17vw, 126px);
+  background: linear-gradient(90deg, rgba(22, 55, 39, .2), transparent 70%), url("runnerbear-v1019b-forest.webp") center 47% / cover no-repeat, #355443;
+}
+#health .rb20-landscape-small { height: clamp(56px, 13vw, 92px); }
+#health .rb20-content { padding: clamp(20px, 4.5vw, 36px); }
+#health .rb20-eyebrow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--rb20-forest);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+}
+#health .rb20-data-label {
+  border-radius: 999px;
+  background: #f0eedf;
+  padding: 6px 9px;
+  color: #65705c;
+  font-size: 9px;
+  font-weight: 650;
+  letter-spacing: .045em;
+  text-transform: none;
+}
+#health h1, #health h2, #health .rb20-metric-row dt {
+  font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+  letter-spacing: -.035em;
+}
+#health h1 {
+  max-width: 620px;
+  margin: 15px 0 10px;
+  font-size: clamp(35px, 6.9vw, 51px);
+  font-weight: 700;
+  line-height: 1.07;
+  color: #1c211c;
+}
+#health .rb20-lead {
+  max-width: 560px;
+  margin: 0 0 22px;
+  color: #38443c;
+  font-size: clamp(14px, 3.4vw, 17px);
+  line-height: 1.55;
+}
+#health .rb20-ranges {
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0 0 24px;
+  padding: 4px;
+  border: 1px solid var(--rb20-border);
+  border-radius: 999px;
+  background: #f1f0e9;
+}
+#health .rb20-ranges button {
+  min-width: 72px;
+  min-height: 44px;
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--rb20-muted);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  cursor: pointer;
+}
+#health .rb20-ranges [aria-pressed="true"] {
+  background: var(--rb20-forest);
+  color: white;
+  box-shadow: 0 2px 7px rgba(25, 49, 38, .16);
+}
+#health .rb20-metrics { margin: 0; padding: 0; }
+#health .rb20-metric-row {
+  display: grid;
+  grid-template-columns: minmax(70px, .8fr) minmax(105px, 1fr) minmax(115px, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 17px 0;
+  border-bottom: 1px solid var(--rb20-border);
+}
+#health .rb20-metric-row:first-child { border-top: 1px solid var(--rb20-border); }
+#health .rb20-metric-row dt {
+  font-size: clamp(17px, 3.8vw, 22px);
+  font-weight: 700;
+}
+#health .rb20-metric-row dd { margin: 0; }
+#health .rb20-metric-row dd strong { font-size: clamp(17px, 4vw, 22px); font-variant-numeric: tabular-nums; }
+#health .rb20-metric-row dd small { color: var(--rb20-muted); font-size: 11px; }
+#health .rb20-metric-row > span { color: var(--rb20-muted); font-size: 11px; line-height: 1.35; }
+#health .rb20-source {
+  margin: 13px 0 27px;
+  color: var(--rb20-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+#health .rb20-coach {
+  margin: 23px 0 17px;
+  padding: clamp(20px, 4vw, 27px);
+  border-radius: 21px;
+  background: linear-gradient(100deg, rgba(9, 48, 30, .98), rgba(21, 74, 50, .9)), url("runnerbear-v1019b-forest.webp") center / cover;
+  color: #fffdf8;
+}
+#health .rb20-smallcaps {
+  margin: 0 0 10px;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .14em;
+}
+#health .rb20-coach h2 {
+  margin: 0 0 11px;
+  color: #fffdf8;
+  font-size: clamp(23px, 5vw, 28px);
+  line-height: 1.14;
+}
+#health .rb20-coach p:last-child { margin: 0; color: #f7f6f0; font-size: 14px; line-height: 1.5; }
+#health .rb20-links { display: grid; }
+#health .rb20-links button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 59px;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--rb20-border);
+  background: transparent;
+  color: var(--rb20-ink);
+  font: 700 18px/1.3 Georgia, "Times New Roman", serif;
+  text-align: left;
+  cursor: pointer;
+}
+#health .rb20-links button > span:last-child { font: 26px/1 Arial, sans-serif; font-weight: 300; }
+#health .rb20-back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0 0 20px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: var(--rb20-forest);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.4;
+  cursor: pointer;
+}
+#health .rb20-spo2 { padding: 23px 0 8px; border-top: 1px solid var(--rb20-border); }
+#health .rb20-spo2-head span, #health .rb20-spo2-head strong, #health .rb20-spo2-head small { display: block; }
+#health .rb20-spo2-head span { color: var(--rb20-forest); font: 700 20px Georgia, serif; }
+#health .rb20-spo2-head strong { margin: 7px 0 1px; color: #1c211c; font: 700 clamp(39px, 8vw, 55px)/1 Georgia, serif; font-variant-numeric: tabular-nums; }
+#health .rb20-spo2-head small { color: var(--rb20-muted); font-size: 12px; }
+#health .rb20-spo2-facts { display: grid; gap: 0; margin-top: 18px; }
+#health .rb20-spo2-facts > div { display: flex; justify-content: space-between; gap: 14px; padding: 13px 0; border-bottom: 1px solid var(--rb20-border); font-size: 12px; }
+#health .rb20-spo2-facts span { color: var(--rb20-muted); }
+#health .rb20-spo2-facts b { color: var(--rb20-ink); text-align: right; font-variant-numeric: tabular-nums; }
+#health .rb20-explainer { margin: 20px 0; }
+#health .rb20-explainer h2 { margin: 0 0 7px; font-size: 26px; }
+#health .rb20-explainer p { margin: 0; color: #38443c; font-size: 14px; line-height: 1.5; }
+#health .rb20-care { margin: 17px 0; }
+#health .rb20-footnote { color: var(--rb20-muted); font-size: 11px; line-height: 1.5; }
+#health .rb20-feedback { padding: 14px 0; color: var(--rb20-muted); font-size: 13px; }
+#health .rb20-feedback button { margin-top: 9px; min-height: 44px; padding: 8px 15px; border: 1px solid var(--rb20-border); border-radius: 12px; background: var(--rb20-surface); color: var(--rb20-forest); cursor: pointer; }
+#health button:focus-visible { outline: 3px solid #94a470; outline-offset: 3px; }
+@media (max-width: 560px) {
+  #health .rb20-shell { border-radius: 0; border-left: 0; border-right: 0; box-shadow: none; }
+  #health .rb20-content { padding: 19px 19px 31px; }
+  #health .rb20-metric-row { grid-template-columns: minmax(68px, .8fr) minmax(95px, 1fr); column-gap: 8px; }
+  #health .rb20-metric-row > span { grid-column: 2; margin-top: -5px; }
+  .topbar .race-count { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #health *, #health *::before, #health *::after { animation: none !important; transition: none !important; }
+}

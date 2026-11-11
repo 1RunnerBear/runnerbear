@@ -28,7 +28,7 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
  const after=await geometry(page);expect(after.app.width).toBe(before.app.width);expect(after.nav).toEqual(before.nav);expect(await page.evaluate(()=>window.__cls)).toBeLessThan(.05);
  await shot(page,info,'today');
  const nav=page.locator(width<821?'.bottom-nav':'.desktop-nav');
- for(const [name,id] of [['Plan','plan'],['Mål','race'],['Mer','more']]){
+ for(const [name,id] of [['Trening','plan'],['Helse','health'],['Mål','race']]){
   await nav.getByRole('button',{name,exact:true}).click();await expect(page.locator('#'+id)).toBeVisible();await check(page);await shot(page,info,id);
   if(id==='plan'){
    await page.getByRole('button',{name:'Åpne månedsoversikt',exact:true}).click();await check(page);await shot(page,info,'month');
@@ -39,6 +39,8 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
    await page.locator('[data-rb107-plan-view="plan"]').click();
   }
  }
+ await page.locator('[data-rb126-more]:visible').first().click();
+ await expect(page.locator('#more')).toBeVisible();await check(page);await shot(page,info,'settings');
  await nav.getByRole('button',{name:'I dag',exact:true}).click();
  await page.locator('[data-rb113-decision-action]:visible').first().click();
  await expect(page.getByRole('dialog')).toBeVisible();await check(page);await shot(page,info,'workout-detail');
