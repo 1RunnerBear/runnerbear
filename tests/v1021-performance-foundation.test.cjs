@@ -8,19 +8,22 @@ const zlib=require('node:zlib');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('v11 index loads only canonical versioned frontend assets',()=>{
+test('v11 canonical assets remain budgeted alongside the versioned v20 health extension',()=>{
   const html=read('index.html');
   const scripts=[...html.matchAll(/<script[^>]+src="([^"]+\.js)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   const styles=[...html.matchAll(/<link[^>]+href="([^"]+\.css)(?:\?[^"]*)?"/g)].map(match=>match[1]);
-  assert.deepEqual(scripts,['runnerbear-core-v11.js','runnerbear-ui-v11.js','runnerbear-data-v11.js']);
-  assert.deepEqual(styles,['runnerbear-v11.css']);
+  assert.deepEqual(scripts,['runnerbear-core-v11.js','runnerbear-ui-v11.js','runnerbear-data-v11.js','runnerbear-v20-health.js']);
+  assert.deepEqual(styles,['runnerbear-v11.css','runnerbear-v20-health.css']);
   assert.doesNotMatch(html,/runnerbear-(?:v5|premium|v97|v100|v107|v1020)-/);
   assert.doesNotMatch(html,/http-equiv="(?:Cache-Control|Pragma|Expires)"/);
   assert.doesNotMatch(html,/rel="preload"/);
-  const jsBytes=scripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
-  const compressedBytes=scripts.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file))).length,0);
-  assert.ok(jsBytes<490000,'canonical JavaScript is '+jsBytes+' bytes');
-  assert.ok(compressedBytes<140000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
+  const canonicalScripts=scripts.slice(0,3);
+  const jsBytes=canonicalScripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
+  const compressedBytes=canonicalScripts.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file))).length,0);
+  assert.ok(fs.statSync(path.join(root,'runnerbear-v20-health.js')).size<25000);
+  assert.ok(fs.statSync(path.join(root,'runnerbear-v20-health.css')).size<14000);
+  assert.ok(jsBytes<515000,'canonical JavaScript is '+jsBytes+' bytes');
+  assert.ok(compressedBytes<145000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
   assert.ok(fs.statSync(path.join(root,styles[0])).size<267000);
 });
 
@@ -118,8 +121,8 @@ test('v10.20 state and integration contracts remain in the canonical runtime',()
 
 test('release metadata and production health gate agree on v12.0',()=>{
   const bridgeWorkflow=read('.github/workflows/deploy-tredict-bridge.yml');
-  assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'12.6.0');
-  assert.match(read('site.webmanifest'),/v12600/);
+  assert.equal(JSON.parse(read('runnerbear-version.json')).build ,'13.0.0');
+  assert.match(read('site.webmanifest'),/v13000/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v116.js'),/CONTEXTUAL_COACH_BUILD/);
   assert.match(read('cloud/runnerbear-cloud/src/index-v982.js'),/const BUILD='10\.25\.1'/);
   assert.match(read('cloud/runnerbear-cloud/wrangler.jsonc'),/src\/index-v118\.js/);

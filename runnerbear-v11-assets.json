@@ -1,10 +1,11 @@
 {
-  "build": "12.6.0",
+  "build": "13.0.0",
   "core": [
     "runnerbear-v12-release.js",
     "runnerbear-v1222-data-trust.js",
     "runnerbear-v123-running-day.js",
     "runnerbear-v124-progress.js",
+    "runnerbear-v20-intelligence.js",
     "runnerbear-v12-decision-contract.js",
     "runnerbear-v121-calm-flow.js",
     "runnerbear-v122-race-focus.js",
@@ -36,6 +37,7 @@
     "runnerbear-v121-components.css",
     "runnerbear-v121-workflows.css",
     "runnerbear-v121-decisions.css",
-    "runnerbear-v121-concept-one.css"
+    "runnerbear-v121-concept-one.css",
+    "runnerbear-v20-editorial.css"
   ]
 }

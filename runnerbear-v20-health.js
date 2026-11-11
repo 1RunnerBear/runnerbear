@@ -1,0 +1,212 @@
+/* RunnerBear 2.0 · Editorial Athlete · phase 1 health surface.
+ * Read-only projection of the existing canonical Body Response and health-trend API.
+ * Never infers a diagnosis or substitutes missing health data with illustrative values.
+ */
+(function () {
+  'use strict';
+  const root = document.getElementById('health');
+  if (!root) return;
+
+  const ALLOWED_RANGES = [7, 28, 30, 90];
+  const cache=new Map();
+  const state = { range: 7, metric:'hrvMs', page: 'overview', loading: false, error: '', summary: null, request: 0 };
+  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
+  const numeric = (value) => typeof value === 'number' && Number.isFinite(value) ? value : null;
+  const numberText = (value, digits = 0) => numeric(value) == null ? 'Mangler' :
+    new Intl.NumberFormat('nb-NO', { maximumFractionDigits: digits }).format(value);
+  const secondsText = (value) => {
+    if (numeric(value) == null || value < 0) return 'Mangler';
+    const minutes = Math.round(value / 60);
+    return `${Math.floor(minutes / 60)} t ${String(minutes % 60).padStart(2, '0')} min`;
+  };
+  const dateText = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ?
+    `${value.slice(8, 10)}.${value.slice(5, 7)}.${value.slice(0, 4)}` : 'Ukjent';
+  const bodyResponse = () => {
+    const snapshot = window.RunnerBearCloudV11?.snapshot?.();
+    const body = snapshot?.bodyResponse;
+    return body?.version === 'body-response-1' &&
+      body.planRevisionId === snapshot?.planRevisionId ? body : null;
+  };
+
+  function metricRow(label, value, unit, samples, annotation) {
+    const hasValue = value !== 'Mangler';
+    const note = samples > 0 ? `${samples} av ${state.range} dager` : 'Ingen tilgjengelige målinger';
+    return `<div class="rb20-metric-row">
+      <dt>${escapeHtml(label)}</dt>
+      <dd><strong>${escapeHtml(value)}</strong>${hasValue ? ` <small>${escapeHtml(unit)}</small>` : ''}</dd>
+      <span>${escapeHtml(annotation || note)}</span>
+    </div>`;
+  }
+
+  function summaryNote() {
+    const body = bodyResponse();
+    if(state.summary?.daysWithAnyData>0&&body?.freshness?.status!=='fresh')return 'Registrerte målinger vises med datadekning. Dagens samlede coachvurdering venter fortsatt på et bekreftet helsegrunnlag.';
+    if (!body) return 'Vi trenger bekreftede, ferske data før RunnerBear kan vurdere kroppens respons.';
+    if (body.freshness?.status !== 'fresh') return 'Siste tilgjengelige helseverdier vises. De er ikke bekreftet ferske nok for en ny vurdering i dag.';
+    return body.summary || body.stateLabel || 'Målingene er hentet. Se detaljene for grunnlaget.';
+  }
+
+  function periodOptions() {
+    return `<div class="rb20-ranges" role="group" aria-label="Velg periode">
+      ${(state.page==='breathing'?[7,30,90]:[7,28,90]).map((days) => `<button type="button" data-rb20-range="${days}" aria-pressed="${state.range === days}">${days} dager</button>`).join('')}
+    </div>`;
+  }
+
+  function sourceNote() {
+    const period = state.summary;
+    if (!period) return '';
+    return `<p class="rb20-source">Datagrunnlag: ${escapeHtml(String(period.daysWithAnyData ?? 0))} av ${state.range} dager med minst én måling.
+      Siste tilgjengelige dato: ${escapeHtml(dateText(period.dateTo))}. Kilde: Garmin og registrerte helsedata. ${escapeHtml(state.summary?.series?.at(-1)?.syncedAt?"Sist mottatt: "+state.summary.series.at(-1).syncedAt:"Importtid ikke tilgjengelig.")}</p>`;
+  }
+
+  function loadingOrError() {
+    if (state.loading) return '<p class="rb20-feedback" role="status">Henter registrerte målinger …</p>';
+    if (state.error) return `<div class="rb20-feedback" role="alert"><p>${escapeHtml(state.error)}</p><button type="button" data-rb20-retry>Prøv igjen</button></div>`;
+    if (!state.summary) return '<p class="rb20-feedback">Ingen målinger er tilgjengelige ennå.</p>';
+    return '';
+  }
+
+  function overviewHtml() {
+    const m = state.summary?.metrics || {};
+    const hrv = m.hrvMs || {}, sleep = m.sleepSeconds || {}, rhr = m.restingHeartRateBpm || {};
+    const body = bodyResponse();
+    const load = body?.domains?.find((part) => part.id === 'load');
+    const fresh = body?.freshness?.status === 'fresh';
+    return `<header class="rb20-appbar"><b>RunnerBear</b><button type="button" data-rb20-settings aria-label="Åpne profil og innstillinger">Profil</button></header><div class="rb20-shell">
+      <div class="rb20-landscape" aria-hidden="true"></div>
+      <div class="rb20-content">
+        <div class="rb20-eyebrow"><span>HELSE · SISTE ${state.range} DAGER</span><span class="rb20-data-label">Registrerte data</span></div>
+        <h1>Slik svarer kroppen.</h1>
+        <p class="rb20-lead">${escapeHtml(summaryNote())}</p>
+        ${periodOptions()}
+        ${loadingOrError()}
+        ${state.summary ? `<dl class="rb20-metrics">
+          ${metricRow('HRV', numberText(hrv.median, 1), 'ms', hrv.samples)}
+          ${metricRow('Søvn', secondsText(sleep.median), '', sleep.samples)}
+          ${metricRow('Hvilepuls', numberText(rhr.median, 1), 'bpm', rhr.samples)}
+        </dl>` : ''}
+        ${state.summary ? sourceNote()+trendHtml() : ''}
+        <section class="rb20-coach">
+          <p class="rb20-smallcaps">FRA ØKT TIL RESPONS</p>
+          <h2>${fresh ? 'Se belastningen i sammenheng.' : 'Vi følger med videre.'}</h2>
+          <p>${escapeHtml(fresh && load?.summary ?
+            load.summary :
+            'RunnerBear ser etter sammenheng mellom gjennomført trening, søvn, puls og egne symptomer. Ingen enkeltmåling avgjør neste økt.')}</p>
+        </section>
+        <div class="rb20-links">
+          <button type="button" data-rb20-page="breathing"><span>Søvn og pust</span><span aria-hidden="true">›</span></button>
+          <button type="button" data-rb20-checkin><span>Akilles og kroppssjekk</span><span aria-hidden="true">›</span></button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function breathingHtml() {
+    const m = state.summary?.metrics || {}, avg = m.spo2AveragePct || {}, minimum = m.spo2MinimumPct || {};
+    const coverage = Number(avg.samples || 0);
+    const below90 = state.summary?.recordedMinimumBelow90Nights;
+    return `<header class="rb20-appbar"><b>RunnerBear</b><button type="button" data-rb20-settings aria-label="Åpne profil og innstillinger">Profil</button></header><div class="rb20-shell rb20-breathing">
+      <div class="rb20-landscape rb20-landscape-small" aria-hidden="true"></div>
+      <div class="rb20-content">
+        <button type="button" class="rb20-back" data-rb20-page="overview" aria-label="Tilbake til helse">‹ &nbsp; Helse</button>
+        <div class="rb20-eyebrow"><span>SØVN OG PUST</span><span class="rb20-data-label">Klokkemålinger</span></div>
+        <h1>Se mønsteret over tid.</h1>
+        <p class="rb20-lead">Ikke bare nattens laveste måling.</p>
+        ${periodOptions()}
+        ${loadingOrError()}
+        ${state.summary ? `<section class="rb20-spo2">
+          <div class="rb20-spo2-head"><div><span>Nattlig SpO₂</span><strong>${escapeHtml(numberText(avg.mean, 1))}${numeric(avg.mean) == null ? '' : ' %'}</strong><small>Gjennomsnitt av tilgjengelige nattverdier</small></div></div>
+          <div class="rb20-spo2-facts">
+            <div><span>Måledekning</span><b>${coverage} av ${state.range} netter</b></div>
+            <div><span>Laveste registrerte minimum</span><b>${escapeHtml(numberText(minimum.lowestRecorded, 0))}${numeric(minimum.lowestRecorded) == null ? '' : ' %'}</b></div>
+            <div><span>Netter med minimum under 90 %</span><b>${minimum.samples > 0 && Number.isInteger(below90) ? below90 : 'Mangler'}</b></div>
+          </div>
+          ${sourceNote()}
+        </section>` : ''}
+        ${state.summary?trendHtml(true)+nightTableHtml():''}
+        <section class="rb20-explainer">
+          <h2>Hva betyr dette?</h2>
+          <p>Registrerte minimumsverdier kan påvirkes av målefeil. Antall netter under en grense er ikke antall pustestopp og kan ikke brukes som diagnose.</p>
+        </section>
+        <section class="rb20-coach rb20-care">
+          <h2>Snorking eller pustestopp?</h2>
+          <p>Ved observerte pustepauser eller vedvarende dagtretthet bør du snakke med fastlegen om søvnutredning.</p>
+        </section>
+        <p class="rb20-footnote">Garmin Pulse Ox er et trenings- og velværemål, ikke et medisinsk diagnoseverktøy.</p>
+      </div>
+    </div>`;
+  }
+
+  function trendHtml(breathing=false){
+    const series=state.summary?.series||[],key=breathing?'spo2AveragePct':state.metric,labels={hrvMs:'HRV · ms',sleepSeconds:'Søvn · timer',restingHeartRateBpm:'Hvilepuls · bpm',spo2AveragePct:'Nattlig SpO₂ · %'};
+    const rows=series.filter(r=>numeric(r[key])!=null),values=rows.map(r=>key==='sleepSeconds'?r[key]/3600:r[key]);
+    const options=breathing?'':`<div class="rb20-ranges" role="group" aria-label="Velg helsemåling">${[['hrvMs','HRV'],['sleepSeconds','Søvn'],['restingHeartRateBpm','Hvilepuls']].map(([k,label])=>`<button data-rb20-metric="${k}" aria-pressed="${state.metric===k}">${label}</button>`).join('')}</div>`;
+    if(!values.length)return options+'<p class="rb20-source">Ingen gyldige målinger for denne kurven i perioden.</p>';
+    const min=breathing?Math.max(50,Math.floor(Math.min(...values)-2)):Math.max(0,Math.floor(Math.min(...values)-2)),max=breathing?100:Math.ceil(Math.max(...values)+2),span=Math.max(1,max-min),last=Date.parse(state.summary.dateTo+'T12:00:00Z'),first=last-(state.range-1)*86400000;
+    const points=rows.map((r,i)=>({x:34+((Date.parse(r.date+'T12:00:00Z')-first)/(86400000*(state.range-1)))*276,y:132-(values[i]-min)/span*108,value:values[i],date:r.date}));
+    return `<section class="rb20-trend">${options}<figure><figcaption>${labels[key]} · registrerte dagsverdier</figcaption><svg viewBox="0 0 330 160" role="img" aria-label="${labels[key]}. ${points.length} registrerte dager. Nøyaktige verdier kan åpnes nedenfor."><path d="M30 24H318 M30 78H318 M30 132H318" class="grid"/><text x="0" y="28">${max}</text><text x="0" y="136">${min}</text>${points.map((p,i)=>`${i&&Date.parse(p.date)-Date.parse(points[i-1].date)===86400000?`<path d="M${points[i-1].x.toFixed(1)} ${points[i-1].y.toFixed(1)}L${p.x.toFixed(1)} ${p.y.toFixed(1)}" class="trend"/>`:''}<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"><title>${escapeHtml(p.date)}: ${p.value.toFixed(1)}</title></circle>`).join('')}</svg><p class="rb20-source">Punkter viser observerte verdier. Hull i målingene fylles ikke ut.</p></figure>${breathing?'':`<details><summary>Se daglige målinger</summary><div class="rb20-table-wrap"><table><thead><tr><th>Dato</th><th>${labels[key]}</th><th>Kilde</th></tr></thead><tbody>${rows.slice().reverse().map(r=>`<tr><th>${escapeHtml(dateText(r.date))}</th><td>${numberText(key==='sleepSeconds'?r[key]/3600:r[key],1)}</td><td>${escapeHtml(r.metricSources?.[{hrvMs:'hrv_ms',sleepSeconds:'sleep_seconds',restingHeartRateBpm:'rhr_bpm'}[key]]||r.source||'Registrert')}</td></tr>`).join('')}</tbody></table></div></details>`}</section>`;
+  }
+  function nightTableHtml(){
+    const rows=(state.summary?.series||[]).slice().reverse();
+    return `<details class="rb20-nightly"><summary>Se natt for natt</summary><div class="rb20-table-wrap"><table><caption>Klokkemålinger · ikke diagnostikk</caption><thead><tr><th>Natt</th><th>Snitt</th><th>Minimum</th></tr></thead><tbody>${rows.map(r=>`<tr><th>${escapeHtml(dateText(r.date))}</th><td>${numberText(r.spo2AveragePct,1)}${numeric(r.spo2AveragePct)!=null?' %':''}</td><td>${numberText(r.spo2MinimumPct,0)}${numeric(r.spo2MinimumPct)!=null?' %':''}</td></tr>`).join('')}</tbody></table></div></details><button type="button" class="rb20-export" data-rb20-export>Eksporter registrerte observasjoner</button>`;
+  }
+  function render() {
+    root.innerHTML = state.page === 'breathing' ? breathingHtml() : overviewHtml();
+  }
+
+  async function loadRange(days = state.range) {
+    if (!ALLOWED_RANGES.includes(days)) return;
+    state.range = days;
+    state.loading = true;
+    state.error = '';
+    state.summary = cache.get(days)||null;
+    const request = ++state.request;
+    render();
+    try {
+      const response = await fetch(`/api/v2/health/${state.page==='breathing'?'sleep-breathing':'trends'}?window=${days}`, { credentials: 'same-origin', cache: 'no-store' });
+      if (!response.ok) throw new Error('Målingene kunne ikke lastes akkurat nå.');
+      const payload = await response.json();
+      if (payload?.ok !== true || payload.windowDays !== days || !payload.metrics) throw new Error('Datagrunnlaget var ufullstendig.');
+      if (request !== state.request) return;
+      state.summary = payload;cache.set(days,payload);
+    } catch (error) {
+      if (request !== state.request) return;
+      state.error = error?.message || 'Målingene kunne ikke lastes akkurat nå.';
+    } finally {
+      if (request === state.request) { state.loading = false; render(); }
+    }
+  }
+
+  function open(page = 'overview') {
+    state.page = page === 'breathing' ? 'breathing' : 'overview';
+    if(state.page==='overview'&&state.range===30)state.range=28;
+    if (state.page === 'breathing' && state.range === 7) state.range = 30;
+    render();
+    loadRange(state.range);
+  }
+
+  root.addEventListener('click', (event) => {
+    if(event.target.closest('[data-rb20-settings]')){window.RunnerBearCoachOS?.switchView?.('more');return}
+    const metric=event.target.closest('[data-rb20-metric]');if(metric&&['hrvMs','sleepSeconds','restingHeartRateBpm'].includes(metric.dataset.rb20Metric)){state.metric=metric.dataset.rb20Metric;render();return}
+    if(event.target.closest('[data-rb20-export]')&&state.summary){const blob=new Blob([JSON.stringify({exportedAt:new Date().toISOString(),note:'Registrerte klokkemålinger. Ikke diagnose eller opptelling av pustestopp.',...state.summary},null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='RunnerBear-helseobservasjoner.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return}
+    const range = event.target.closest('[data-rb20-range]');
+    if (range) { loadRange(Number(range.dataset.rb20Range)); return; }
+    const page = event.target.closest('[data-rb20-page]');
+    if (page) { state.page = page.dataset.rb20Page === 'breathing' ? 'breathing' : 'overview';if(state.page==='breathing')state.range=30; open(state.page); window.scrollTo({ top: 0, behavior: 'instant' }); return; }
+    if (event.target.closest('[data-rb20-retry]')) { loadRange(); return; }
+    if (event.target.closest('[data-rb20-checkin]')) {
+      window.RunnerBearCoachOS?.switchView?.('today');
+      requestAnimationFrame(() => {
+        const trigger = document.querySelector('#today [data-rb111-body-open]');
+        if (trigger) trigger.click();
+      });
+    }
+  });
+
+  window.addEventListener('runnerbear:view', (event) => {
+    if (event.detail?.view === 'health'&&!state.summary&&!state.loading)open();
+  });
+  window.RunnerBearV20Health = Object.freeze({ version: '2.0.0', open, loadRange, render });
+})();

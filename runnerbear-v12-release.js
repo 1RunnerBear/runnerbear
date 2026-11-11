@@ -2,10 +2,10 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'12.6.0',
-    assetVersion:'12600',
-    label:'Concept 1 A · Personlig oppfølging',
-    design:'Concept 1 · Premium rolig'
+    build:'13.0.0',
+    assetVersion:'13000',
+    label:'RunnerBear 2.0 · Coach Intelligence',
+    design:'Original A · Editorial Athlete'
   });
   window.RunnerBearRelease=release;
   document.documentElement.dataset.runnerbearBuild=release.build;

@@ -17,8 +17,8 @@ test('v11.6 replaces the decision chat with contextual coach surfaces',()=>{
   assert.match(css,/The coach speaks once, in context/);
   assert.match(css,/\.rb116-workout-coach/);
   assert.match(css,/@media\(max-width:680px\)/);
-  assert.deepEqual(manifest.styles,['runnerbear-v121-baseline.css','runnerbear-v121-components.css','runnerbear-v121-workflows.css','runnerbear-v121-decisions.css','runnerbear-v121-concept-one.css']);
-  assert.equal(manifest.styles.length,5);
+  assert.deepEqual(manifest.styles,['runnerbear-v121-baseline.css','runnerbear-v121-components.css','runnerbear-v121-workflows.css','runnerbear-v121-decisions.css','runnerbear-v121-concept-one.css','runnerbear-v20-editorial.css']);
+  assert.equal(manifest.styles.length,6);
   assert.ok(!manifest.styles.includes('runnerbear-v112-coach-live.css'));
   assert.ok(!manifest.styles.includes('runnerbear-v1141-reliability.css'));
   assert.ok(!manifest.styles.includes('runnerbear-v115-premium-ux.css'));
