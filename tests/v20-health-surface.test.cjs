@@ -126,3 +126,12 @@ test('timeout offers retry and keeps previous valid data during retry',async()=>
  const slow=harness({timers:{setTimeout:fn=>{expire=fn;return 1},clearTimeout:()=>{}},fetcher:(url,{signal})=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Object.assign(new Error(),{name:'AbortError'}))))});
  const pending=slow.control.open();expire();await pending;assert.match(slow.health.innerHTML,/lang tid/);assert.match(slow.health.innerHTML,/Prøv igjen/);
 });
+test('switching to cached overview clears the aborted request before another breathing load',async()=>{
+ const calls=[];const app=harness({fetcher:(url,options)=>new Promise(resolve=>calls.push({resolve,options}))});
+ const overview=app.control.open();calls[0].resolve({ok:true,json:async()=>sample});await overview;
+ const pending=app.control.open('breathing');await app.control.open('overview');assert.equal(calls[1].options.signal.aborted,true);
+ const again=app.control.open('breathing');assert.equal(calls.length,3);
+ calls[2].resolve({ok:true,json:async()=>({...sample,windowDays:30})});await again;
+ calls[1].resolve({ok:true,json:async()=>({...sample,windowDays:30})});await pending;
+ assert.match(app.health.innerHTML,/Nattlig SpO₂/);
+});

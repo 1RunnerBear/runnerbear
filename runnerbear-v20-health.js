@@ -12,7 +12,7 @@
   const CACHE_TTL=60000, REQUEST_TIMEOUT=12000;
   let pending=null;
   const cacheKey=(page,days)=>`${page}:${days}:observed-v1`;
-  const state = { range: 7, metric:'hrvMs', page: 'overview', loading: false, error: '', summary: null, request: 0 };
+  const state = { ranges:{overview:7,breathing:30}, range: 7, metric:'hrvMs', page: 'overview', loading: false, error: '', summary: null, request: 0 };
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
   })[char]);
@@ -174,7 +174,9 @@
     const page=state.page,key=cacheKey(page,days);
     if(pending?.key===key)return pending.promise;
     pending?.controller.abort();
+    pending=null;
     state.range=days;
+    state.ranges[page]=days;
     const cached=cache.get(key);
     state.summary=cached?.payload||null;
     state.error='';
@@ -209,8 +211,7 @@
 
   function open(page = 'overview') {
     state.page = page === 'breathing' ? 'breathing' : 'overview';
-    if(state.page==='overview'&&state.range===30)state.range=28;
-    if (state.page === 'breathing' && state.range === 7) state.range = 30;
+    state.range=state.ranges[state.page];
     return loadRange(state.range);
   }
 
@@ -221,7 +222,7 @@
     const range = event.target.closest('[data-rb20-range]');
     if (range) { loadRange(Number(range.dataset.rb20Range)); return; }
     const page = event.target.closest('[data-rb20-page]');
-    if (page) { state.page = page.dataset.rb20Page === 'breathing' ? 'breathing' : 'overview';if(state.page==='breathing')state.range=30; open(state.page); window.scrollTo({ top: 0, behavior: 'instant' }); return; }
+    if (page) { state.page = page.dataset.rb20Page === 'breathing' ? 'breathing' : 'overview';open(state.page); window.scrollTo({ top: 0, behavior: 'instant' }); return; }
     if (event.target.closest('[data-rb20-retry]')) { loadRange(state.range,true); return; }
     if (event.target.closest('[data-rb20-checkin]')) {
       window.RunnerBearCoachOS?.switchView?.('today');
