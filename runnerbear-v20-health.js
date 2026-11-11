@@ -185,9 +185,6 @@
     }
   });
 
-  document.querySelector('[data-rb20-settings]')?.addEventListener('click', () => {
-    window.RunnerBearCoachOS?.switchView?.('more');
-  });
   window.addEventListener('runnerbear:view', (event) => {
     if (event.detail?.view === 'health') open();
   });
