@@ -2405,3 +2405,8 @@ html .rb107-surface .rb123-response button.rb107-button{color:#fffdf8!important;
 @media(max-width:560px){.rb20-today .rb20-editorial-banner{border-radius:18px}}
 .rb108-completed-detail .rb20-analysis{border-top:0;padding-top:12px}.rb108-completed-detail .rb20-record-basis{border-top:1px solid var(--rb20-line);margin-top:20px}.rb108-completed-detail .rb20-record-basis>summary{min-height:48px;display:flex;align-items:center;font-size:13px;font-weight:650;cursor:pointer}.rb108-completed-detail>header h2{font:600 27px/1.15 Georgia,serif;letter-spacing:-.025em}.rb108-completed-detail>header>.rb108-verdict{display:none}
 @media(prefers-color-scheme:dark){html:not([data-theme=light]) .rb119b-view-title p{color:var(--rb20-muted)}html:not([data-theme=light]) .rb119b-title-action{background:#2c3c2c;color:#f2f2e9}html:not([data-theme=light]) .rb107-actual-grid>div,html:not([data-theme=light]) .rb108-analysis-sections>section{background:#1d2921}html:not([data-theme=light]) .rb107-actual-grid :is(b,strong){color:#f2f2e9}}
+
+.rb20-observation .rb20-primary{margin-top:18px}
+.rb20-estimate-status{padding:16px 0;border-block:1px solid var(--rb20-line)}
+.rb20-estimate-status h3{font:600 23px/1.2 Georgia,serif;margin:8px 0;color:var(--rb20-ink)}
+.rb20-estimate-status p{font-size:13px;line-height:1.6;color:var(--rb20-muted)}
