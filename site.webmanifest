@@ -3,7 +3,7 @@
   "short_name": "RunnerBear",
   "description": "RunnerBear · Personlig innsikt i trening, form og helse",
   "id": "/?app=runnerbear",
-  "start_url": "/?app=v13300",
+  "start_url": "/?app=v13301",
   "scope": "/",
   "display": "standalone",
   "background_color": "#F5F3ED",

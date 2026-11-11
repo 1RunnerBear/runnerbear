@@ -5,7 +5,7 @@
   'use strict';
   const release=Object.freeze({
     build:'13.3.0',
-    assetVersion:'13300',
+    assetVersion:'13301',
     label:'RunnerBear 2.3 · Personlig trenings- og helserådgivning',
     design:'Original A · Editorial Athlete'
   });

@@ -59,7 +59,7 @@ test('the four navigation tabs are present twice, and original settings view is 
   }
   assert.equal((html.match(/data-tab="more"/g) || []).length, 0);
   assert.match(html, /id="more" class="view"/);
-  assert.match(html, /runnerbear-v20-health\.js\?v=13300/);
+  assert.match(html, /runnerbear-v20-health\.js\?v=13301/);
 });
 
 test('health view uses the API and displays real metrics with coverage', async () => {
