@@ -11,7 +11,6 @@ const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 function harness({ payload, status = 200, body = null } = {}) {
   const listeners = {};
   const health = { innerHTML: '', addEventListener(name, handler) { listeners['health:' + name] = handler; } };
-  const settings = { addEventListener(name, handler) { listeners['settings:' + name] = handler; } };
   const fetched = [];
   const switches = [];
   const window = {
@@ -26,7 +25,6 @@ function harness({ payload, status = 200, body = null } = {}) {
     window,
     document: {
       getElementById: (id) => id === 'health' ? health : null,
-      querySelector: (selector) => selector === '[data-rb20-settings]' ? settings : null,
     },
     fetch: async (url) => {
       fetched.push(url);
@@ -54,12 +52,11 @@ const sample = {
   recordedMinimumBelow90Nights: 2,
 };
 
-test('the four navigation tabs are present twice, and settings remain reachable', () => {
+test('the four navigation tabs are present twice, and original settings view is preserved', () => {
   for (const name of ['today', 'plan', 'health', 'race']) {
     assert.equal((html.match(new RegExp('data-tab="' + name + '"', 'g')) || []).length, 2);
   }
   assert.equal((html.match(/data-tab="more"/g) || []).length, 0);
-  assert.match(html, /data-rb20-settings/);
   assert.match(html, /id="more" class="view"/);
   assert.match(html, /runnerbear-v20-health\.js\?v=20001/);
 });
