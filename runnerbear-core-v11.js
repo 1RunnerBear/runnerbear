@@ -90,15 +90,16 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.RunnerBearIntelligence=api})(typeof window==='object'?window:globalThis,function(){
  'use strict';
  const positive=v=>typeof v==='number'&&Number.isFinite(v)&&v>0?v:null;
- const mean=rows=>{const valid=rows.filter(r=>positive(r.value)&&positive(r.seconds));const n=valid.reduce((s,r)=>s+r.seconds,0);return n?valid.reduce((s,r)=>s+r.value*r.seconds,0)/n:null};
+ const nonnegative=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0?v:null;
+ const mean=rows=>{const valid=rows.filter(r=>nonnegative(r.value)!=null&&positive(r.seconds));const n=valid.reduce((s,r)=>s+r.seconds,0);return n?valid.reduce((s,r)=>s+r.value*r.seconds,0)/n:null};
  function workout(activity={}){
   const detail=activity.detail||{},analysis=detail.analysis||{},fit=detail.garminFit,raw=Array.isArray(fit?.laps)?fit.laps:null;
   const source=raw?'Garmin FIT':analysis.workBlocks?.length?'Registrerte arbeidsdeler':null;
-  const blocks=(raw||analysis.workBlocks||[]).slice(0,1000).map((b,i)=>({index:i+1,seconds:positive(b.seconds??b.duration),distance:positive(b.distanceM??b.distance),hr:positive(b.avgHr??b.hr),power:positive(b.avgPower??b.power),pace:positive(b.pace)||(positive(b.distanceM??b.distance)&&positive(b.seconds??b.duration)?(b.seconds??b.duration)/((b.distanceM??b.distance)/1000):null),role:raw?String(b.intensity||'unknown').toLowerCase():'active'})).filter(b=>b.seconds);
+  const blocks=(raw||analysis.workBlocks||[]).slice(0,1000).map((b,i)=>({index:i+1,seconds:positive(b.seconds??b.duration),distance:positive(b.distanceM??b.distance),hr:positive(b.avgHr??b.hr),power:nonnegative(b.avgPower??b.power),pace:positive(b.pace)||(positive(b.distanceM??b.distance)&&positive(b.seconds??b.duration)?(b.seconds??b.duration)/((b.distanceM??b.distance)/1000):null),role:raw?String(b.intensity||'unknown').toLowerCase():'active'})).filter(b=>b.seconds);
   const work=blocks.filter(b=>['active','interval','work'].includes(b.role));
   const correction=activity.paceCorrection;if(correction)for(const b of work)b.pace=correction.mode==='set'?positive(correction.paceSeconds):null;
   const kind=activity.sportType==='running'?'run':activity.sportType==='cycling'?'bike':activity.sportType==='rowing'||/concept2|rowerg|roing/i.test(activity.title||'')?'row':activity.sportType==='swimming'?'swim':'other';
-  const metric=kind==='bike'||kind==='row'?'power':'pace',values=work.map(b=>b[metric]).filter(positive),avg=mean(work.map(b=>({seconds:b.seconds,value:b[metric]}))),spread=values.length>=3&&avg?(Math.max(...values)-Math.min(...values))/avg:null;
+  const metric=kind==='bike'||kind==='row'?'power':'pace',values=work.map(b=>b[metric]).filter(v=>nonnegative(v)!=null),avg=mean(work.map(b=>({seconds:b.seconds,value:b[metric]}))),spread=values.length>=3&&avg?(Math.max(...values)-Math.min(...values))/avg:null;
   const seconds=work.reduce((s,b)=>s+b.seconds,0),hr=mean(work.map(b=>({seconds:b.seconds,value:b.hr}))),power=mean(work.map(b=>({seconds:b.seconds,value:b.power}))),distance=work.reduce((s,b)=>s+(b.distance||0),0),pace=correction?(correction.mode==='set'?positive(correction.paceSeconds):null):work.length&&work.every(b=>b.distance)&&distance?seconds/(distance/1000):metric==='pace'?avg:null;
   const ramp=/ramp|ftp.?test/i.test(activity.title||'');
   const findings=[];

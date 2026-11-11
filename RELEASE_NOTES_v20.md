@@ -11,7 +11,7 @@ Original A / Editorial Athlete, four areas: I dag, Trening, Helse, Mål. Setting
 
 ## Validation and release limits
 
-467 unit/contract/integration tests passed locally before visual CI. Visual CI covers Chromium/WebKit, 320–430 px, dark/light, missing data, text scaling, adaptation and persistence failure. No new schema or migrations.
+468 unit/contract/integration tests passed locally before visual CI. Visual CI covers Chromium/WebKit, 320–430 px, dark/light, missing data, text scaling, adaptation and persistence failure. No new schema or migrations.
 
 This is the implemented presentation and observed-evidence release, not a claim that all long-term learning milestones are complete. Still open: manual validation of 20 real cross-sport sessions, calibrated distance prediction models, personalized response learning and monthly review. Full production raw-activity extraction was denied by automatic approval review; no workaround was used. Do not enable unvalidated predictions or change Garmin shadow authority.
 
