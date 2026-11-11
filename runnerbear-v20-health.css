@@ -215,3 +215,4 @@
 #health .rb22-response dd{margin:6px 0 16px}
 #health .rb22-response summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-size:13px;font-weight:650}
 #health .rb22-response button{border:1px solid var(--rb20-line);border-radius:12px;padding:12px;margin:8px 0;background:var(--rb20-surface);color:var(--rb20-ink);font:600 13px system-ui}
+#health .rb20-trend .reference{stroke:var(--rb20-muted);stroke-width:1.5;stroke-dasharray:5 4;fill:none}
