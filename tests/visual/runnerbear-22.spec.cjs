@@ -31,3 +31,8 @@ test('receipt save failure is truthful and a successful retry marks read without
 test('unavailable agent does not block canonical plan, health metrics or navigation',async({page})=>{
  await page.route('**/api/v2/agent',r=>r.fulfill({status:503,json:{ok:false}}));await page.goto('/');await page.locator('html.rb107-ready').waitFor();await page.locator('.bottom-nav [data-tab=health]').click();await expect(page.locator('.rb20-metrics')).toBeVisible();await page.locator('.bottom-nav [data-tab=plan]').click();await expect(page.locator('#plan')).toBeVisible();
 });
+test('optional focus is saved and closed truthfully without a plan write',async({page})=>{
+ await fixture(page,{healthChange:false});let writes=0;
+ await page.route('**/api/v2/agent/focus',async route=>{writes++;const body=route.request().postDataJSON();await route.fulfill({json:{ok:true,planChanged:false,focus:{id:'focus-fixture',kind:'sleep_routine',status:body.action==='start'?'active':'completed',from:'2026-11-11',through:'2026-11-24',label:'En jevnere søvnrutine',description:'Velg en leggetid som passer deg.',observation:'Vi følger de registrerte nettene.',limitation:'Observerte endringer beviser ikke effekt.'}}})});
+ await page.locator('.bottom-nav [data-tab=health]').click();await page.locator('[data-focus-kind="sleep_routine"]').click();await expect(page.locator('.rb23-focus')).toContainText('En jevnere søvnrutine');await expect(page.locator('[data-rb23-focus="complete"]')).toBeVisible();await page.locator('[data-rb23-focus="complete"]').click();await expect(page.locator('[data-focus-kind="sleep_routine"]')).toBeVisible();expect(writes).toBe(2);
+});

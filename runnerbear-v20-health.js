@@ -96,7 +96,7 @@
       <div class="rb20-content">
         <div class="rb20-eyebrow"><span>DAGENS HELSEVURDERING · SISTE 7 DAGER</span><span class="rb20-data-label">Registrerte data</span></div>
         <h1>Slik svarer kroppen.</h1>
-        <p class="rb20-lead">${escapeHtml(summaryNote())}</p><p class="rb20-source">Sist vurdert: ${escapeHtml(dateText(window.RunnerBearV22Agent?.snapshot?.()?.localDate))}. Historikken nedenfor har eget periodevalg.</p>
+        <p class="rb20-lead">${escapeHtml(summaryNote())}</p><p class="rb20-source">Sist vurdert: ${escapeHtml(dateText(window.RunnerBearV22Agent?.snapshot?.()?.localDate||bodyResponse()?.generatedAt?.slice(0,10)||bodyResponse()?.freshness?.syncedAt?.slice(0,10)))}. Historikken nedenfor har eget periodevalg.</p>
         <h2 class="rb23-history-title">Målingene over tid · ${state.range} dager</h2>${periodOptions()}
         ${loadingOrError()}
         ${state.summary ? `<dl class="rb20-metrics">
