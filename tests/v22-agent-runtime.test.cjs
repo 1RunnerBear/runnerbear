@@ -16,7 +16,7 @@ test('active Worker creates and revises read-only agent snapshots with local D1,
  'CREATE TABLE rb_garmin_activity_shadow(user_id TEXT,activity_id TEXT,local_date TEXT,summary_json TEXT,fit_analysis TEXT)',
  'CREATE TABLE rb_subjective_checkins(user_id TEXT,source_id TEXT,local_date TEXT,state TEXT,reasons_json TEXT,occurred_at TEXT)',
  'CREATE TABLE rb_training_events(user_id TEXT,event_type TEXT,payload_json TEXT)',
- ...fs.readFileSync(path.join(cloud,'migrations/0018_proactive_agent.sql'),'utf8').split(';').map(s=>s.trim()).filter(Boolean)];
+ ...['0018_proactive_agent.sql','0019_agent_focus.sql'].flatMap(file=>fs.readFileSync(path.join(cloud,'migrations',file),'utf8').split(';').map(s=>s.trim()).filter(Boolean))];
  await db.batch(definitions.map(sql=>db.prepare(sql)));
  const get=()=>mf.dispatchFetch('https://app.runnerbear.workers.dev/api/v2/agent',{headers});
  assert.equal((await mf.dispatchFetch('https://app.runnerbear.workers.dev/api/v2/agent')).status,401);
@@ -37,5 +37,18 @@ test('active Worker creates and revises read-only agent snapshots with local D1,
 
  assert.equal((await db.prepare("SELECT COUNT(*) n FROM sqlite_master WHERE name='rb_plan_revisions'").first()).n,0,'agent works without a plan and creates no plan table');
  const isolated=await db.prepare('SELECT COUNT(*) n FROM rb_agent_snapshots WHERE user_id=?').bind('someone-else').first();assert.equal(isolated.n,0);
+ const focusRequest=body=>mf.dispatchFetch('https://app.runnerbear.workers.dev/api/v2/agent/focus',{method:'POST',headers:{...headers,'Content-Type':'application/json','Idempotency-Key':crypto.randomUUID()},body:JSON.stringify(body)});
+ const focused=await (await focusRequest({action:'start',kind:'body_response'})).json();assert.equal(focused.ok,true);assert.equal(focused.focus.status,'active');assert.equal(focused.planChanged,false);
+ await focusRequest({action:'start',kind:'sleep_routine'});assert.equal((await db.prepare("SELECT COUNT(*) n FROM rb_agent_focus WHERE status='active'").first()).n,1);
+ const finished=await (await focusRequest({action:'complete',focusId:focused.focus.id})).json();assert.equal(finished.focus.status,'completed');assert.equal((await (await get()).json()).focus.status,'completed');
+ const {addDays}=await import('../cloud/runnerbear-cloud/src/v22/health.js');
+ await db.batch(Array.from({length:75},(_,i)=>db.prepare('INSERT INTO rb_activities(user_id,source,source_id,date,sport_type,duration_seconds,distance_m,payload_json) VALUES(?1,?2,?3,?4,?5,?6,?7,?8)').bind('primary','fixture','history-'+i,addDays(today,-80+i),'running',1800,5000,JSON.stringify({title:'Historical fixture'}))));
+ await db.prepare("UPDATE rb_agent_snapshots SET checked_at='2000-01-01T00:00:00Z'").run();await get();
+ for(let i=0;i<80;i++){const record=await db.prepare('SELECT payload_json FROM rb_agent_snapshots WHERE user_id=?').bind('primary').first();if(JSON.parse(record.payload_json).activityCount===75)break;await new Promise(r=>setTimeout(r,100));}
+ const full=await (await get()).json();assert.equal(full.snapshot.activityCount,75);assert.equal(full.snapshot.activities.length,12);
+ const historical=await mf.dispatchFetch('https://app.runnerbear.workers.dev/api/v2/agent/workout?source=fixture&sourceId=history-0',{headers});assert.equal(historical.status,200);assert.equal((await historical.json()).workout.sourceId,'history-0');
+ const beforeRepeat=(await db.prepare('SELECT COUNT(*) n FROM rb_agent_history').first()).n;
+ await db.prepare("UPDATE rb_agent_snapshots SET checked_at='2000-01-01T00:00:00Z'").run();await get();await new Promise(r=>setTimeout(r,300));assert.equal((await db.prepare('SELECT COUNT(*) n FROM rb_agent_history').first()).n,beforeRepeat,'query timing metadata does not create a new analysis revision');
+
  }finally{await mf.dispose();fs.rmSync(dir,{recursive:true,force:true})}
 });

@@ -1,0 +1,30 @@
+const {test,expect}=require('@playwright/test');
+test.use({viewport:{width:390,height:844}});
+const day=(date,n)=>new Date(Date.parse(date+'T12:00:00Z')+n*86400000).toISOString().slice(0,10);
+async function fixture(page){
+ const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Oslo'}).format(new Date());
+ await page.route('**/api/v2/agent',r=>r.fulfill({json:{ok:true,enabled:false}}));
+ await page.route('**/api/v2/bootstrap*',async route=>{const response=await route.fetch(),data=await response.json();data.activePlan.items=data.activePlan.items.slice(0,1).map(p=>({...p,localDate:day(today,-8)}));data.todayWorkout=null;data.config.goal={mode:'base'};data.clientState.runnerbear_v109_goals=JSON.stringify({version:1,mode:'base',primary:null,secondary:[],history:[]});data.recentActivities=[{source:'fixture',source_id:'today-run',date:today,sport_type:'running',duration_seconds:2400,distance_m:6500,payload:{id:'today-run',title:'Dagens faktiske løp',detail:{garminFit:{laps:[{intensity:'active',seconds:2400,distanceM:6500,avgHr:140}]}}}}];data.activityHistory={version:'activity-history-1',state:'current',syncedAt:new Date().toISOString(),truncated:false};await route.fulfill({response,json:data})});
+ await page.goto('/?fixture=base');await page.locator('html.rb107-ready').waitFor();return today;
+}
+test('current activity appears in the full calendar week even when canonical plan ended earlier',async({page})=>{
+ const today=await fixture(page);await page.locator('[data-rb20-training]').click();await expect(page.locator('.rb119b-week-controls')).toContainText('Uke ');await expect(page.locator('.rb119b-plan-list')).toContainText('Dagens faktiske løp');await expect(page.locator('.rb119b-plan-overview')).toContainText('6.5 km');
+ const current=await page.locator('.rb119b-week-controls b').textContent();await page.getByRole('button',{name:'Forrige uke',exact:true}).click();await expect(page.locator('.rb119b-week-controls b')).not.toHaveText(current);await page.getByRole('button',{name:'Neste uke',exact:true}).click();await expect(page.locator('.rb119b-week-controls b')).toHaveText(current);await expect(page.locator('.rb119b-plan-list')).toContainText('Dagens faktiske løp');
+});
+test('body check opens without a Today trigger and returns to the same health period',async({page})=>{
+ await fixture(page);await page.locator('.bottom-nav [data-tab=health]').click();await page.locator('[data-rb20-range="28"]').click();await page.locator('[data-rb20-checkin]').click();await expect(page.getByRole('dialog')).toBeVisible();await page.getByLabel('Smerte eller stivhet i akilles',{exact:true}).check();await page.evaluate(()=>window.RunnerBearCoachOS.render());await expect(page.getByLabel('Smerte eller stivhet i akilles',{exact:true})).toBeChecked();await page.keyboard.press('Escape');await expect(page.locator('#health')).toHaveClass(/active/);await expect(page.locator('[data-rb20-range="28"]')).toHaveAttribute('aria-pressed','true');
+});
+test('body check save is single and confirmed before returning to health',async({page})=>{
+ await fixture(page);let writes=0;
+ await page.route('**/api/v2/check-ins',async route=>{writes++;await new Promise(r=>setTimeout(r,100));await route.fulfill({json:{ok:true}})});
+ await page.locator('.bottom-nav [data-tab=health]').click();await page.locator('[data-rb20-checkin]').click();await expect(page.getByRole('dialog')).toBeVisible();await page.locator('[data-rb111-checkin="fresh"]').click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.locator('#health')).toHaveClass(/active/);expect(writes).toBe(1);
+});
+test('analysis reached from Today has one return action with the correct destination',async({page})=>{
+ await fixture(page);await page.locator('[data-rb20-analysis]').click();await expect(page.getByRole('button',{name:'Tilbake til I dag',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Tilbake til plan',exact:true})).toHaveCount(0);await page.getByRole('button',{name:'Tilbake til I dag',exact:true}).click();await expect(page.locator('#today')).toHaveClass(/active/);
+});
+test('health period has an explicit scope and profile matches other views',async({page})=>{
+ await fixture(page);await page.locator('.bottom-nav [data-tab=health]').click();await page.locator('[data-rb20-range="90"]').click();await expect(page.getByRole('heading',{name:'Målingene over tid · 90 dager'})).toBeVisible();await expect(page.locator('.rb20-eyebrow')).toContainText('SISTE 7 DAGER');await expect(page.locator('#health .rb126-profile svg')).toBeVisible();
+});
+for(const width of [320,430])for(const colorScheme of ['light','dark'])test(`readable health, form and check-in at ${width} in ${colorScheme}`,async({page},info)=>{
+ await page.setViewportSize({width,height:900});await page.emulateMedia({colorScheme});const errors=[];page.on('pageerror',e=>errors.push(e.message));await fixture(page);await page.locator('.bottom-nav [data-tab=health]').click();await expect(page.locator('.rb20-metrics')).toBeVisible();await page.screenshot({path:info.outputPath('health.png'),fullPage:true});await page.locator('[data-rb20-checkin]').click();await expect(page.getByRole('dialog')).toBeVisible();await page.screenshot({path:info.outputPath('check-in.png'),fullPage:true});await page.getByRole('button',{name:'Lukk helsebildet',exact:true}).click();await page.locator('.bottom-nav [data-tab=race]').click();await expect(page.locator('.rb23-dimensions')).toContainText('Løpskontinuitet');expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);expect(errors).toEqual([]);
+});

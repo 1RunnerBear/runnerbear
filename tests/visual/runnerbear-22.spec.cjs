@@ -14,13 +14,13 @@ async function fixture(page,options){
 }
 for(const colorScheme of ['light','dark'])test(`proactive health insight is useful and visible on mobile in ${colorScheme}`,async({page})=>{
  await page.emulateMedia({colorScheme});await fixture(page);
- await expect(page.locator('.rb22-hero')).toContainText('Kroppens mønster har endret seg');const action=page.locator('[data-rb22-health]');await expect(action).toBeVisible();
+ await expect(page.locator('.rb22-hero')).toContainText('Kroppens mønster har endret seg');const action=page.locator('.rb22-hero .rb20-primary');await expect(action).toBeVisible();
  const r=await action.boundingBox(),nav=await page.locator('.bottom-nav').boundingBox();expect(r.y+r.height).toBeLessThanOrEqual(nav.y);
- await action.click();await expect(page.locator('.rb22-response')).toContainText('Lavere enn referansen');await expect(page.locator('.rb20-lead')).not.toContainText('venter');
+ await page.locator('.bottom-nav [data-tab=health]').click();await expect(page.locator('.rb22-response')).toContainText('Lavere enn referansen');await expect(page.locator('.rb20-lead')).not.toContainText('venter');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+1)).toBe(false);
 });
 test('workout analysis includes observed next-night response and source-bound work facts',async({page})=>{
- await fixture(page,{healthChange:false});await page.locator('[data-rb20-analysis]').click();await expect(page.locator('.rb22-workout')).toContainText('30 minutter');await page.locator('.rb22-workout summary').click();await expect(page.locator('.rb22-workout')).toContainText('1 av 2');await expect(page.locator('.rb22-workout')).toContainText('ikke at økten forårsaket');
+ await fixture(page,{healthChange:false});await page.locator('[data-rb20-analysis]').click();await expect(page.locator('.rb20-work-summary')).toContainText('30:00');await page.locator('.rb22-workout summary').click();await expect(page.locator('.rb22-workout')).toContainText('1 av 2');await expect(page.locator('.rb22-workout')).toContainText('ikke at økten forårsaket');
 });
 test('receipt save failure is truthful and a successful retry marks read without changing plan',async({page})=>{
  await fixture(page);await page.locator('.bottom-nav [data-tab=health]').click();let fail=true;

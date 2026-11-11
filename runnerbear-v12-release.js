@@ -2,9 +2,9 @@
 (function(){
   'use strict';
   const release=Object.freeze({
-    build:'13.2.0',
-    assetVersion:'13000',
-    label:'RunnerBear 2.0 · Coach Intelligence',
+    build:'13.3.0',
+    assetVersion:'13300',
+    label:'RunnerBear 2.3 · Personlig trenings- og helserådgivning',
     design:'Original A · Editorial Athlete'
   });
   window.RunnerBearRelease=release;

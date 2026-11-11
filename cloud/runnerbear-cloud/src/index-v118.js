@@ -4,7 +4,7 @@ import previous, { MigrationService } from './index-v116.js';
 import { syncGarminPersonal, backfillGarminDay, importGarminActivities } from './v1027/garmin-personal.js';
 
 export { MigrationService };
-const BUILD='13.2.0';
+const BUILD='13.3.0';
 
 const jsonResponse=(response,body)=>{const headers=new Headers(response.headers);headers.set('content-type','application/json; charset=utf-8');headers.set('cache-control','no-store');return new Response(JSON.stringify(body),{status:response.status,statusText:response.statusText,headers})};
 
@@ -29,7 +29,7 @@ export default{
       if(String(env.RUNNERBEAR_V20_EVIDENCE_DISABLED||'false')!=='true'&&body.recentActivities?.length){
         try{const fits=await env.DB.prepare('SELECT activity_id,local_date,summary_json,fit_analysis FROM rb_garmin_activity_shadow WHERE user_id=?1 AND fit_analysis IS NOT NULL ORDER BY local_date DESC LIMIT 200').bind(String(env.PRIMARY_USER_ID||'primary')).all();body.recentActivities=attachFitEvidence(body.recentActivities,fits.results||[])}catch{console.error(JSON.stringify({event:'v20_fit_projection',status:'unavailable'}))}
       }
-      return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD,productVersion:'2.2',evidenceMode:'read-only',tredictLiveCalendarMirror:true});
+      return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD,productVersion:'2.3',evidenceMode:'read-only',tredictLiveCalendarMirror:true});
     }const audit=await liveMirrorAudit(env,String(env.PRIMARY_USER_ID||'primary'));return jsonResponse(response,{...body,build:BUILD,cloudBuild:BUILD,schemaVersion:5,tredictLiveCalendarMirror:true,tredictLiveCalendarMirrorVersion:'live-calendar-mirror-1',tredictMirrorAudit:audit,tredictConfigured:audit.tredictConfigured,calendarRead:audit.calendarRead,calendarWrite:audit.calendarWrite,moveSupported:audit.moveSupported,createSupported:audit.createSupported,updateSupported:audit.updateSupported,deleteSupported:audit.deleteSupported,replaceSupported:audit.replaceSupported,ownedRelinkSupported:audit.ownedRelinkSupported,lastReconcileAt:audit.lastReconcileAt,lastReconcileResult:audit.lastReconcileResult})}catch(error){console.error(JSON.stringify({event:'tredict_live_mirror_health',build:BUILD,status:'failed',errorCode:String(error?.message||error).slice(0,80)}));return fallback}
   },
   async scheduled(controller,env,ctx){
