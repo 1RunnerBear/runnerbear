@@ -8,17 +8,20 @@ const zlib=require('node:zlib');
 const root=path.resolve(__dirname,'..');
 const read=file=>fs.readFileSync(path.join(root,file),'utf8');
 
-test('v11 index loads only canonical versioned frontend assets',()=>{
+test('v11 canonical assets remain budgeted alongside the versioned v20 health extension',()=>{
   const html=read('index.html');
   const scripts=[...html.matchAll(/<script[^>]+src="([^"]+\.js)(?:\?[^"]*)?"/g)].map(match=>match[1]);
   const styles=[...html.matchAll(/<link[^>]+href="([^"]+\.css)(?:\?[^"]*)?"/g)].map(match=>match[1]);
-  assert.deepEqual(scripts,['runnerbear-core-v11.js','runnerbear-ui-v11.js','runnerbear-data-v11.js']);
-  assert.deepEqual(styles,['runnerbear-v11.css']);
+  assert.deepEqual(scripts,['runnerbear-core-v11.js','runnerbear-ui-v11.js','runnerbear-data-v11.js','runnerbear-v20-health.js']);
+  assert.deepEqual(styles,['runnerbear-v11.css','runnerbear-v20-health.css']);
   assert.doesNotMatch(html,/runnerbear-(?:v5|premium|v97|v100|v107|v1020)-/);
   assert.doesNotMatch(html,/http-equiv="(?:Cache-Control|Pragma|Expires)"/);
   assert.doesNotMatch(html,/rel="preload"/);
-  const jsBytes=scripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
-  const compressedBytes=scripts.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file))).length,0);
+  const canonicalScripts=scripts.slice(0,3);
+  const jsBytes=canonicalScripts.reduce((sum,file)=>sum+fs.statSync(path.join(root,file)).size,0);
+  const compressedBytes=canonicalScripts.reduce((sum,file)=>sum+zlib.gzipSync(fs.readFileSync(path.join(root,file))).length,0);
+  assert.ok(fs.statSync(path.join(root,'runnerbear-v20-health.js')).size<16000);
+  assert.ok(fs.statSync(path.join(root,'runnerbear-v20-health.css')).size<10000);
   assert.ok(jsBytes<490000,'canonical JavaScript is '+jsBytes+' bytes');
   assert.ok(compressedBytes<140000,'compressed canonical JavaScript is '+compressedBytes+' bytes');
   assert.ok(fs.statSync(path.join(root,styles[0])).size<267000);
