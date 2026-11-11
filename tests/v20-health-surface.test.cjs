@@ -8,7 +8,7 @@ const root = path.resolve(__dirname, '..');
 const script = fs.readFileSync(path.join(root, 'runnerbear-v20-health.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
-function harness({ payload, status = 200, body = null } = {}) {
+function harness({ payload, status = 200, body = null, fetcher, timers } = {}) {
   const listeners = {};
   const health = { innerHTML: '', addEventListener(name, handler) { listeners['health:' + name] = handler; } };
   const fetched = [];
@@ -26,11 +26,12 @@ function harness({ payload, status = 200, body = null } = {}) {
     document: {
       getElementById: (id) => id === 'health' ? health : null,
     },
-    fetch: async (url) => {
+    fetch: async (url, options) => {
       fetched.push(url);
+      if(fetcher)return fetcher(url,options);
       return { ok: status === 200, json: async () => payload };
     },
-    Intl,
+    Intl, AbortController, setTimeout:timers?.setTimeout||setTimeout, clearTimeout:timers?.clearTimeout||clearTimeout,
     requestAnimationFrame: (fn) => fn(),
   };
   vm.runInNewContext(script, context, { filename: 'runnerbear-v20-health.js' });
@@ -58,7 +59,7 @@ test('the four navigation tabs are present twice, and original settings view is 
   }
   assert.equal((html.match(/data-tab="more"/g) || []).length, 0);
   assert.match(html, /id="more" class="view"/);
-  assert.match(html, /runnerbear-v20-health\.js\?v=13001/);
+  assert.match(html, /runnerbear-v20-health\.js\?v=13100/);
 });
 
 test('health view uses the API and displays real metrics with coverage', async () => {
@@ -99,4 +100,29 @@ test('error state offers retry instead of a fabricated health summary', async ()
   await new Promise((resolve) => setImmediate(resolve));
   assert.match(app.health.innerHTML, /Prøv igjen/);
   assert.doesNotMatch(app.health.innerHTML, /41 ms/);
+});
+
+test('cache separates endpoints, reuses fresh data and deduplicates concurrent requests',async()=>{
+ let resolve;const app=harness({fetcher:()=>new Promise(r=>{resolve=r})});
+ const first=app.control.open();const duplicate=app.control.loadRange(7);assert.equal(app.fetched.length,1);
+ resolve({ok:true,json:async()=>sample});await Promise.all([first,duplicate]);
+ await app.control.open();assert.equal(app.fetched.length,1);
+ const breathing=app.control.open('breathing');resolve({ok:true,json:async()=>({...sample,windowDays:30})});await breathing;
+ const seven=app.control.loadRange(7);assert.equal(app.fetched.length,3);resolve({ok:true,json:async()=>sample});await seven;
+ assert.match(app.fetched[2],/sleep-breathing/);
+});
+test('superseded requests abort and late responses cannot replace the selected range',async()=>{
+ const calls=[];const app=harness({fetcher:(url,options)=>new Promise(resolve=>calls.push({resolve,options}))});
+ const old=app.control.open();const latest=app.control.loadRange(90);assert.equal(calls[0].options.signal.aborted,true);
+ calls[1].resolve({ok:true,json:async()=>({...sample,windowDays:90,daysWithAnyData:89})});await latest;
+ calls[0].resolve({ok:true,json:async()=>sample});await old;
+ assert.match(app.health.innerHTML,/89 av 90 dager/);assert.doesNotMatch(app.health.innerHTML,/6 av 7 dager/);
+});
+test('timeout offers retry and keeps previous valid data during retry',async()=>{
+ let expire;const app=harness({payload:sample,timers:{setTimeout:fn=>{expire=fn;return 1},clearTimeout:()=>{}}});
+ await app.control.open();assert.match(app.health.innerHTML,/41/);
+ // Force a refresh; successful payload still retained while request runs.
+ const refresh=app.control.loadRange(7,true);assert.match(app.health.innerHTML,/Viser sist hentede/);await refresh;
+ const slow=harness({timers:{setTimeout:fn=>{expire=fn;return 1},clearTimeout:()=>{}},fetcher:(url,{signal})=>new Promise((_,reject)=>signal.addEventListener('abort',()=>reject(Object.assign(new Error(),{name:'AbortError'}))))});
+ const pending=slow.control.open();expire();await pending;assert.match(slow.health.innerHTML,/lang tid/);assert.match(slow.health.innerHTML,/Prøv igjen/);
 });

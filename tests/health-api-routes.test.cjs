@@ -34,3 +34,31 @@ test('health insight routes stay unavailable during the coach kill switch',async
   assert.equal(response.status,503);
   assert.equal((await response.json()).code,'HEALTH_READ_DISABLED');
 });
+
+test('configured Worker entrypoint serves authenticated health routes against local D1',async()=>{
+  const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
+  const {build}=require('../cloud/runnerbear-cloud/node_modules/esbuild');
+  const {Miniflare,convertV4MiniflareOptions}=require('../cloud/runnerbear-cloud/node_modules/miniflare');
+  const cloud=path.join(__dirname,'../cloud/runnerbear-cloud'),config=JSON.parse(fs.readFileSync(path.join(cloud,'wrangler.jsonc'),'utf8'));
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rb21-worker-')),bundle=path.join(dir,'worker.mjs');
+  await build({entryPoints:[path.join(cloud,config.main)],outfile:bundle,bundle:true,format:'esm',platform:'browser',external:['cloudflare:workers','node:*'],logLevel:'silent'});
+  // Installed workerd supports through Aug 11; production retains its Aug 28 date.
+  const mf=new Miniflare(convertV4MiniflareOptions({modules:true,modulesRoot:dir,scriptPath:bundle,compatibilityDate:'2026-08-11',compatibilityFlags:config.compatibility_flags,d1Databases:['DB'],bindings:{RUNNERBEAR_API_KEY:'local-fixture-key',PRIMARY_USER_ID:'primary'}}));
+  try{
+    const db=await mf.getD1Database('DB');
+    await db.batch([
+      db.prepare('CREATE TABLE rb_feature_flags(user_id TEXT,flag TEXT,enabled INTEGER,payload_json TEXT)'),
+      db.prepare('CREATE TABLE rb_migrations(user_id TEXT,migration_key TEXT,status TEXT)'),
+      db.prepare('CREATE TABLE rb_health_daily(user_id TEXT,date TEXT,hrv_ms REAL,sleep_seconds REAL,rhr_bpm REAL,spo2_avg_pct REAL,spo2_min_pct REAL,respiration_avg_bpm REAL,sleep_score REAL,health_source TEXT,health_quality TEXT,updated_at TEXT)'),
+      db.prepare('CREATE TABLE rb_garmin_shadow(user_id TEXT,date TEXT,metrics TEXT,updated_at TEXT)'),
+      db.prepare("INSERT INTO rb_health_daily(user_id,date,hrv_ms,health_source) VALUES('primary',?1,42,'garmin')").bind(new Date().toISOString().slice(0,10)),
+    ]);
+    for(const endpoint of ['trends','sleep-breathing'])for(const days of endpoint==='trends'?[7,28,90]:[7,30,90]){
+      const url=`https://app.runnerbear.workers.dev/api/v2/health/${endpoint}?window=${days}`;
+      assert.equal((await mf.dispatchFetch(url)).status,401);
+      const response=await mf.dispatchFetch(url,{headers:{'X-RunnerBear-Key':'local-fixture-key'}});
+      assert.equal(response.status,200);const body=await response.json();assert.equal(body.windowDays,days);assert.equal(body.ok,true);
+      if(endpoint==='trends')assert.equal(body.metrics.hrvMs.median,42);
+    }
+  }finally{await mf.dispose();fs.rmSync(dir,{recursive:true,force:true});}
+});

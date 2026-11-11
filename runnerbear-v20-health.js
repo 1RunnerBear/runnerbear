@@ -9,6 +9,9 @@
 
   const ALLOWED_RANGES = [7, 28, 30, 90];
   const cache=new Map();
+  const CACHE_TTL=60000, REQUEST_TIMEOUT=12000;
+  let pending=null;
+  const cacheKey=(page,days)=>`${page}:${days}:observed-v1`;
   const state = { range: 7, metric:'hrvMs', page: 'overview', loading: false, error: '', summary: null, request: 0 };
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -59,12 +62,12 @@
   function sourceNote() {
     const period = state.summary;
     if (!period) return '';
-    return `<p class="rb20-source">Datagrunnlag: ${escapeHtml(String(period.daysWithAnyData ?? 0))} av ${state.range} dager med minst én måling.
-      Siste tilgjengelige dato: ${escapeHtml(dateText(period.dateTo))}. Kilde: Garmin og registrerte helsedata. ${escapeHtml(state.summary?.series?.at(-1)?.syncedAt?"Sist mottatt: "+dateTimeText(state.summary.series.at(-1).syncedAt):"Importtid ikke tilgjengelig.")}</p>`;
+    return `<details class="rb20-source-details"><summary>Datadekning og kilde · ${escapeHtml(String(period.daysWithAnyData ?? 0))} av ${state.range} dager</summary><p class="rb20-source">Datagrunnlag: ${escapeHtml(String(period.daysWithAnyData ?? 0))} av ${state.range} dager med minst én måling.
+      Siste måledato: ${escapeHtml(dateText((period.series||[]).filter(row=>['hrvMs','sleepSeconds','restingHeartRateBpm','spo2AveragePct','spo2MinimumPct'].some(key=>numeric(row[key])!=null)).map(row=>row.date).sort().at(-1)))}. Kilde: Garmin og registrerte helsedata. ${escapeHtml(state.summary?.series?.at(-1)?.syncedAt?"Sist mottatt: "+dateTimeText(state.summary.series.at(-1).syncedAt):"Importtid ikke tilgjengelig.")}</p></details>`;
   }
 
   function loadingOrError() {
-    if (state.loading) return '<p class="rb20-feedback" role="status">Henter registrerte målinger …</p>';
+    if (state.loading) return `<p class="rb20-feedback" role="status">${state.summary?'Viser sist hentede målinger mens vi oppdaterer …':'Henter registrerte målinger …'}</p>`;
     if (state.error) return `<div class="rb20-feedback" role="alert"><p>${escapeHtml(state.error)}</p><button type="button" data-rb20-retry>Prøv igjen</button></div>`;
     if (!state.summary) return '<p class="rb20-feedback">Ingen målinger er tilgjengelige ennå.</p>';
     return '';
@@ -85,11 +88,11 @@
         ${periodOptions()}
         ${loadingOrError()}
         ${state.summary ? `<dl class="rb20-metrics">
-          ${metricRow('HRV', numberText(hrv.median, 1), 'ms', hrv.samples)}
-          ${metricRow('Søvn', secondsText(sleep.median), '', sleep.samples)}
-          ${metricRow('Hvilepuls', numberText(rhr.median, 1), 'bpm', rhr.samples)}
+          ${metricRow('HRV', numberText(hrv.median, 1), 'ms', hrv.samples, `Median · ${hrv.samples||0} av ${state.range} dager`)}
+          ${metricRow('Søvn', secondsText(sleep.median), '', sleep.samples, `Median · ${sleep.samples||0} av ${state.range} dager`)}
+          ${metricRow('Hvilepuls', numberText(rhr.median, 1), 'bpm', rhr.samples, `Median · ${rhr.samples||0} av ${state.range} dager`)}
         </dl>` : ''}
-        ${state.summary ? sourceNote()+trendHtml() : ''}
+        ${state.summary ? trendHtml()+sourceNote() : ''}
         <section class="rb20-coach">
           <p class="rb20-smallcaps">FRA ØKT TIL RESPONS</p>
           <h2>${fresh ? 'Se belastningen i sammenheng.' : 'Vi følger med videre.'}</h2>
@@ -155,38 +158,60 @@
     return `<details class="rb20-nightly"><summary>Se natt for natt</summary><div class="rb20-table-wrap"><table><caption>Klokkemålinger · ikke diagnostikk</caption><thead><tr><th>Natt</th><th>Snitt</th><th>Minimum</th></tr></thead><tbody>${rows.map(r=>`<tr><th>${escapeHtml(dateText(r.date))}</th><td>${numberText(r.spo2AveragePct,1)}${numeric(r.spo2AveragePct)!=null?' %':''}</td><td>${numberText(r.spo2MinimumPct,0)}${numeric(r.spo2MinimumPct)!=null?' %':''}</td></tr>`).join('')}</tbody></table></div></details><button type="button" class="rb20-export" data-rb20-export>Eksporter registrerte observasjoner</button>`;
   }
   function render() {
-    root.innerHTML = state.page === 'breathing' ? breathingHtml() : overviewHtml();
+    const active=document.activeElement;
+    const focus=root.contains?.(active)?Object.entries(active.dataset||{}).find(([key])=>key.startsWith('rb20')):null;
+    const opened=Array.from(root.querySelectorAll?.('details[open]')||[]).map(el=>el.querySelector('summary')?.textContent);
+    const html=state.page === 'breathing' ? breathingHtml() : overviewHtml();
+    if(root.innerHTML===html)return;
+    root.innerHTML=html;
+    for(const el of root.querySelectorAll?.('details')||[])if(opened.includes(el.querySelector('summary')?.textContent))el.open=true;
+    if(focus)for(const el of root.querySelectorAll?.('button')||[])if(el.dataset[focus[0]]===focus[1]){el.focus({preventScroll:true});break;}
   }
 
-  async function loadRange(days = state.range) {
-    if (!ALLOWED_RANGES.includes(days)) return;
-    state.range = days;
-    state.loading = true;
-    state.error = '';
-    state.summary = cache.get(days)||null;
-    const request = ++state.request;
+  async function loadRange(days = state.range, force=false) {
+    const ranges=state.page==='breathing'?[7,30,90]:[7,28,90];
+    if (!ALLOWED_RANGES.includes(days)||!ranges.includes(days)) return;
+    const page=state.page,key=cacheKey(page,days);
+    if(pending?.key===key)return pending.promise;
+    pending?.controller.abort();
+    state.range=days;
+    const cached=cache.get(key);
+    state.summary=cached?.payload||null;
+    state.error='';
+    const request=++state.request;
+    if(!force&&cached&&Date.now()-cached.receivedAt<CACHE_TTL){state.loading=false;render();return;}
+    state.loading=true;
     render();
-    try {
-      const response = await fetch(`/api/v2/health/${state.page==='breathing'?'sleep-breathing':'trends'}?window=${days}`, { credentials: 'same-origin', cache: 'no-store' });
-      if (!response.ok) throw new Error('Målingene kunne ikke lastes akkurat nå.');
-      const payload = await response.json();
-      if (payload?.ok !== true || payload.windowDays !== days || !payload.metrics) throw new Error('Datagrunnlaget var ufullstendig.');
-      if (request !== state.request) return;
-      state.summary = payload;cache.set(days,payload);
-    } catch (error) {
-      if (request !== state.request) return;
-      state.error = error?.message || 'Målingene kunne ikke lastes akkurat nå.';
-    } finally {
-      if (request === state.request) { state.loading = false; render(); }
-    }
+    const controller=new AbortController();
+    let timedOut=false;
+    const timeout=setTimeout(()=>{timedOut=true;controller.abort();},REQUEST_TIMEOUT);
+    const promise=(async()=>{
+      try {
+        const response=await fetch(`/api/v2/health/${page==='breathing'?'sleep-breathing':'trends'}?window=${days}`,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+        if(!response.ok)throw new Error('Målingene kunne ikke lastes akkurat nå.');
+        const payload=await response.json();
+        if(payload?.ok!==true||payload.windowDays!==days||!payload.metrics)throw new Error('Datagrunnlaget var ufullstendig.');
+        if(request!==state.request)return;
+        state.summary=payload;
+        cache.set(key,{payload,receivedAt:Date.now()});
+      }catch(error){
+        if(request!==state.request)return;
+        if(error?.name==='AbortError'&&!timedOut)return;
+        state.error=timedOut?'Det tok for lang tid å hente målingene. Prøv igjen.':error?.message||'Målingene kunne ikke lastes akkurat nå.';
+      }finally{
+        clearTimeout(timeout);
+        if(request===state.request){state.loading=false;pending=null;render();}
+      }
+    })();
+    pending={key,controller,promise};
+    return promise;
   }
 
   function open(page = 'overview') {
     state.page = page === 'breathing' ? 'breathing' : 'overview';
     if(state.page==='overview'&&state.range===30)state.range=28;
     if (state.page === 'breathing' && state.range === 7) state.range = 30;
-    render();
-    loadRange(state.range);
+    return loadRange(state.range);
   }
 
   root.addEventListener('click', (event) => {
@@ -197,7 +222,7 @@
     if (range) { loadRange(Number(range.dataset.rb20Range)); return; }
     const page = event.target.closest('[data-rb20-page]');
     if (page) { state.page = page.dataset.rb20Page === 'breathing' ? 'breathing' : 'overview';if(state.page==='breathing')state.range=30; open(state.page); window.scrollTo({ top: 0, behavior: 'instant' }); return; }
-    if (event.target.closest('[data-rb20-retry]')) { loadRange(); return; }
+    if (event.target.closest('[data-rb20-retry]')) { loadRange(state.range,true); return; }
     if (event.target.closest('[data-rb20-checkin]')) {
       window.RunnerBearCoachOS?.switchView?.('today');
       requestAnimationFrame(() => {
@@ -208,7 +233,8 @@
   });
 
   window.addEventListener('runnerbear:view', (event) => {
-    if (event.detail?.view === 'health'&&!state.loading)open();
+    if (event.detail?.view === 'health')open(state.page);
+    else if(pending){++state.request;pending.controller.abort();pending=null;state.loading=false;}
   });
-  window.RunnerBearV20Health = Object.freeze({ version: '2.0.0', open, loadRange, render });
+  window.RunnerBearV20Health = Object.freeze({ version: '2.1.0', open, loadRange, render });
 })();
