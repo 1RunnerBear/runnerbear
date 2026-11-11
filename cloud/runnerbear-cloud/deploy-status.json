@@ -1,9 +1,9 @@
 {
   "build": "13.0.0",
-  "status": "failed",
-  "checked_at": "2026-11-11T12:58:17.347780+00:00",
-  "run_id": "43023674055",
-  "source_sha": "a804af4928abe196f8822677640c8b4d292f7c38",
+  "status": "success",
+  "checked_at": "2026-11-11T13:01:39.572979+00:00",
+  "run_id": "43025269093",
+  "source_sha": "fbb1dd64adb84a779e3b2f9ad7a3b70a99fe48a3",
   "steps": {
     "install": "success",
     "validate": "success",
@@ -12,18 +12,18 @@
     "recover_history": "success",
     "history": "success",
     "assets": "success",
-    "deploy": "failure",
+    "deploy": "success",
     "migrate": "success",
     "sync_review_cleanup": "success",
     "smoke": "success",
     "sync_review_audit": "success",
-    "health": "skipped",
-    "coach_live_removed": "skipped",
-    "shadow": "skipped",
-    "flag_smoke": "skipped",
-    "app_smoke": "skipped",
-    "access": "skipped",
-    "access_vars": "skipped",
-    "guard": "skipped"
+    "health": "success",
+    "coach_live_removed": "success",
+    "shadow": "success",
+    "flag_smoke": "success",
+    "app_smoke": "success",
+    "access": "success",
+    "access_vars": "success",
+    "guard": "success"
   }
 }
