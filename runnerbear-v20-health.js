@@ -23,6 +23,8 @@
   };
   const dateText = (value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')) ?
     `${value.slice(8, 10)}.${value.slice(5, 7)}.${value.slice(0, 4)}` : 'Ukjent';
+  const sourceText=value=>({garmin_personal_observed:'Garmin · direkte måling',garmin:'Garmin',tredict:'Registrert via Tredict',mixed:'Flere datakilder',registered:'Registrert måling'}[value]||'Registrerte målinger');
+  const dateTimeText=value=>Number.isFinite(Date.parse(value))?new Intl.DateTimeFormat('nb-NO',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Oslo'}).format(new Date(value)):'ikke tilgjengelig';
   const bodyResponse = () => {
     const snapshot = window.RunnerBearCloudV11?.snapshot?.();
     const body = snapshot?.bodyResponse;
@@ -58,7 +60,7 @@
     const period = state.summary;
     if (!period) return '';
     return `<p class="rb20-source">Datagrunnlag: ${escapeHtml(String(period.daysWithAnyData ?? 0))} av ${state.range} dager med minst én måling.
-      Siste tilgjengelige dato: ${escapeHtml(dateText(period.dateTo))}. Kilde: Garmin og registrerte helsedata. ${escapeHtml(state.summary?.series?.at(-1)?.syncedAt?"Sist mottatt: "+state.summary.series.at(-1).syncedAt:"Importtid ikke tilgjengelig.")}</p>`;
+      Siste tilgjengelige dato: ${escapeHtml(dateText(period.dateTo))}. Kilde: Garmin og registrerte helsedata. ${escapeHtml(state.summary?.series?.at(-1)?.syncedAt?"Sist mottatt: "+dateTimeText(state.summary.series.at(-1).syncedAt):"Importtid ikke tilgjengelig.")}</p>`;
   }
 
   function loadingOrError() {
@@ -146,7 +148,7 @@
     if(!values.length)return options+'<p class="rb20-source">Ingen gyldige målinger for denne kurven i perioden.</p>';
     const min=breathing?Math.max(50,Math.floor(Math.min(...values)-2)):Math.max(0,Math.floor(Math.min(...values)-2)),max=breathing?100:Math.ceil(Math.max(...values)+2),span=Math.max(1,max-min),last=Date.parse(state.summary.dateTo+'T12:00:00Z'),first=last-(state.range-1)*86400000;
     const points=rows.map((r,i)=>({x:34+((Date.parse(r.date+'T12:00:00Z')-first)/(86400000*(state.range-1)))*276,y:132-(values[i]-min)/span*108,value:values[i],date:r.date}));
-    return `<section class="rb20-trend">${options}<figure><figcaption>${labels[key]} · registrerte dagsverdier</figcaption><svg viewBox="0 0 330 160" role="img" aria-label="${labels[key]}. ${points.length} registrerte dager. Nøyaktige verdier kan åpnes nedenfor."><path d="M30 24H318 M30 78H318 M30 132H318" class="grid"/><text x="0" y="28">${max}</text><text x="0" y="136">${min}</text>${points.map((p,i)=>`${i&&Date.parse(p.date)-Date.parse(points[i-1].date)===86400000?`<path d="M${points[i-1].x.toFixed(1)} ${points[i-1].y.toFixed(1)}L${p.x.toFixed(1)} ${p.y.toFixed(1)}" class="trend"/>`:''}<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"><title>${escapeHtml(p.date)}: ${p.value.toFixed(1)}</title></circle>`).join('')}</svg><p class="rb20-source">Punkter viser observerte verdier. Hull i målingene fylles ikke ut.</p></figure>${breathing?'':`<details><summary>Se daglige målinger</summary><div class="rb20-table-wrap"><table><thead><tr><th>Dato</th><th>${labels[key]}</th><th>Kilde</th></tr></thead><tbody>${rows.slice().reverse().map(r=>`<tr><th>${escapeHtml(dateText(r.date))}</th><td>${numberText(key==='sleepSeconds'?r[key]/3600:r[key],1)}</td><td>${escapeHtml(r.metricSources?.[{hrvMs:'hrv_ms',sleepSeconds:'sleep_seconds',restingHeartRateBpm:'rhr_bpm'}[key]]||r.source||'Registrert')}</td></tr>`).join('')}</tbody></table></div></details>`}</section>`;
+    return `<section class="rb20-trend">${options}<figure><figcaption>${labels[key]} · registrerte dagsverdier</figcaption><svg viewBox="0 0 330 160" role="img" aria-label="${labels[key]}. ${points.length} registrerte dager. Nøyaktige verdier kan åpnes nedenfor."><path d="M30 24H318 M30 78H318 M30 132H318" class="grid"/><text x="0" y="28">${max}</text><text x="0" y="136">${min}</text>${points.map((p,i)=>`${i&&Date.parse(p.date)-Date.parse(points[i-1].date)===86400000?`<path d="M${points[i-1].x.toFixed(1)} ${points[i-1].y.toFixed(1)}L${p.x.toFixed(1)} ${p.y.toFixed(1)}" class="trend"/>`:''}<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3"><title>${escapeHtml(p.date)}: ${p.value.toFixed(1)}</title></circle>`).join('')}</svg><p class="rb20-source">Punkter viser observerte verdier. Hull i målingene fylles ikke ut.</p></figure>${breathing?'':`<details><summary>Se daglige målinger</summary><div class="rb20-table-wrap"><table><thead><tr><th>Dato</th><th>${labels[key]}</th><th>Kilde</th></tr></thead><tbody>${rows.slice().reverse().map(r=>`<tr><th>${escapeHtml(dateText(r.date))}</th><td>${numberText(key==='sleepSeconds'?r[key]/3600:r[key],1)}</td><td>${escapeHtml(sourceText(r.metricSources?.[{hrvMs:'hrv_ms',sleepSeconds:'sleep_seconds',restingHeartRateBpm:'rhr_bpm'}[key]]||r.source))}</td></tr>`).join('')}</tbody></table></div></details>`}</section>`;
   }
   function nightTableHtml(){
     const rows=(state.summary?.series||[]).slice().reverse();
