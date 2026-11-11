@@ -39,7 +39,7 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
    await page.locator('[data-rb107-plan-view="plan"]').click();
   }
  }
- await page.getByRole('button',{name:'Åpne innstillinger'}).click();
+ await page.locator('[data-rb126-more]:visible').first().click();
  await expect(page.locator('#more')).toBeVisible();await check(page);await shot(page,info,'settings');
  await nav.getByRole('button',{name:'I dag',exact:true}).click();
  await page.locator('[data-rb113-decision-action]:visible').first().click();
