@@ -19,7 +19,7 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=13200/);
+  assert.match(html,/runnerbear-v11\.css\?v=13300/);
   const migration=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/v121-css-pruning.json'),'utf8'));
   assert.ok(migration.sources.includes(source),`${source} was consolidated in original cascade order`);
   assert.equal(assets.styles.length,6);
@@ -37,7 +37,7 @@ test('today switches from the prescription to a result-first coach surface',()=>
   assert.match(app,/Slik bygger du form/);
   assert.match(app,/Coachens vurdering/);
   assert.match(app,/Se øktanalysen/);
-  assert.match(app,/Vis opprinnelig plan/);
+  assert.match(app,/Se totalen og plankoblingen/);
 });
 
 test('plan defaults to one vertical fidelity week with long-term access',()=>{
@@ -56,8 +56,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v13200');
-  assert.equal(version.build ,'13.2.0');
+  assert.equal(manifest.start_url,'/?app=v13300');
+  assert.equal(version.build ,'13.3.0');
   assert.equal(version.channel,'live');
 });
 
@@ -80,10 +80,10 @@ test('v10.19b keeps More insight-first while preserving real controls',()=>{
   assert.match(app,/data-rb109-goal-open/);
 });
 
-test('v10.19b gives Today three explicit, mutually exclusive states',()=>{
+test('Today distinguishes recorded activity, planned rest and a health clarification',()=>{
   assertCanonicalStyle('runnerbear-v1017-ux.css');
   assert.match(app,/Dagens økt/);
-  assert.match(app,/Aktivitet registrert · analyse pågår/);
+  assert.match(app,/context.mode==='activity'/);assert.match(app,/context.mode==='rest'/);assert.match(app,/Avklar kroppen før neste økt/);
   assert.match(app,/Slik bygger du form/);
   assert.doesNotMatch(app,/function nextWorkoutHtml/);
   assert.doesNotMatch(app,/Ett signal fortjener oppmerksomhet/);

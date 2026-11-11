@@ -1,4 +1,5 @@
-import {agentRead,agentReceipt} from '../v22/agent.js';
+import {writeFocus} from '../v22/focus.js';
+import {agentRead,agentReceipt,agentWorkoutRead} from '../v22/agent.js';
 import {healthObservationResponse} from '../v20/health-routes.js';
 import { BUILD,POLICY_VERSION,SCHEMA_VERSION } from './constants.js';
 import { event,eventStatement,newId } from './events.js';
@@ -222,10 +223,12 @@ export async function handleV1027(request,env,{userId,bodyJson,corsHeaders={},ct
   const url=new URL(request.url),path=url.pathname.replace(/\/+$/,'');if(!path.startsWith('/api/v2'))return null;const correlationId=String(request.headers.get('X-Correlation-ID')||crypto.randomUUID());
   const kill=String(env.COACH_LOOP_KILL_SWITCH||'false').toLowerCase()==='true',allFlags=await flags(env.DB,userId),write=!['GET','HEAD'].includes(request.method),migration=await env.DB.prepare("SELECT status FROM rb_migrations WHERE user_id=?1 AND migration_key='coach-loop-v1026'").bind(userId).first(),flagError=flagConfigurationError(allFlags,migration?.status==='committed');
   if(flagError)return fail('INVALID_FLAG_CONFIGURATION',503,flagError,corsHeaders);
+  if(request.method==='GET'&&path==='/api/v2/agent/workout')return agentWorkoutRead(request,env,{userId,corsHeaders});
   if(request.method==='GET'&&path==='/api/v2/agent')return agentRead(request,env,{userId,ctx,corsHeaders});
   if(request.method==='GET'&&['/api/v2/health/trends','/api/v2/health/sleep-breathing'].includes(path))return healthObservationResponse(request,env,{userId,corsHeaders,kill});
   if(write&&!request.headers.get('Idempotency-Key'))return fail('IDEMPOTENCY_KEY_REQUIRED',400,'Idempotency-Key mangler.',corsHeaders);
   if(kill&&write)return fail('COACH_LOOP_DISABLED',503,'Coach Loop er midlertidig satt i sikker modus.',corsHeaders);
+  if(request.method==='POST'&&path==='/api/v2/agent/focus')return writeFocus(request,env,{userId,bodyJson,corsHeaders});
   if(request.method==='POST'&&path==='/api/v2/agent/receipt')return agentReceipt(request,env,{userId,bodyJson,corsHeaders});
   if(request.method==='POST'&&path==='/api/v2/pace-corrections'){
     try{return json(await savePaceCorrection(env.DB,userId,await bodyJson(request),request.headers.get('Idempotency-Key')),200,corsHeaders)}catch(error){if(error.status&&error.code)return fail(error.code,error.status,error.message,corsHeaders);throw error}
