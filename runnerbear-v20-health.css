@@ -186,24 +186,12 @@
 #health .rb20-footnote { color: var(--rb20-muted); font-size: 11px; line-height: 1.5; }
 #health .rb20-feedback { padding: 14px 0; color: var(--rb20-muted); font-size: 13px; }
 #health .rb20-feedback button { margin-top: 9px; min-height: 44px; padding: 8px 15px; border: 1px solid var(--rb20-border); border-radius: 12px; background: var(--rb20-surface); color: var(--rb20-forest); cursor: pointer; }
-#health button:focus-visible, [data-rb20-settings]:focus-visible { outline: 3px solid #94a470; outline-offset: 3px; }
-.topbar [data-rb20-settings] {
-  min-height: 44px;
-  padding: 7px 12px;
-  border: 1px solid rgba(25, 49, 38, .18);
-  border-radius: 999px;
-  background: #fffdf8;
-  color: #174a35;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-}
+#health button:focus-visible { outline: 3px solid #94a470; outline-offset: 3px; }
 @media (max-width: 560px) {
   #health .rb20-shell { border-radius: 0; border-left: 0; border-right: 0; box-shadow: none; }
   #health .rb20-content { padding: 19px 19px 31px; }
   #health .rb20-metric-row { grid-template-columns: minmax(68px, .8fr) minmax(95px, 1fr); column-gap: 8px; }
   #health .rb20-metric-row > span { grid-column: 2; margin-top: -5px; }
-  .topbar [data-rb20-settings] { padding: 7px 10px; }
   .topbar .race-count { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
