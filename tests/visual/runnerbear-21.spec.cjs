@@ -14,7 +14,7 @@ test('health preserves period, focused controls and open evidence after retry',a
 });
 test('20 warm health opens avoid repeated requests with an identical delayed API fixture',async({page},info)=>{
  test.setTimeout(60000);
- const baseline=cp.execFileSync('git',['show','41b95e931f1ef7c96879743e78bf20b12d6a3ff9:runnerbear-v20-health.js'],{encoding:'utf8'});
+ const baseline=cp.execFileSync('git',['-c','safe.directory='+process.cwd(),'show','41b95e931f1ef7c96879743e78bf20b12d6a3ff9:runnerbear-v20-health.js'],{encoding:'utf8'});
  const results={};
  for(const variant of ['baseline','release']){
   let requests=0;
