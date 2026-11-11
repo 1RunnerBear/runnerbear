@@ -10,7 +10,7 @@ async function geometry(page){return page.evaluate(()=>{
 async function check(page){
  const g=await geometry(page);expect(g.overflow).toBe(false);expect(g.background).toBe('rgb(245, 243, 237)');
  if(page.viewportSize().width<821){expect(g.desktop.display).toBe('none');expect(g.nav.display).toBe('grid')}
- const small=await page.locator('button:visible,summary:visible,input:visible,select:visible').evaluateAll(nodes=>nodes.filter(e=>!['checkbox','radio'].includes(e.type)).map(e=>({label:(e.innerText||e.getAttribute('aria-label')||e.tagName).slice(0,65),w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height})).filter(r=>r.w<43.5||r.h<43.5));
+ const small=await page.locator('button:visible,summary:visible,input:visible,select:visible').evaluateAll(nodes=>nodes.filter(e=>e.isConnected&&e.getClientRects().length>0&&!['checkbox','radio'].includes(e.type)).map(e=>({label:(e.innerText||e.getAttribute('aria-label')||e.tagName).slice(0,65),w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height})).filter(r=>r.w<43.5||r.h<43.5));
  expect(small).toEqual([]);
 }
 async function shot(page,testInfo,name){await page.screenshot({path:testInfo.outputPath(name+'.png'),fullPage:true});await testInfo.attach(name,{path:testInfo.outputPath(name+'.png'),contentType:'image/png'})}
