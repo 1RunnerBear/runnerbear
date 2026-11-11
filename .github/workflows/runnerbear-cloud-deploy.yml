@@ -261,7 +261,33 @@ jobs:
         id: deploy_cloud
         if: steps.assets.outcome == 'success'
         continue-on-error: true
-        run: npx wrangler deploy --config wrangler.release.jsonc
+        run: |
+          set +e
+          npx wrangler deploy --config wrangler.release.jsonc > /tmp/runnerbear-deploy.log 2>&1
+          DEPLOY_EXIT=$?
+          set -e
+          cat /tmp/runnerbear-deploy.log
+          if [ "$DEPLOY_EXIT" = "0" ]; then exit 0; fi
+          if ! grep -q 'binding DB of type d1 failed to generate' /tmp/runnerbear-deploy.log; then exit "$DEPLOY_EXIT"; fi
+          # Preserve the exact existing binding using Cloudflare's inherit type.
+          # Never create a database or continue with DB absent.
+          python - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+          config=json.loads(Path('wrangler.release.jsonc').read_text())
+          expected=config['d1_databases'][0]['database_id']
+          url='https://api.cloudflare.com/client/v4/accounts/'+os.environ['CLOUDFLARE_ACCOUNT_ID']+'/workers/scripts/app/settings'
+          req=urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['CLOUDFLARE_API_TOKEN']})
+          with urllib.request.urlopen(req) as response: settings=json.load(response)
+          bindings=[b for b in settings.get('result',{}).get('bindings',[]) if b.get('name')=='DB']
+          if len(bindings)!=1 or bindings[0].get('type')!='d1' or bindings[0].get('id')!=expected:
+              raise SystemExit('Existing production DB binding does not match; aborting')
+          del config['d1_databases']
+          config.setdefault('unsafe',{}).setdefault('bindings',[]).append({'name':'DB','type':'inherit'})
+          Path('wrangler.inherit.release.jsonc').write_text(json.dumps(config,indent=2)+'\n')
+          print('Verified existing DB identity; retaining it via inherit binding')
+          PY
+          npx wrangler deploy --config wrangler.inherit.release.jsonc
 
       - name: Smoke test Worker and private Tredict RPC
         id: health
