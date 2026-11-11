@@ -94,5 +94,5 @@ test('release chain preserves the v11.3 contract without a new endpoint or schem
   assert.match(routes,/decision\.status!=='proposed'/);
   assert.match(routes,/reductionPercent>20/);
   assert.match(routes,/SAFE_ADJUSTMENT_REJECTED/);
-  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,15);
+  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,16);
 });

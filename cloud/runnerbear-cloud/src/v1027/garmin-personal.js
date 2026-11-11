@@ -1,3 +1,4 @@
+import {analyzeFit, readBounded} from './garmin-fit.js';
 const BASE='https://personal.connectapi.garmin.com';
 const TOKEN_PATH='/personalapitoken-service/personal-api/personal-api-key/token';
 const safeDate=value=>/^\d{4}-\d{2}-\d{2}$/.test(String(value||''));
@@ -106,5 +107,21 @@ export async function importGarminActivities(env){
       local_date=excluded.local_date,summary_json=excluded.summary_json`).bind(user,id,day,JSON.stringify(summary)));
   }
   if(statements.length)await env.DB.batch(statements);
+  await analyzeNextActivity(env,user,token);
   return statements.length;
+}
+
+async function analyzeNextActivity(env,user,token){
+  const row=await env.DB.prepare(`SELECT activity_id FROM rb_garmin_activity_shadow
+    WHERE user_id=?1 AND fit_analysis IS NULL AND (fit_attempt IS NULL OR fit_attempt<datetime('now','-1 day'))
+    ORDER BY local_date DESC,activity_id DESC LIMIT 1`).bind(user).first();
+  if(!row)return;
+  const claim=await env.DB.prepare(`UPDATE rb_garmin_activity_shadow SET fit_attempt=datetime('now')
+    WHERE user_id=?1 AND activity_id=?2 AND fit_analysis IS NULL AND (fit_attempt IS NULL OR fit_attempt<datetime('now','-1 day'))`).bind(user,row.activity_id).run();
+  if(!claim.meta.changes)return;
+  const response=await fetch(BASE+'/download-service/files/activity/'+row.activity_id,{redirect:'manual',headers:{Authorization:'Bearer '+token,Accept:'*/*'}});
+  if(!response.ok)throw new Error('GARMIN_FIT_HTTP_'+response.status);
+  const analysis=analyzeFit(await readBounded(response));
+  await env.DB.prepare('UPDATE rb_garmin_activity_shadow SET fit_analysis=?3 WHERE user_id=?1 AND activity_id=?2')
+    .bind(user,row.activity_id,JSON.stringify(analysis)).run();
 }

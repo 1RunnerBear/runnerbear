@@ -13,6 +13,8 @@
     "access:configure": "node scripts/configure-access.mjs"
   },
   "dependencies": {
+    "@garmin/fitsdk": "^21.221.0",
+    "fflate": "^0.8.3",
     "jose": "6.2.3"
   },
   "devDependencies": {
