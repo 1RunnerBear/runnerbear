@@ -144,6 +144,8 @@ jobs:
 
   visual:
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/playwright:v1.63.0-noble
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -154,7 +156,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium webkit
       - name: Verify mobile startup, images, controls and four views
         run: npm run test:visual
       - name: Preserve visual verification
