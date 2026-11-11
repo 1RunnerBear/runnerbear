@@ -10,7 +10,7 @@ async function geometry(page){return page.evaluate(()=>{
 async function check(page){
  const g=await geometry(page);expect(g.overflow).toBe(false);expect(g.background).toBe('rgb(245, 243, 237)');
  if(page.viewportSize().width<821){expect(g.desktop.display).toBe('none');expect(g.nav.display).toBe('grid')}
- const small=await page.locator('button:visible,summary:visible,input:visible,select:visible').evaluateAll(nodes=>nodes.filter(e=>!['checkbox','radio'].includes(e.type)).map(e=>({label:(e.innerText||e.getAttribute('aria-label')||e.tagName).slice(0,65),w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height})).filter(r=>r.w<43.5||r.h<43.5));
+ const small=await page.locator('button:visible,summary:visible,input:visible,select:visible').evaluateAll(nodes=>nodes.filter(e=>e.isConnected&&e.getClientRects().length>0&&!['checkbox','radio'].includes(e.type)).map(e=>({label:(e.innerText||e.getAttribute('aria-label')||e.tagName).slice(0,65),w:e.getBoundingClientRect().width,h:e.getBoundingClientRect().height})).filter(r=>r.w<43.5||r.h<43.5));
  expect(small).toEqual([]);
 }
 async function shot(page,testInfo,name){await page.screenshot({path:testInfo.outputPath(name+'.png'),fullPage:true});await testInfo.attach(name,{path:testInfo.outputPath(name+'.png'),contentType:'image/png'})}
@@ -28,7 +28,7 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
  const after=await geometry(page);expect(after.app.width).toBe(before.app.width);expect(after.nav).toEqual(before.nav);expect(await page.evaluate(()=>window.__cls)).toBeLessThan(.05);
  await shot(page,info,'today');
  const nav=page.locator(width<821?'.bottom-nav':'.desktop-nav');
- for(const [name,id] of [['Plan','plan'],['Mål','race'],['Mer','more']]){
+ for(const [name,id] of [['Trening','plan'],['Helse','health'],['Mål','race']]){
   await nav.getByRole('button',{name,exact:true}).click();await expect(page.locator('#'+id)).toBeVisible();await check(page);await shot(page,info,id);
   if(id==='plan'){
    await page.getByRole('button',{name:'Åpne månedsoversikt',exact:true}).click();await check(page);await shot(page,info,'month');
@@ -39,6 +39,8 @@ for(const [width,height] of widths)test(`shell and four views ${width}x${height}
    await page.locator('[data-rb107-plan-view="plan"]').click();
   }
  }
+ await page.locator('[data-rb126-more]:visible').first().click();
+ await expect(page.locator('#more')).toBeVisible();await check(page);await shot(page,info,'settings');
  await nav.getByRole('button',{name:'I dag',exact:true}).click();
  await page.locator('[data-rb113-decision-action]:visible').first().click();
  await expect(page.getByRole('dialog')).toBeVisible();await check(page);await shot(page,info,'workout-detail');
@@ -92,8 +94,8 @@ test('completed workout and long coach explanation retain mobile proportions',as
   await route.fulfill({response,json:data});
  });
  await page.goto('/');await page.locator('html.rb107-ready').waitFor();
- await expect(page.getByText('Registrert gjennomføring',{exact:true})).toBeVisible();await check(page);
- const contrasts=await page.locator('.rb109-result-head p,.rb109-result-head .rb107-overline,.rb109-result-metrics b,.rb109-result-metrics span,.rb109-coach-verdict p,.rb109-coach-verdict>span').evaluateAll(nodes=>{
+ await expect(page.getByText('DAGENS ØKT · REGISTRERT',{exact:true})).toBeVisible();await check(page);
+ const contrasts=await page.locator('.rb20-observation p,.rb20-observation .rb20-kicker,.rb20-coach-panel p,.rb20-coach-panel>small').evaluateAll(nodes=>{
   const luminance=rgb=>rgb.slice(0,3).map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4).reduce((sum,v,i)=>sum+v*[.2126,.7152,.0722][i],0);
   const rgb=value=>value.match(/[\d.]+/g).map(Number);
   return nodes.map(e=>{let p=e,bg;do{bg=rgb(getComputedStyle(p).backgroundColor);p=p.parentElement}while(p&&bg.length===4&&bg[3]===0);const a=luminance(rgb(getComputedStyle(e).color)),b=luminance(bg);return(Math.max(a,b)+.05)/(Math.min(a,b)+.05)});

@@ -8,7 +8,7 @@ const snapshot=(done=false)=>({ok:true,responseCapture:true,generatedAt:stamp,fl
 const storage=()=>{const data=new Map();return{getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)}};
 class Clock extends Date{constructor(...args){super(...(args.length?args:[now]))}static now(){return now}}
 function ui(data,plan=workout){
- const localStorage=storage(),window={RunnerBearRunningDay:{...day,fresh:d=>day.fresh(d,now),presentation:input=>day.presentation({...input,now})},RunnerBearCalmFlow:require('../runnerbear-v121-calm-flow.js'),RunnerBearDataTrust:trust,RunnerBearCloudV11:{snapshot:()=>data},RunnerBearCoachEngine:{schedule:()=>[plan]},addEventListener(){},dispatchEvent(){}},document={readyState:'loading',addEventListener(){},querySelector:()=>null,querySelectorAll:()=>[]};
+ const localStorage=storage(),window={RunnerBearRunningDay:{...day,fresh:d=>day.fresh(d,now),presentation:input=>day.presentation({...input,now})},RunnerBearIntelligence:require('../runnerbear-v20-intelligence.js'),RunnerBearCalmFlow:require('../runnerbear-v121-calm-flow.js'),RunnerBearDataTrust:trust,RunnerBearCloudV11:{snapshot:()=>data},RunnerBearCoachEngine:{schedule:()=>[plan]},addEventListener(){},dispatchEvent(){}},document={readyState:'loading',addEventListener(){},querySelector:()=>null,querySelectorAll:()=>[]};
  const source=fs.readFileSync('runnerbear-ui-v11-source.js','utf8').replace("  if(document.readyState==='loading')",'  window.audit={completedDetailHtml,completedRows,todayHtml,oneDecisionHeroHtml,responseContext,coachFeedbackHtml,workoutDetailModalHtml,responseEdits,responseErrors,responseDrafts,state,persistDayChoice};\n  if(document.readyState===\'loading\')');
  vm.runInNewContext(source,{window,document,localStorage,sessionStorage:storage(),Date:Clock,performance:{now:()=>0},setTimeout:()=>0,clearTimeout(){},CustomEvent:class{},console});
  return{api:window.audit,os:window.RunnerBearCoachOS,localStorage,window};
@@ -26,7 +26,7 @@ test('actual Today renders the workout, one primary action and a direct adaptati
 });
 test('completed Today shows one measured result and an unanswered response with production flags disabled',()=>{
  const data=snapshot(true),{api,os}=ui(data),p=os.planFor(workout.ds),c=api.responseContext(p);assert.ok(c);assert.equal(c.workout.workoutId,'wo-2026-09-09');
- const html=api.todayHtml();assert.equal((html.match(/data-rb123-response="/g)||[]).length,1);assert.match(html,/Økten er lagret i historikken din/);assert.doesNotMatch(html,/data-rb123-adapt|id="rb113DecisionTitle"/);assert.match(html,/12[,.]0|12 km/);assert.doesNotMatch(api.coachFeedbackHtml(p),/ checked/);
+ const html=api.todayHtml();assert.equal((html.match(/data-rb123-response="/g)||[]).length,1);assert.match(html,/Se øktanalysen/);assert.doesNotMatch(html,/data-rb123-adapt|id="rb113DecisionTitle"/);assert.match(html,/6 × 6 min terskel/);assert.doesNotMatch(api.coachFeedbackHtml(p),/ checked/);
  const history=api.completedDetailHtml(api.completedRows()[0]);assert.equal((history.match(/data-rb123-response="/g)||[]).length,1);assert.ok(history.indexOf('data-rb123-response=')<history.indexOf('Planlagt mot utført'));const detail=api.workoutDetailModalHtml(p);assert.ok(detail.indexOf('data-rb123-response=')<detail.indexOf('Se den planlagte økten'));
 });
 test('saved response can be edited and keeps explicit draft values and errors',()=>{

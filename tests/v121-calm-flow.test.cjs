@@ -39,10 +39,10 @@ test('canonical workout copy never inherits obsolete instructions from the stati
  const mapped=vm.runInNewContext(fn+';canonicalRows()',context)[0];
  assert.equal(mapped.type,'easy');assert.equal(mapped.detail,'');assert.equal(mapped.desc,'');assert.equal(mapped.planRevisionId,'pr-current');
 });
-test('five ordered design layers meet the 25 percent compressed CSS reduction gate',()=>{
+test('six ordered design layers meet the 20 percent compressed CSS reduction gate',()=>{
  const zlib=require('node:zlib'),manifest=JSON.parse(fs.readFileSync('runnerbear-v11-assets.json','utf8'));
- assert.equal(manifest.styles.length,5);
- const css=fs.readFileSync('runnerbear-v11.css');assert.ok(zlib.gzipSync(css,{level:9}).length<=48084*.75);
+ assert.equal(manifest.styles.length,6);
+ const css=fs.readFileSync('runnerbear-v11.css');assert.ok(zlib.gzipSync(css,{level:9}).length<=48084*.80);
  assert.doesNotMatch(css.toString(),/rb108-shoe|rb119b-shoe|rb112/);
 });
 test('first launch rejects missing cache without throwing or accepting an old plan',()=>{

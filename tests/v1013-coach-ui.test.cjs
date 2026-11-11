@@ -19,10 +19,10 @@ const version=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-version.json
 const assets=JSON.parse(fs.readFileSync(path.join(root,'runnerbear-v11-assets.json'),'utf8'));
 
 function assertCanonicalStyle(source){
-  assert.match(html,/runnerbear-v11\.css\?v=12600/);
+  assert.match(html,/runnerbear-v11\.css\?v=13000/);
   const migration=JSON.parse(fs.readFileSync(path.join(root,'tests/fixtures/v121-css-pruning.json'),'utf8'));
   assert.ok(migration.sources.includes(source),`${source} was consolidated in original cascade order`);
-  assert.equal(assets.styles.length,5);
+  assert.equal(assets.styles.length,6);
 }
 
 test('v10.13 mounts one coach-first brand and navigation system',()=>{
@@ -34,7 +34,7 @@ test('v10.13 mounts one coach-first brand and navigation system',()=>{
 });
 
 test('today switches from the prescription to a result-first coach surface',()=>{
-  assert.match(app,/Godt gjennomført/);
+  assert.match(app,/Slik bygger du form/);
   assert.match(app,/Coachens vurdering/);
   assert.match(app,/Se øktanalysen/);
   assert.match(app,/Vis opprinnelig plan/);
@@ -56,8 +56,8 @@ test('Achilles protection replaces an easy run with low-impact Zwift',()=>{
 });
 
 test('PWA and live build identify the same production release',()=>{
-  assert.equal(manifest.start_url,'/?app=v12600');
-  assert.equal(version.build ,'12.6.0');
+  assert.equal(manifest.start_url,'/?app=v13000');
+  assert.equal(version.build ,'13.0.0');
   assert.equal(version.channel,'live');
 });
 
@@ -71,7 +71,7 @@ test('v10.16 presents goals as evidence gates instead of misleading progress',()
 });
 
 test('v10.19b keeps More insight-first while preserving real controls',()=>{
-  assert.match(app,/Innsikt og innstillinger/);
+  assert.match(app,/Profil, tilkoblinger og innstillinger/);
   assert.match(app,/Terskelhistorikk/);
   assert.doesNotMatch(app,/Skorotasjon/);
   assert.doesNotMatch(app,/group\('Treningen din',[^]*principlesCardHtml\(\)/);
@@ -84,7 +84,7 @@ test('v10.19b gives Today three explicit, mutually exclusive states',()=>{
   assertCanonicalStyle('runnerbear-v1017-ux.css');
   assert.match(app,/Dagens økt/);
   assert.match(app,/Aktivitet registrert · analyse pågår/);
-  assert.match(app,/Godt gjennomført/);
+  assert.match(app,/Slik bygger du form/);
   assert.doesNotMatch(app,/function nextWorkoutHtml/);
   assert.doesNotMatch(app,/Ett signal fortjener oppmerksomhet/);
 });
@@ -106,7 +106,7 @@ test('v10.19b gives goal administration to Mål only',()=>{
   assert.match(goals,/data-rb109-goal-open/);
   assert.doesNotMatch(more,/data-rb109-goal-open/);
   assert.doesNotMatch(more,/Profil og mål/);
-  assert.match(more,/viewTitleHtml\('Mer'/);
+  assert.match(more,/viewTitleHtml\('Ditt RunnerBear.'/);
 });
 
 test('v10.19b presents one week with two focused lenses',()=>{
