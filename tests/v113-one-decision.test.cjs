@@ -71,7 +71,7 @@ test('v11.3 UI locks one primary decision, accessible confirmation and the four-
   assert.match(ui,/data-rb113-proposal-resolve=\"accept\"/);
   assert.match(ui,/data-rb113-proposal-resolve=\"reject\"/);
   assert.match(ui,/primary=terminal\?/);
-  assert.doesNotMatch(html,/data-tab="coach"|data-tab="health"/);
+  assert.doesNotMatch(html,/data-tab="coach"/);assert.match(html,/data-tab="health"/);
   assert.equal((html.match(/<(?:link|script)\b[^>]+(?:runnerbear-v11\.css|runnerbear-(?:core|ui|data)-v11\.js)/g)||[]).length,4);
   assert.ok(JSON.parse(fs.readFileSync('tests/fixtures/v121-css-pruning.json','utf8')).sources.includes('runnerbear-v113-one-decision.css'));
   assert.match(css,/locked Concept 1/);
