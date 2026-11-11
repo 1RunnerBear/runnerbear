@@ -109,7 +109,7 @@ test('Closed Loop UI stays inside One Decision with accessible disclosure and fo
   assert.match(css,/:focus-visible/);
   assert.match(css,/@media\(prefers-reduced-motion:reduce\)/);
   assert.ok(JSON.parse(fs.readFileSync('tests/fixtures/v121-css-pruning.json','utf8')).sources.includes('runnerbear-v114-closed-loop.css'));
-  assert.doesNotMatch(html,/data-tab="coach"|data-tab="health"/);
+  assert.doesNotMatch(html,/data-tab="coach"/);assert.match(html,/data-tab="health"/);
   assert.equal((html.match(/<(?:link|script)\b[^>]+(?:runnerbear-v11\.css|runnerbear-(?:core|ui|data)-v11\.js)/g)||[]).length,4);
 });
 
