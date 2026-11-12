@@ -32,9 +32,13 @@ function healthRow(date,sleep,hr,hrv,spo2){
   const hrvMs=firstNumber(hrvObj,['lastNightAvg','weeklyAvg','hrvValue','average']);
   const avg=firstNumber(spoObj,['averageSpO2','avgSpO2','average']);
   const min=firstNumber(spoObj,['lowestSpO2','minSpO2','minimum']);
-  const respiration=firstNumber(sleepObj,['avgRespiration','averageRespiration','respiration']);
-  const score=firstNumber(sleepObj,['sleepScore','overallSleepScore']);
-  return {date,sleepSeconds,rhr,hrvMs,spo2Avg:avg>=50&&avg<=100?avg:null,spo2Min:min>=50&&min<=100?min:null,respiration:respiration>=4&&respiration<=40?respiration:null,sleepScore:score>=0&&score<=100?score:null};
+  const nightAverage = firstNumber(sleepObj,['averageSpO2Value']);
+  const nightMinimum = firstNumber(sleepObj,['lowestSpO2Value']);
+  const sleepSpo2Avg = nightAverage >= 50 && nightAverage <= 100 ? nightAverage : null;
+  const sleepSpo2Min = nightMinimum >= 50 && nightMinimum <= 100 ? nightMinimum : null;
+  const respiration=firstNumber(sleepObj,['averageRespirationValue','avgRespiration','averageRespiration','respiration']);
+  const score=firstNumber(sleepObj.sleepScores?.overall,['value']) ?? firstNumber(sleepObj,['sleepScore','overallSleepScore']);
+  return {date,sleepSeconds,rhr,hrvMs,sleepSpo2Avg,sleepSpo2Min,spo2Avg:avg>=50&&avg<=100?avg:null,spo2Min:min>=50&&min<=100?min:null,respiration:respiration>=4&&respiration<=40?respiration:null,sleepScore:score>=0&&score<=100?score:null};
 }
 
 export async function syncGarminPersonal(env,{userId=String(env.PRIMARY_USER_ID||'primary'),days=2}={}){
@@ -81,12 +85,12 @@ export async function backfillGarminDay(env){
   const candidate=await env.DB.prepare(`WITH RECURSIVE dates(d) AS (
     SELECT date(?1,'-3 days') UNION ALL SELECT date(d,'-1 day') FROM dates WHERE d>date(?1,'-89 days')
   ) SELECT d FROM dates LEFT JOIN rb_garmin_backfill_checks c ON c.user_id=?2 AND c.date=d
-  WHERE c.checked_at IS NULL OR (c.has_data=0 AND date(c.checked_at)<=date(?1,'-7 days'))
+  WHERE c.checked_at IS NULL OR c.health_schema_version<2 OR (c.has_data=0 AND date(c.checked_at)<=date(?1,'-7 days'))
   ORDER BY c.checked_at IS NOT NULL,d DESC LIMIT 1`).bind(today,userId).first();
   if(!candidate)return;
   const saved=await importHealthDate(env,userId,candidate.d,await getAccessToken(env,userId));
-  await env.DB.prepare(`INSERT INTO rb_garmin_backfill_checks(user_id,date,checked_at,has_data)
-    VALUES (?1,?2,?3,?4) ON CONFLICT(user_id,date) DO UPDATE SET checked_at=excluded.checked_at,has_data=excluded.has_data`)
+  await env.DB.prepare(`INSERT INTO rb_garmin_backfill_checks(user_id,date,checked_at,has_data,health_schema_version)
+    VALUES (?1,?2,?3,?4,2) ON CONFLICT(user_id,date) DO UPDATE SET checked_at=excluded.checked_at,has_data=excluded.has_data,health_schema_version=excluded.health_schema_version`)
     .bind(userId,candidate.d,new Date().toISOString(),saved?1:0).run();
 }
 
