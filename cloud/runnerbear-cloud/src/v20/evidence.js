@@ -24,6 +24,10 @@ export function attachFitEvidence(activities=[],shadow=[]){
  return activities.map((a,i)=>{
   if(candidates[i].length!==1)return a;const row=candidates[i][0];if(candidates.filter(rows=>rows.some(x=>x.activity_id===row.activity_id)).length!==1)return a;
   const fit=parse(row.fit_analysis);if(fit?.version!==1||!Array.isArray(fit.laps)||fit.laps.length>1000)return a;
-  return{...a,payload:{...a.payload,detail:{...a.payload?.detail,garminFit:{...fit,activityId:row.activity_id,source:'garmin_personal_observed',matchBasis:'unique_date_sport_duration_distance'}}}};
+  const cycling=kind(parse(row.summary_json)?.sport)==='bike';
+  // A lap average below 40 bpm under sustained power is unreliable for exercise interpretation.
+  const suspectHrLaps=cycling?fit.laps.filter(lap=>lap.seconds>=20 && lap.avgPower>=100 &&
+    typeof lap.avgHr==='number' && lap.avgHr>=0 && lap.avgHr<40).length:0;
+  return{...a,payload:{...a.payload,detail:{...a.payload?.detail,garminFit:{...fit,suspectHrLaps,activityId:row.activity_id,source:'garmin_personal_observed',matchBasis:'unique_date_sport_duration_distance'}}}};
  });
 }

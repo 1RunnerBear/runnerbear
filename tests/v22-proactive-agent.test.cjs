@@ -33,7 +33,7 @@ for(const [n,seconds] of [[6,360],[4,480],[3,600],[20,45]])test(`agent analysis 
 });
 test('ramps, unknown structures, zeros and user pace corrections stay honest',async()=>{
  const [, {analyzeWorkout}]=await modules,base={source_id:'a',date:today,sport_type:'cycling',payload:{title:'FTP Ramp Test',detail:{garminFit:{laps:[{intensity:'active',seconds:60,avgPower:200},{intensity:'active',seconds:60,avgPower:0}]}}}};
- const a=analyzeWorkout(base);assert.equal(a.structure,'ramp');assert.equal(a.workPower,100);assert.match(a.findings.at(-1).text,/Verken.*FTP/);
+ const a=analyzeWorkout(base);assert.equal(a.structure,'ramp');assert.equal(a.workPower,null);assert.match(a.findings.at(-1).text,/Verken.*FTP/);
  const run=analyzeWorkout({...base,sport_type:'running',payload:{title:'Run',paceCorrection:{mode:'set',paceSeconds:240},detail:{garminFit:{laps:[{intensity:'active',seconds:600,distanceM:1900}]}}}});assert.equal(run.workPace,240);
 });
 test('subjective safety takes precedence and repeated windows do not assert causation',async()=>{

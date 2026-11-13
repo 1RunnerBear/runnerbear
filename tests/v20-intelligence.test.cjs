@@ -12,12 +12,12 @@ test('today never treats a historical plan as today completion; attention wins',
 test('FIT evidence needs a unique match both ways, never replaces canonical activity or matches unrelated sport',async()=>{const {attachFitEvidence}=await import('../cloud/runnerbear-cloud/src/v20/evidence.js');const activity={date:'2026-11-10',sport_type:'cycling',duration_seconds:3600,distance_m:30000,payload:{title:'Ride'}},fit={activity_id:'one',local_date:'2026-11-10',summary_json:JSON.stringify({sport:'virtual_ride',durationSeconds:3600,distanceM:30000}),fit_analysis:JSON.stringify({version:1,laps:[{intensity:'active',seconds:600,avgPower:240}]})};assert.ok(attachFitEvidence([activity],[fit])[0].payload.detail.garminFit);assert.equal(activity.payload.detail,undefined);assert.equal(attachFitEvidence([activity],[fit,{...fit,activity_id:'two'}])[0],activity);assert.equal(attachFitEvidence([activity,{...activity}],[fit])[0],activity);assert.equal(attachFitEvidence([{...activity,sport_type:'running'}],[fit])[0].payload.detail,undefined)});
 test('health projection labels direct observations, preserves original data and does not invent missing metrics',async()=>{const {mergeHealthEvidence}=await import('../cloud/runnerbear-cloud/src/v20/evidence.js');const canonical=[{date:'2026-11-10',hrv_ms:40,sleep_seconds:26000,health_source:'tredict'}],shadow=[{date:'2026-11-10',metrics:JSON.stringify({hrvMs:42,spo2Avg:96,spo2Min:81,sleepSpo2Avg:101,sleepSpo2Min:88}),updated_at:'2026-11-11T07:00:00Z'}];const [row]=mergeHealthEvidence(canonical,shadow);assert.equal(row.hrv_ms,42);assert.equal(row.sleep_seconds,26000);assert.equal(row.spo2_avg_pct,undefined);assert.equal(row.spo2_min_pct,88);assert.equal(row.health_source,'mixed');assert.equal(canonical[0].hrv_ms,40)});
 test('user-corrected work pace takes precedence without altering raw FIT measurements',()=>{const a={sportType:'running',paceCorrection:{mode:'set',paceSeconds:240},detail:{garminFit:{laps:[{intensity:'active',seconds:600,distanceM:2000,avgHr:160}]}}},x=intel.workout(a);assert.equal(x.pace,240);assert.equal(x.work[0].pace,240);assert.equal(a.detail.garminFit.laps[0].distanceM,2000);assert.match(x.source,/oppgitt av deg/);assert.equal(intel.workout({...a,paceCorrection:{mode:'unreliable'}}).pace,null)});
-test('measured zero watts is retained and weighted while absent power remains missing',()=>{const x=intel.workout({sportType:'cycling',detail:{garminFit:{laps:[{intensity:'active',seconds:60,avgPower:200},{intensity:'active',seconds:60,avgPower:0},{intensity:'rest',seconds:60}]}}});assert.equal(x.work[1].power,0);assert.equal(x.blocks[2].power,null);assert.equal(x.power,100);const varied=intel.workout({sportType:'cycling',detail:{garminFit:{laps:[200,200,200,0].map(avgPower=>({intensity:'active',seconds:60,avgPower}))}}});assert.ok(varied.spread>1)});
+test('measured zero watts is retained and weighted while absent power remains missing',()=>{const x=intel.workout({sportType:'cycling',detail:{garminFit:{laps:[{intensity:'active',seconds:60,avgPower:200},{intensity:'active',seconds:60,avgPower:0},{intensity:'rest',seconds:60}]}}});assert.equal(x.work[1].power,0);assert.equal(x.blocks[2].power,null);assert.equal(x.power,100);const varied=intel.workout({sportType:'cycling',detail:{garminFit:{laps:[200,200,200,0].map(avgPower=>({intensity:'active',seconds:60,avgPower}))}}});assert.equal(varied.spread,null);assert.equal(varied.work.length,0)});
 test('ramp and unconfirmed active laps never claim steady intervals',()=>{
  const laps=[200,210,220].map(avgPower=>({intensity:'active',seconds:60,avgPower}));
  const ramp=intel.workout({title:'FTP Ramp Test',sportType:'cycling',detail:{garminFit:{laps}}});
  assert.equal(ramp.structure,'ramp');assert.match(ramp.title,/Ramptesten/);assert.doesNotMatch(ramp.findings.join(' '),/Arbeidsdragene/);
- const unknown=intel.workout({sportType:'cycling',detail:{garminFit:{laps}}});assert.equal(unknown.structure,'unknown');assert.match(unknown.findings.join(' '),/bekrefter ikke/);
+ const unknown=intel.workout({sportType:'cycling',detail:{garminFit:{laps}}});assert.equal(unknown.structure,'unknown');assert.match(unknown.findings.join(' '),/ikke sikkert merket/);
 });
 
 test('Tredict rowing subtype links one Garmin FIT to the existing workout',async()=>{
@@ -29,4 +29,24 @@ test('Tredict rowing subtype links one Garmin FIT to the existing workout',async
  assert.equal(enriched.payload.detail.garminFit.activityId,'123');
  assert.equal(analyzeWorkout(enriched).sport,'row');
  assert.equal(attachFitEvidence([row,{...row,source_id:'row-2'}],[fit])[0].payload,undefined);
+});
+
+test('both workout views preserve generic FIT laps and flag implausible cycling HR',async()=>{
+ const {attachFitEvidence}=await import('../cloud/runnerbear-cloud/src/v20/evidence.js');
+ const {analyzeWorkout}=await import('../cloud/runnerbear-cloud/src/v22/workout.js');
+ const row={sport_type:'cycling',date:'2026-11-01',duration_seconds:180,source:'tredict',source_id:'ride'};
+ const laps=[{avgPower:150,avgHr:23},{avgPower:210,avgHr:150},{avgPower:100,avgHr:null}]
+  .map(b=>({...b,seconds:60,intensity:'active'}));
+ const fit={activity_id:'fixture',local_date:row.date,summary_json:JSON.stringify({sport:'virtual_ride',durationSeconds:180}),fit_analysis:JSON.stringify({version:1,laps})};
+ const [a]=attachFitEvidence([row],[fit]);
+ assert.equal(a.payload.detail.garminFit.suspectHrLaps,1);
+ assert.deepEqual(a.payload.detail.garminFit.laps,laps);
+ const view=intel.workout({sportType:'cycling',detail:a.payload.detail}),coach=analyzeWorkout(a);
+ assert.equal(view.blocks.length,3);assert.equal(view.work.length,0);assert.equal(view.hr,null);
+ assert.equal(coach.workCount,0);assert.equal(coach.workHr,null);assert.equal(coach.structure,'unknown');
+ assert.match(view.findings.join(' '),/sensorutfall/);assert.match(coach.findings.map(f=>f.text).join(' '),/sensorutfall/);
+ // Explicit recovery preserves work power, with suspect HR excluded.
+ a.payload.detail.garminFit.laps[2].intensity='rest';
+ assert.equal(analyzeWorkout(a).workPower,180);assert.equal(analyzeWorkout(a).workHr,null);
+ assert.equal(intel.workout({detail:a.payload.detail}).hr,null);
 });

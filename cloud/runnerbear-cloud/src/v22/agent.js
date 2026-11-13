@@ -2,7 +2,7 @@ import {readFocus} from './focus.js';
 import {median,healthEvidence,analyzeHealth,responseAfter,localDay,addDays,parse} from './health.js';
 import {analyzeWorkout,compareWorkouts} from './workout.js';
 import {attachFitEvidence} from '../v20/evidence.js';
-export const AGENT_POLICY='insight-guidance-3';
+export const AGENT_POLICY='insight-guidance-4';
 export const AGENT_VERSION='proactive-agent-1';
 export const agentEnabled=env=>String(env.RUNNERBEAR_AGENT_INSIGHTS||'true')!=='false';
 const json=(body,status=200,headers={})=>Response.json(body,{status,headers:{'cache-control':'no-store',...headers}});
