@@ -1,3 +1,4 @@
+import {hasExecutionEvidence,referencesWorkout} from './workout-evidence.js';
 import { paceCorrections } from './pace-correction.js';
 import { BUILD,SCHEMA_VERSION } from './constants.js';
 import { activePlan,athleteConfig,flags,latestDecision,recentDecisionHistory,syncStatus } from './repository.js';
@@ -27,7 +28,19 @@ async function responseState(db,userId,scope='home'){
   const ageHours=value=>value?Math.max(0,(Date.now()-Date.parse(value))/3600000):null,measurementAge=ageHours(measurement),syncAge=ageHours(ingested),freshness=measurementAge==null||measurementAge>36||syncAge==null?'stale':measurementAge<=18&&syncAge<=6?'fresh':'partial';
   return{health:{latest,days:healthRows.length,measurementTime:measurement,ingestionTime:ingested,freshness,baselineEstablished:healthRows.slice(1).filter(row=>Number.isFinite(Number(row.hrv_ms))||Number.isFinite(Number(row.sleep_seconds))||Number.isFinite(Number(row.rhr_bpm))).length>=10},paceCorrections:corrections,recentActivities:activityRows,activityHistory:activityHistory({rows:activityRows,limit:activityLimit,sync}),calendarMirror:mirror||null,responseEvents:eventRows,responseCheckins:checkinRows,clientState:publicClientState(parse(state?.payload_json,{})),syncSource:sync||null};
 }
-function goalConfidence(plan,response){const activityDates=new Set(response.recentActivities.map(row=>row.date)),responses=new Set(response.responseEvents.filter(row=>row.event_type==='feedback:workout'&&row.payload?.responsePhase==='next_morning').map(row=>String(row.payload?.workoutId||''))),points=(plan.items||[]).filter(row=>(row.workoutType==='quality'||/gate/i.test(row.title||''))&&(row.status==='completed'||activityDates.has(row.localDate))).map(row=>({workoutId:row.workoutId,date:row.localDate,kind:/gate/i.test(row.title||'')?'gate':'quality',nextDayResponse:responses.has(String(row.workoutId))})),vo2Available=response.recentActivities.some(row=>{const payload=row.payload||{};return Number.isFinite(Number(payload.vo2Max??payload.vo2_max??payload.vo2max))});return assessGoalConfidence({points,vo2Available})}
+export function goalConfidence(plan,response){
+  const points=(plan.items||[]).filter(item=>(item.workoutType==='quality'||/gate/i.test(item.title||'')) &&
+    hasExecutionEvidence(item,response.recentActivities)).map(item=>({
+      workoutId:item.workoutId,date:item.localDate,kind:/gate/i.test(item.title||'')?'gate':'quality',
+      nextDayResponse:response.responseEvents.some(event=>event.event_type==='feedback:workout' &&
+        event.payload?.responsePhase==='next_morning' && referencesWorkout(event,item)),
+    }));
+  const vo2Available=response.recentActivities.some(row=>{
+    const value=row.payload?.vo2Max??row.payload?.vo2_max??row.payload?.vo2max;
+    return Number.isFinite(Number(value)) && Number(value)>0;
+  });
+  return assessGoalConfidence({points,vo2Available});
+}
 function publicRealignment(proposal){if(!proposal)return null;const {rows,changes,...summary}=proposal;return{...summary,changes:(changes||[]).map(change=>({workoutId:change.workoutId,localDate:change.localDate}))}}
 export async function bootstrapV2(env,userId,scope='home',coachState=null){
   const [featureFlags,config,plan]=await Promise.all([flags(env.DB,userId),athleteConfig(env.DB,userId),activePlan(env.DB,userId)]);

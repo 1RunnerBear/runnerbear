@@ -1,7 +1,7 @@
 export const ONE_DECISION_VERSION='one-decision-1';
 export const ONE_DECISION_BUILD='11.3.0';
 
-const TERMINAL_STATUSES=new Set(['completed','replaced','cancelled','skipped','expired']);
+const inactiveLabels=new Map([['replaced','erstattet'],['cancelled','avlyst'],['skipped','hoppet over'],['expired','utløpt']]);
 const ACTION_KINDS=new Set(['open_workout','review_adjustment','complete_checkin','view_result','view_plan']);
 const REASON_LABELS=Object.freeze({
   LOW_HRV:'HRV ligger lavere enn normalen din.',
@@ -98,7 +98,11 @@ function baseEnvelope(bootstrap,now){
 export function buildOneDecision(bootstrap={},options={}){
   const now=options.now||new Date().toISOString(),envelope=baseEnvelope(bootstrap,now),workout=envelope.workout;
   if(!bootstrap||bootstrap.needsMigration||!envelope.planRevisionId||bootstrap?.activePlan?.planRevisionId&&bootstrap.activePlan.planRevisionId!==envelope.planRevisionId)return envelope;
-  if(workout&&TERMINAL_STATUSES.has(workout.status))return{...envelope,freshness:'current',state:'completed',tone:'calm',headline:'Dagens økt er registrert',summary:'Resultatet er klart for gjennomgang. Planen videre vurderes fra den registrerte responsen.',evidence:[{id:`result:${workout.status}`,label:workout.status==='completed'?'Økten er markert gjennomført.':'Dagens planstatus er oppdatert.',source:'Aktivitetslogg',tone:'support'}],primaryAction:{kind:'view_result',label:'Se dagens resultat'}};
+  if(inactiveLabels.has(workout?.status))return{...envelope,freshness:'current',state:'follow',tone:'calm',
+    headline:'Planøkten er '+inactiveLabels.get(workout.status),summary:'Se gjeldende økter i planen.',
+    evidence:[{id:'plan:'+workout.status,label:'Status fra planrevisjonen.',source:'Aktiv plan',tone:'support'}],
+    primaryAction:{kind:'view_plan',label:'Se planen'}};
+  if(workout?.status==='completed')return{...envelope,freshness:'current',state:'completed',tone:'calm',headline:'Dagens økt er registrert',summary:'Resultatet er klart for gjennomgang. Planen videre vurderes fra den registrerte responsen.',evidence:[{id:`result:${workout.status}`,label:'Økten er markert gjennomført.',source:'Aktivitetslogg',tone:'support'}],primaryAction:{kind:'view_result',label:'Se dagens resultat'}};
   if(workout?.workoutType==='rest'||workout?.sport==='rest')return{...envelope,freshness:'current',state:'rest',tone:'calm',headline:'Prioriter hvile i dag',summary:'Hviledagen er en del av den aktive planen og beskytter neste treningsstimulus.',evidence:[{id:'plan:rest',label:'Planlagt restitusjonsdag.','source':'Aktiv plan',tone:'support'}],primaryAction:{kind:'view_plan',label:'Se planen'}};
   const decision=currentDecision(bootstrap,now);
   if(!decision)return envelope;

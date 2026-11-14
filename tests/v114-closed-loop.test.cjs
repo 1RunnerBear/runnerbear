@@ -131,3 +131,24 @@ test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>
   assert.match(healthGate,/x\.coachContinuityVersion==='coach-continuity-1'/);
   assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,20);
 });
+
+test('goal evidence and coach follow-up require completed status or a linked activity',async()=>{
+ const {goalConfidence}=await import('../cloud/runnerbear-cloud/src/v11/read-model.js');
+ const {buildCoachContinuity,buildOneDecisionV2}=await import('../cloud/runnerbear-cloud/src/v114/closed-loop.js');
+ const item={...today,workoutType:'quality',planRevisionId:'pr-114'};
+ function evaluate(workout,activity){
+  const input={...bootstrap,todayWorkout:workout,activePlan:{planRevisionId:'pr-114',items:[workout]},recentActivities:[activity]};
+  return [goalConfidence(input.activePlan,input).sampleCount,buildCoachContinuity(input).followUp.required,buildOneDecisionV2(input).primaryAction.kind];
+ }
+ const activity={date:item.localDate,payload:{workoutId:item.workoutId,planRevisionId:'pr-114'}};
+ assert.deepEqual(evaluate(item,{date:item.localDate}),[0,false,'open_workout']);
+ assert.deepEqual(evaluate(item,{...activity,payload:{...activity.payload,planRevisionId:'older'}}),[0,false,'open_workout']);
+ assert.deepEqual(evaluate(item,activity),[1,true,'complete_feedback']);
+ for(const status of ['cancelled','skipped','replaced','expired'])assert.deepEqual(evaluate({...item,status},activity),[0,false,'view_plan']);
+});
+
+test('an old workout cannot move the coach follow-up window into the past',async()=>{
+ const {buildCoachContinuity}=await import('../cloud/runnerbear-cloud/src/v114/closed-loop.js');
+ const input={...bootstrap,todayWorkout:yesterday,generatedAt:'2026-09-10T08:00:00Z'};
+ assert.equal(buildCoachContinuity(input).followUp.required,false);
+});
