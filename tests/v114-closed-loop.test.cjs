@@ -129,7 +129,7 @@ test('v11.4 release remains intact beneath the v11.4.1 reliability wrapper',()=>
   assert.match(healthGate,/x\.cloudBuild===EXPECTED_BUILD/);
   assert.match(healthGate,/x\.oneDecisionVersion==='one-decision-2'/);
   assert.match(healthGate,/x\.coachContinuityVersion==='coach-continuity-1'/);
-  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,20);
+  assert.equal(fs.readdirSync('cloud/runnerbear-cloud/migrations').filter(name=>name.endsWith('.sql')).length,21);
 });
 
 test('goal evidence and coach follow-up require completed status or a linked activity',async()=>{

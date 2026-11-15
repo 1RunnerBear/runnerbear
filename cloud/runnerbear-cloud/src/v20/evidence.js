@@ -13,21 +13,41 @@ export function mergeHealthEvidence(canonical=[],shadow=[]){
  return [...days.values()].sort((a,b)=>a.date.localeCompare(b.date));
 }
 const kind=s=>/run|treadmill/i.test(s||'')?'run':/cycl|bik|virtual_ride/i.test(s||'')?'bike':/row/i.test(s||'')?'row':/swim/i.test(s||'')?'swim':'unknown';
+function matchBasis(a,row){
+ const summary=parse(row.summary_json);
+ if(!summary||!row.fit_analysis||row.local_date!==a.date)return null;
+ const sport=kind(a.sport_type==='misc'?a.sub_sport_type:a.sport_type);
+ if(sport==='unknown'||sport!==kind(summary.sport))return null;
+ const d=number(a.duration_seconds,1,86400),g=number(summary.durationSeconds,1,86400);
+ if(!d||!g)return null;
+ const durationClose=value=>Math.abs(d-value)<=Math.max(10,d*.01);
+ const hasDistance=a.distance_m>0&&summary.distanceM>0;
+ const distanceDelta=Math.abs(a.distance_m-summary.distanceM);
+ const distanceClose=hasDistance&&distanceDelta<=Math.max(25,a.distance_m*.01);
+ if(durationClose(g)&&(!hasDistance||distanceClose))return 'unique_date_sport_duration_distance';
+ // Same UTC second from both providers is mandatory for either exception.
+ const utcSecond=value=>typeof value==='string'&&value.endsWith('Z')?Math.floor(Date.parse(value)/1000):NaN;
+ if(utcSecond(a.payload?.date)!==utcSecond(summary.startUtc))return null;
+ if(sport==='swim'&&distanceClose&&number(summary.movingSeconds,1,g)&&durationClose(summary.movingSeconds))
+   return 'unique_utc_sport_moving_duration_distance';
+ if(sport==='row'&&durationClose(g)&&hasDistance&&distanceDelta<=a.distance_m*.03)
+   return 'unique_utc_sport_duration_row_distance';
+ return null;
+}
 export function attachFitEvidence(activities=[],shadow=[]){
- const candidates=activities.map(a=>shadow.filter(row=>{
-  const summary=parse(row.summary_json);if(!summary||!row.fit_analysis||row.local_date!==a.date)return false;
-  const sport=kind(a.sport_type==='misc'?a.sub_sport_type:a.sport_type),garminSport=kind(summary.sport);if(sport==='unknown'||sport!==garminSport)return false;
-  const d=number(a.duration_seconds,1,86400),g=number(summary.durationSeconds,1,86400);if(!d||!g||Math.abs(d-g)>Math.max(10,d*.01))return false;
-  if(a.distance_m>0&&summary.distanceM>0&&Math.abs(a.distance_m-summary.distanceM)>Math.max(25,a.distance_m*.01))return false;
-  return true;
+ const candidates=activities.map(a=>shadow.flatMap(row=>{
+  const basis=matchBasis(a,row);
+  return basis?[{row,basis}]:[];
  }));
  return activities.map((a,i)=>{
-  if(candidates[i].length!==1)return a;const row=candidates[i][0];if(candidates.filter(rows=>rows.some(x=>x.activity_id===row.activity_id)).length!==1)return a;
+  if(candidates[i].length!==1)return a;
+  const {row,basis}=candidates[i][0];
+  if(candidates.filter(rows=>rows.some(x=>x.row.activity_id===row.activity_id)).length!==1)return a;
   const fit=parse(row.fit_analysis);if(fit?.version!==1||!Array.isArray(fit.laps)||fit.laps.length>1000)return a;
   const cycling=kind(parse(row.summary_json)?.sport)==='bike';
   // A lap average below 40 bpm under sustained power is unreliable for exercise interpretation.
   const suspectHrLaps=cycling?fit.laps.filter(lap=>lap.seconds>=20 && lap.avgPower>=100 &&
     typeof lap.avgHr==='number' && lap.avgHr>=0 && lap.avgHr<40).length:0;
-  return{...a,payload:{...a.payload,detail:{...a.payload?.detail,garminFit:{...fit,suspectHrLaps,activityId:row.activity_id,source:'garmin_personal_observed',matchBasis:'unique_date_sport_duration_distance'}}}};
+  return{...a,payload:{...a.payload,detail:{...a.payload?.detail,garminFit:{...fit,suspectHrLaps,activityId:row.activity_id,source:'garmin_personal_observed',matchBasis:basis}}}};
  });
 }

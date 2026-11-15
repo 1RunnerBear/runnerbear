@@ -50,3 +50,19 @@ test('both workout views preserve generic FIT laps and flag implausible cycling 
  assert.equal(analyzeWorkout(a).workPower,180);assert.equal(analyzeWorkout(a).workHr,null);
  assert.equal(intel.workout({detail:a.payload.detail}).hr,null);
 });
+
+test('same-second UTC supports bounded swimming and rowing differences without duplicate matches',async()=>{
+ const {attachFitEvidence}=await import('../cloud/runnerbear-cloud/src/v20/evidence.js');
+ for(const [sport,timer,moving,recorded,distance,recordedDistance] of [
+  ['lap_swimming',3000,2700,2705,2500,2500],['indoor_rowing',3600,3300,3570,12200,12000]]){
+  const date='2026-10-25',summary={sport,durationSeconds:timer,movingSeconds:moving,distanceM:distance,startUtc:date+'T08:00:00.000Z'};
+  const a={date,sport_type:sport,duration_seconds:recorded,distance_m:recordedDistance,payload:{date:date+'T08:00:00.038Z'}};
+  const row={local_date:date,activity_id:'one',summary_json:JSON.stringify(summary),fit_analysis:'{"version":1,"laps":[]}'};
+  assert.match(attachFitEvidence([a],[row])[0].payload.detail.garminFit.matchBasis,/unique_utc_/);
+  assert.equal(attachFitEvidence([a,a],[row])[0],a);
+  assert.equal(attachFitEvidence([a],[row,{...row,activity_id:'two'}])[0],a);
+  for(const startUtc of [null,date+'T08:00:01Z',date+'T08:00:00']){
+   assert.equal(attachFitEvidence([a],[{...row,summary_json:JSON.stringify({...summary,startUtc})}])[0],a);
+  }
+ }
+});

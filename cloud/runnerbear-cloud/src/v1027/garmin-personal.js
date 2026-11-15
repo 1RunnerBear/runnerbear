@@ -119,9 +119,17 @@ async function importActivityWindow(env,user,token,start,end){
     const id=String(row.activityId||''),day=String(row.startTimeLocal||'').slice(0,10);
     if(!/^\d+$/.test(id)||!safeDate(day)||day<start||day>end)continue;
     const summary={sport:row.activityType?.typeKey||null,durationSeconds:firstNumber(row,['duration']),distanceM:firstNumber(row,['distance']),avgHr:firstNumber(row,['averageHR']),avgWatts:firstNumber(row,['avgPower','averagePower'])};
+    // Garmin's GMT timestamp omits the zone. Never use startTimeLocal for UTC matching.
+    if(typeof row.startTimeGMT==='string' && /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z?$/.test(row.startTimeGMT)){
+      const utc=row.startTimeGMT.replace(' ','T').replace(/Z?$/,'Z');
+      if(Number.isFinite(Date.parse(utc)))summary.startUtc=new Date(utc).toISOString();
+    }
+    summary.movingSeconds=firstNumber(row,['movingDuration']);
     statements.push(env.DB.prepare(`INSERT INTO rb_garmin_activity_shadow(user_id,activity_id,local_date,summary_json)
       VALUES(?1,?2,?3,?4) ON CONFLICT(user_id,activity_id) DO UPDATE SET
-      local_date=excluded.local_date,summary_json=excluded.summary_json`).bind(user,id,day,JSON.stringify(summary)));
+      local_date=excluded.local_date,
+      summary_json=json_patch(rb_garmin_activity_shadow.summary_json,
+        (SELECT json_group_object(key,value) FROM json_each(excluded.summary_json) WHERE type!='null'))`).bind(user,id,day,JSON.stringify(summary)));
   }
   if(statements.length)await env.DB.batch(statements);
   return statements.length;
